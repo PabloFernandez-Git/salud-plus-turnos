@@ -1,8 +1,9 @@
 # Estado actual
 
-**Fase:** Bootstrap del proyecto  
-**Tarea activa:** TASK-001 — Project Bootstrap  
-**Estado:** en progreso
+**Fase:** Bootstrap del proyecto completado
+**Tarea activa:** ninguna
+**Última tarea completada:** TASK-001 — Project Bootstrap
+**Estado:** cerrada con Review PASS
 
 ## Completado
 
@@ -16,20 +17,14 @@
 - Documentación consolidada dentro de `docs/`.
 - Documentación técnica modularizada en `docs/decisions/` y `docs/stack/` para facilitar el context routing.
 - Repositorio público de GitHub creado y remoto confirmado.
-
-## Pendiente para cerrar TASK-001
-
-- Ejecutar el proyecto en Node.js 24.
-- Activar pnpm 11.26.0.
-- Ejecutar `pnpm install` y versionar el `pnpm-lock.yaml` resultante.
-- Ejecutar `pnpm bootstrap`.
-- Ejecutar `pnpm format:check`, `pnpm check` y `pnpm build`.
-- Corregir cualquier incompatibilidad real detectada por esas verificaciones.
-- Review final y archivo de TASK-001.
+- Node.js 24 y pnpm 11.26.0 validados en runtime.
+- Dependencias instaladas y lockfile congelado verificado.
+- Bootstrap, formato, lint, tipos, tests y build verificados.
+- TASK-001 aceptada con Review PASS y archivada.
 
 ## Próximo
 
-**TASK-002 — React Big Calendar Spike** con mock data, validando Día, Semana y Mes antes de adoptar definitivamente la librería.
+**TASK-002 — React Big Calendar Spike**, pendiente de inicio, con mock data y validación de las vistas Día, Semana y Mes antes de adoptar definitivamente la librería.
 
 ## Decisiones postergadas
 
