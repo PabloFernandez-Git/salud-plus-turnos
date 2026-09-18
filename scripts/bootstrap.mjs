@@ -16,7 +16,11 @@ if (nodeMajor !== 24) {
 }
 
 try {
-  const pnpmVersion = execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
+  const pnpmVersion = execFileSync("pnpm", ["--version"], {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  }).trim();
+
   if (expectedPnpm && pnpmVersion !== expectedPnpm) {
     errors.push(`pnpm ${expectedPnpm} requerido; actual: ${pnpmVersion}`);
   } else {
