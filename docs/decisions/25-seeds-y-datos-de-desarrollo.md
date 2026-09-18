@@ -226,7 +226,7 @@ E2E setup
 
 ## Relación con el spike de agenda
 
-El spike inicial de React Big Calendar seguirá utilizando mock data y no dependerá de Supabase.
+El spike inicial de React Big Calendar utilizó mock data y no dependió de Supabase.
 
 Cuando la agenda se conecte a datos reales, el seed DEV deberá facilitar escenarios como:
 
