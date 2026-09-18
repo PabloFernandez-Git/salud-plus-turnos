@@ -1,8 +1,8 @@
 # Estado actual
 
-**Fase:** Bootstrap del proyecto completado
+**Fase:** Spike técnico de agenda completado
 **Tarea activa:** ninguna
-**Última tarea completada:** TASK-001 — Project Bootstrap
+**Última tarea completada:** TASK-002 — React Big Calendar Spike
 **Estado:** cerrada con Review PASS
 
 ## Completado
@@ -21,14 +21,20 @@
 - Dependencias instaladas y lockfile congelado verificado.
 - Bootstrap, formato, lint, tipos, tests y build verificados.
 - TASK-001 aceptada con Review PASS y archivada.
+- TASK-002 validó React Big Calendar con mock data determinista en las vistas Día, Semana y Mes,
+  incluidas verificaciones visuales a 375 px, 768 px y 1280 px.
+- React Big Calendar adoptado como librería base de la agenda para el MVP, con enfoque
+  desktop-first y limitaciones responsive/de simultaneidad aceptadas.
+- TASK-002 aceptada con Review PASS, decisión humana registrada y archivada.
 
 ## Próximo
 
-**TASK-002 — React Big Calendar Spike**, pendiente de inicio, con mock data y validación de las vistas Día, Semana y Mes antes de adoptar definitivamente la librería.
+Definir el Task Brief de la implementación productiva de la agenda del MVP sobre React Big Calendar.
+La nueva tarea deberá integrar datos, permisos y reglas reales sin promover automáticamente el spike
+experimental ni ampliar el alcance funcional aprobado.
 
 ## Decisiones postergadas
 
-- Librería final de agenda: después del spike.
 - Email/recovery provider definitivo.
 - Rate limiting concreto antes de producción pública.
 - Playwright completo en CI cuando E2E tenga entorno aislado.

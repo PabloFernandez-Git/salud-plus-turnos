@@ -5,7 +5,6 @@ No quedan decisiones arquitectónicas previas imprescindibles antes de crear el 
 Quedan deliberadamente postergadas hasta el momento en que aporten valor:
 
 - proveedor/configuración final de email para recuperación de contraseña;
-- elección definitiva de la librería de agenda, después del spike;
 - implementación concreta de rate limiting;
 - incorporación completa de Playwright a CI cuando exista un entorno E2E reproducible;
 - incorporación de Sentry u observabilidad adicional si el producto lo necesita;

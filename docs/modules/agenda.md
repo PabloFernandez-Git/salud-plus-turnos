@@ -36,4 +36,14 @@ Los turnos cancelados no bloquean disponibilidad y no necesitan ocupar la agenda
 
 No hay drag & drop, impresión/exportación ni sincronización externa en MVP.
 
-La librería de calendario todavía no está decidida: TASK-002 valida React Big Calendar mediante spike.
+## Decisión técnica para el MVP
+
+React Big Calendar es la librería base adoptada para la agenda. La implementación será
+desktop-first y conservará una experiencia operable en anchos menores mediante scroll horizontal
+cuando sea necesario.
+
+La configuración se adaptará por vista: Día usará profesionales como recursos, Semana mantendrá los
+días como columnas principales sin recursos de la librería y Mes usará un resumen diario
+personalizado. Esta decisión técnica no modifica las reglas funcionales anteriores.
+
+Detalle y limitaciones aceptadas: [`docs/decisions/10-agenda-calendario.md`](../decisions/10-agenda-calendario.md).
