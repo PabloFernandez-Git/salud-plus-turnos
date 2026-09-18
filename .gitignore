@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# next
+.next/
+out/
+
+# tests
+playwright-report/
+test-results/
+coverage/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# vercel
+.vercel/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# logs
+*.log
+
+# generated local artifacts
+*.tsbuildinfo
