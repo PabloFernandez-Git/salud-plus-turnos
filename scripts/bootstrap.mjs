@@ -16,9 +16,9 @@ if (nodeMajor !== 24) {
 }
 
 try {
-  const pnpmVersion = execFileSync("pnpm", ["--version"], {
+  const pnpmExecutable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const pnpmVersion = execFileSync(pnpmExecutable, ["--version"], {
     encoding: "utf8",
-    shell: process.platform === "win32",
   }).trim();
 
   if (expectedPnpm && pnpmVersion !== expectedPnpm) {
