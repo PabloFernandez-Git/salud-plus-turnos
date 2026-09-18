@@ -16,10 +16,12 @@ if (nodeMajor !== 24) {
 }
 
 try {
-  const pnpmExecutable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const pnpmVersion = execFileSync(pnpmExecutable, ["--version"], {
-    encoding: "utf8",
-  }).trim();
+  const pnpmVersion =
+    process.platform === "win32"
+      ? execFileSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", "pnpm --version"], {
+          encoding: "utf8",
+        }).trim()
+      : execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim();
 
   if (expectedPnpm && pnpmVersion !== expectedPnpm) {
     errors.push(`pnpm ${expectedPnpm} requerido; actual: ${pnpmVersion}`);
