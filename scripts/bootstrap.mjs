@@ -1,5 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import {
+  assertLinkedSupabaseProject,
+  loadSupabaseDevConfig,
+  SupabaseDevConfigError,
+} from "./lib/supabase-dev-env.mjs";
 
 const errors = [];
 const warnings = [];
@@ -40,21 +45,16 @@ if (!existsSync(new URL("../node_modules", import.meta.url))) {
   warnings.push("node_modules no existe. Ejecutar pnpm install.");
 }
 
-const envPath = new URL("../.env.local", import.meta.url);
-if (!existsSync(envPath)) {
-  warnings.push(".env.local no existe. Es esperado hasta configurar Supabase DEV.");
-} else {
-  const envText = readFileSync(envPath, "utf8");
-  for (const key of [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "SUPABASE_DEV_PROJECT_REF",
-  ]) {
-    if (!new RegExp(`^${key}=.+$`, "m").test(envText)) {
-      warnings.push(`${key} no está configurada en .env.local`);
-    }
-  }
+try {
+  loadSupabaseDevConfig();
+  assertLinkedSupabaseProject();
+  info.push("configuración Supabase DEV coherente y proyecto linkeado");
+} catch (error) {
+  errors.push(
+    error instanceof SupabaseDevConfigError
+      ? error.message
+      : "No se pudo validar la configuración Supabase DEV.",
+  );
 }
 
 console.log("Bootstrap check");
