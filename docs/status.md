@@ -1,8 +1,8 @@
 # Estado actual
 
-**Fase:** Spike técnico de agenda completado
+**Fase:** Infraestructura Supabase DEV completada
 **Tarea activa:** ninguna
-**Última tarea completada:** TASK-002 — React Big Calendar Spike
+**Última tarea completada:** TASK-003 — Configurar Supabase DEV
 **Estado:** cerrada con Review PASS
 
 ## Completado
@@ -26,12 +26,16 @@
 - React Big Calendar adoptado como librería base de la agenda para el MVP, con enfoque
   desktop-first y limitaciones responsive/de simultaneidad aceptadas.
 - TASK-002 aceptada con Review PASS, decisión humana registrada y archivada.
+- TASK-003 configuró el contrato mínimo de entorno, clientes Supabase browser/server no privilegiados,
+  health check DEV, tipos generados desde `public` y guía reproducible. Fue aceptada con Review PASS
+  funcional, Security y Database y archivada sin crear schema, migrations, Auth, RLS ni datos.
 
 ## Próximo
 
-Definir el Task Brief de la implementación productiva de la agenda del MVP sobre React Big Calendar.
-La nueva tarea deberá integrar datos, permisos y reglas reales sin promover automáticamente el spike
-experimental ni ampliar el alcance funcional aprobado.
+Definir el Task Brief para crear el esquema PostgreSQL inicial mediante migrations SQL versionadas.
+La próxima etapa deberá diseñar y aplicar primero en Supabase DEV las tablas, constraints, índices y
+políticas RLS autorizadas, regenerar los tipos y pasar review antes de cualquier promoción controlada.
+Todavía no existen migrations ni tablas de dominio y PROD permanece fuera de alcance.
 
 ## Decisiones postergadas
 

@@ -1,5 +1,7 @@
 # Supabase infrastructure
 
-Aquí vivirán clientes de browser/server y `database.types.ts` cuando Supabase DEV esté configurado.
+`client.ts` y `server.ts` separan los clientes browser y SSR. Ambos usan únicamente la URL pública y
+la publishable key; no existe un cliente administrativo en TASK-003.
 
-No crear un `database.types.ts` manual: debe generarse desde el esquema real con `pnpm db:types`.
+`database.types.ts` se genera desde el esquema `public` real de DEV con `pnpm db:types`. No editarlo
+manualmente.
