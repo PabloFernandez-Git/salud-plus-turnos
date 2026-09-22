@@ -33,11 +33,15 @@ Pending → Confirmed → Attended
 - profesional activo en el centro;
 - especialidad activa y habilitada para ese profesional;
 - horario válido dentro de disponibilidad;
-- sin doble reserva del profesional;
+- sin doble reserva dentro del mismo ProfessionalCenter;
 - no crear ni reprogramar hacia el pasado;
 - cancelar preserva historia y libera el slot;
 - reprogramar mantiene identidad del turno y selecciona un slot válido;
 - turnos concretos usan `timestamptz`.
+
+Bloquean horario Pending, Confirmed, Attended y NoShow. Cancelled no bloquea. Dos
+ProfessionalCenter distintos pueden tener turnos simultáneos aunque pertenezcan al mismo
+Professional; la coordinación global entre centros queda fuera del MVP.
 
 ## Permisos
 

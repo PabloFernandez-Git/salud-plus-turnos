@@ -66,6 +66,13 @@ Las operaciones administrativas que requieran credenciales privilegiadas deberá
 
 Las credenciales administrativas nunca deberán exponerse al navegador.
 
+### Tooling y pruebas directas
+
+`pg` puede utilizarse como `devDependency` exclusivamente en tooling o tests que necesiten
+conexiones PostgreSQL persistentes, por ejemplo para observar transacciones concurrentes. No se usa
+en `src/`, no habilita un camino de acceso productivo alternativo y no modifica la decisión de usar
+Supabase Client como mecanismo principal desde la aplicación.
+
 ### ORM
 
 No se incorporarán inicialmente:

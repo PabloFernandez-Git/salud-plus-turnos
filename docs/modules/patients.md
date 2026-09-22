@@ -12,6 +12,11 @@ nacionalidad + documento normalizado
 
 Coincidencia exacta: reutilizar Persona. Coincidencia ambigua: no fusionar automáticamente.
 
+La nacionalidad usa ISO 3166-1 alpha-2. Se conserva el documento original y PostgreSQL genera el
+documento normalizado: trim exterior, uppercase, eliminación de whitespace, puntos, guiones y
+variantes tipográficas equivalentes. Preserva los demás caracteres y ceros iniciales, no translitera
+ni convierte a número y rechaza un resultado vacío.
+
 ## PatientCenter
 
 Representa el registro administrativo de una Persona dentro de un centro.

@@ -78,6 +78,11 @@ No se adopta como herramienta E2E principal porque Playwright ofrece mayor flexi
 
 Las reglas críticas de PostgreSQL y RLS deberán tener pruebas específicas cuando se implemente el esquema y las políticas de acceso.
 
+Las pruebas de concurrencia deben construir deliberadamente el estado concurrente y observar el
+bloqueo real de PostgreSQL antes de liberar el flujo. No se consideran evidencia suficiente los
+sleeps ni las ventanas temporales. Los watchdogs sólo pueden provocar fallo y cleanup; nunca deben
+ser el mecanismo que permita continuar el escenario exitoso.
+
 ### Filosofía
 
 La regla será:

@@ -42,6 +42,11 @@ Su objetivo principal en el MVP será impedir que un usuario pueda consultar o m
 
 No se utilizará RLS como lugar principal para expresar toda la lógica de negocio o todos los permisos de rol.
 
+La secuencia de implementación es deliberadamente fail-closed: el schema base puede habilitar RLS
+sin policies permisivas ni grants para roles API, dejando `anon` y `authenticated` en default-deny.
+Ese estado no equivale a Auth implementada. Las policies funcionales se agregan sólo junto con el
+flujo de Auth, memberships y su review de seguridad.
+
 ### Profesional
 
 Cuando el usuario tenga rol PROFESSIONAL, las operaciones relacionadas con agenda y turnos deberán además comprobar su relación ProfessionalCenter para limitar el acceso a su propia actividad.

@@ -5,7 +5,8 @@ Pertenece a `ProfessionalCenter`.
 ## MVP
 
 - horario semanal recurrente;
-- duración habitual de turno por ProfessionalCenter;
+- duración habitual de turno por ProfessionalCenter: 30 minutos por defecto, rango 5–480 y
+  múltiplos de 5;
 - múltiples franjas el mismo día;
 - sin excepciones/vacaciones/feriados en v1.
 
@@ -33,3 +34,6 @@ horario habitual
 ```
 
 Las reglas recurrentes usan hora local del centro.
+
+La duración habitual funciona como default operativo para proponer slots; un turno concreto conserva
+sus propios `starts_at` y `ends_at` y puede tener otra duración válida.
