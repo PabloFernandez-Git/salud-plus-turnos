@@ -10,17 +10,24 @@ Un profesional:
 Datos requeridos:
 - nombre;
 - apellido;
-- documento;
+- nacionalidad ISO 3166-1 alpha-2;
+- documento original;
+- documento normalizado;
 - email.
 
 Opcionales:
-- matrícula;
 - teléfono.
+
+La identidad se deduplica mediante nacionalidad + documento normalizado. PostgreSQL genera el valor
+normalizado y conserva el original. `Person` y `Professional` son entidades separadas.
 
 `ProfessionalCenter` define por centro:
 - estado activo/inactivo;
 - especialidades;
 - disponibilidad;
-- duración habitual de turno.
+- matrícula opcional sin unicidad en el MVP;
+- duración habitual de turno: 30 minutos por defecto, rango 5–480 y múltiplos de 5.
+
+La duración habitual es un default operativo y no obliga a que todos los turnos tengan esa duración.
 
 Desactivar en un centro no afecta otros centros y preserva historia.

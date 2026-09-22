@@ -23,6 +23,7 @@
     "verify": "pnpm check && pnpm build",
     "bootstrap": "node scripts/bootstrap.mjs",
     "db:types": "node scripts/generate-db-types.mjs",
+    "db:test:schema:dev": "node scripts/verify-initial-schema.mjs",
     "db:seed:dev": "node scripts/seed-dev.ts",
     "supabase:check:dev": "node scripts/check-supabase-dev.mjs",
     "security:check:client-bundle": "node scripts/check-client-bundle-secrets.mjs"
@@ -52,6 +53,7 @@
     "eslint-config-next": "16.3.5",
     "eslint-config-prettier": "10.1.8",
     "jsdom": "30.0.1",
+    "pg": "^8.23.0",
     "postcss": "8.5.28",
     "prettier": "3.9.8",
     "supabase": "2.117.0",

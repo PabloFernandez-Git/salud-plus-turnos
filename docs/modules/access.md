@@ -2,11 +2,17 @@
 
 ## Modelo
 
-`User` representa identidad de aplicación asociada a Supabase Auth.
+`User` representa identidad de aplicación asociada 1:1 a Supabase Auth mediante el mismo UUID.
+Supabase Auth es la fuente de identidad/login y la baja operativa se realiza desactivando memberships,
+sin borrar en cascada la historia de aplicación.
 
 `CenterMembership` relaciona usuario + centro y define:
 - rol;
 - estado activo/inactivo.
+
+Existe una sola membership y un único rol por User-Center. Para rol Professional,
+`CenterMembership` referencia obligatoriamente un `ProfessionalCenter` del mismo centro. Para
+Administrator y Reception ese vínculo no existe. Los roles combinados quedan fuera del MVP.
 
 Roles MVP:
 - Administrator;

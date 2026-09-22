@@ -192,15 +192,18 @@ Datos obligatorios del profesional:
 
 - nombre;
 - apellido;
+- nacionalidad;
 - DNI o documento;
 - email.
 
 Datos opcionales:
 
-- matrícula;
 - teléfono.
 
 Un profesional puede trabajar en uno o varios centros.
+
+La matrícula es un dato opcional de la relación del profesional con cada centro, no de la identidad
+global del profesional.
 
 ## 13. Dashboard
 

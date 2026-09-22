@@ -21,6 +21,13 @@
 - Para el MVP, el plan gratuito de Supabase permite comenzar sin costo de infraestructura significativo.
 - Supabase permite trabajar con PostgreSQL real, por lo que el aprendizaje de SQL y bases de datos relacionales sigue siendo transferible.
 
+### Aplicación en el schema inicial
+
+El schema inicial usa deliberadamente capacidades propias de PostgreSQL para invariantes que deben
+resistir concurrencia: `btree_gist` y exclusion constraints GiST impiden solapamientos de
+disponibilidad y turnos por `ProfessionalCenter`. El costo de portabilidad y escritura se acepta para
+obtener una garantía declarativa en la base, en lugar de depender de checks previos de aplicación.
+
 ### Estado
 
 **Aprobado**

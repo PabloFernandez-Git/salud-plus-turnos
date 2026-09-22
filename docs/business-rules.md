@@ -20,6 +20,10 @@
 4. Desactivar un acceso no afecta otros centros.
 5. Solo un Administrador del centro gestiona sus accesos.
 6. El Administrador crea usuarios y asigna una contraseña inicial.
+7. Existe una sola relación Usuario-Centro y un único rol en esa relación.
+8. Una relación con rol Profesional debe vincularse a un ProfesionalEnCentro del mismo centro; los
+   roles Administrador y Recepción no llevan ese vínculo.
+9. Los roles combinados quedan fuera del MVP.
 
 ## 3. Profesional
 
@@ -31,6 +35,9 @@
    - especialidades;
    - disponibilidad.
 5. Desactivar al profesional en un centro no afecta otros centros.
+6. La identidad del Profesional se deduplica por nacionalidad ISO alpha-2 + documento normalizado.
+7. La matrícula es opcional, pertenece a la relación Profesional-Centro y no es única en el MVP.
+8. Person y Professional continúan siendo entidades separadas.
 
 ## 4. Persona y PacienteEnCentro
 
@@ -61,6 +68,8 @@ Datos opcionales:
 9. Debe impedir una segunda relación Persona-Centro para la misma combinación.
 10. Si la identidad no puede determinarse con seguridad, no debe fusionar automáticamente registros ambiguos.
 11. Nombre y fecha de nacimiento pueden utilizarse como señales adicionales para advertir posibles duplicados.
+12. La nacionalidad usa ISO 3166-1 alpha-2 y PostgreSQL es la autoridad del documento normalizado;
+    se conserva también el documento original.
 
 ## 5. Privacidad entre centros
 
@@ -79,6 +88,8 @@ Datos opcionales:
 2. Un profesional puede tener horarios distintos por centro.
 3. Los turnos de un centro solo afectan la disponibilidad correspondiente a ese centro.
 4. Turnos de otro centro no bloquean disponibilidad.
+5. La duración habitual por ProfesionalEnCentro es un default operativo de 30 minutos, admite de 5
+   a 480 minutos en múltiplos de 5 y no obliga a que todos los turnos tengan esa duración.
 
 ## 7. Turnos
 
@@ -95,6 +106,9 @@ Datos opcionales:
 5. El horario debe pertenecer a su disponibilidad.
 6. No puede haber doble reserva.
 7. No se crean ni reprograman turnos hacia el pasado.
+8. La doble reserva se controla por ProfesionalEnCentro, no globalmente por Profesional.
+9. Pendiente, Confirmado, Atendido y Ausente bloquean horario; Cancelado conserva historia pero
+   libera el slot.
 
 Estados:
 
