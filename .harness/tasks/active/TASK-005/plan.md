@@ -1,6 +1,6 @@
 # TASK-005 — Plan
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
 
 ## Estrategia
 
@@ -75,7 +75,7 @@ Aunque el diseño está aprobado, antes de crear SQL/código o tocar DEV el Impl
 5. Implementar reactivación/desactivación/cambio de rol mediante RPC separada.
 6. Probar fallos entre Auth y DB y compensar sólo Auth users creados por la ejecución actual.
 
-## Fase 5 — UI funcional mínima (TASK-005B lista para implementación)
+## Fase 5 — UI funcional mínima (TASK-005B1 completada; TASK-005B2 lista para implementación)
 
 1. Login/logout, recovery y cambio de contraseña.
 2. Landing con prioridad de contexto, selector de centros y estado sin acceso.
@@ -150,8 +150,13 @@ reescribir migrations aplicadas.
 - `TASK-005A READY_FOR_REVIEW` — completado.
 - `TASK-005A REVIEW PASS` — completado; ambos findings cerrados.
 - `TASK-005A COMPLETED` — completado como checkpoint.
-- `TASK-005B READY_FOR_IMPLEMENTATION` — **estado actual**.
-- `TASK-005B READY_FOR_VERIFICATION` — no iniciado.
-- `TASK-005B READY_FOR_REVIEW` — no iniciado.
-- `TASK-005B REVIEW PASS` — no iniciado.
+- `TASK-005B READY_FOR_IMPLEMENTATION` — completado y dividido en checkpoints B1/B2.
+- `TASK-005B1 READY_FOR_VERIFICATION` — completado.
+- `TASK-005B1 READY_FOR_REVIEW` — completado.
+- `TASK-005B1 REVIEW PASS` — completado.
+- `TASK-005B1 COMPLETED` — completado como checkpoint.
+- `TASK-005B2 READY_FOR_IMPLEMENTATION` — **estado actual**.
+- `TASK-005B2 READY_FOR_VERIFICATION` — no iniciado.
+- `TASK-005B2 READY_FOR_REVIEW` — no iniciado.
+- `TASK-005B2 REVIEW PASS` — no iniciado.
 - `CLOSED` — no iniciado.

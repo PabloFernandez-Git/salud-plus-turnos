@@ -1,6 +1,6 @@
 # TASK-005 — Auth, usuarios y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
 
 ## Objetivo
 
@@ -140,8 +140,8 @@ B seguirá siendo obligatorio revalidar DEV y el diff. PROD permanece fuera de a
 
 ## Condición de salida
 
-TASK-005A quedó `COMPLETED` después de `TASK-005A REVIEW PASS` y del cierre de ambos findings. Este
-checkpoint no cierra ni archiva TASK-005. TASK-005B queda `READY_FOR_IMPLEMENTATION` para completar
-la UI y los flujos web pendientes, con revalidación de destino/branch/diff y su propia verificación y
-review antes del cierre integral. El bootstrap persistente del primer PLATFORM_ADMIN sigue sujeto a
-autorización humana adicional explícita.
+TASK-005A y TASK-005B1 quedaron `COMPLETED` después de sus respectivos `REVIEW PASS`. Estos
+checkpoints no cierran ni archivan TASK-005. TASK-005B2 queda `READY_FOR_IMPLEMENTATION` para
+completar `/platform` y la administración mínima de usuarios, con revalidación de
+destino/branch/diff y su propia verificación y review antes del cierre integral. El bootstrap
+persistente del primer PLATFORM_ADMIN sigue sujeto a autorización humana adicional explícita.

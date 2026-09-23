@@ -44,6 +44,11 @@ export type UserContext = {
   lastName: string;
 };
 
+export type AuthenticatedIdentity = {
+  id: string;
+  email: string | null;
+};
+
 export type CenterMembershipContext = {
   center: {
     id: string;
@@ -64,17 +69,12 @@ async function serverClient(client?: ServerClient) {
 
 export async function requireUser(client?: ServerClient): Promise<UserContext> {
   const supabase = await serverClient(client);
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
-  const userId = claimsData?.claims.sub;
-
-  if (claimsError || !userId) {
-    throw new AuthorizationError("UNAUTHENTICATED");
-  }
+  const identity = await requireAuthenticatedIdentity(supabase);
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("id, email, first_name, last_name")
-    .eq("id", userId)
+    .eq("id", identity.id)
     .maybeSingle();
 
   if (profileError || !profile) {
@@ -86,6 +86,25 @@ export async function requireUser(client?: ServerClient): Promise<UserContext> {
     email: profile.email,
     firstName: profile.first_name,
     lastName: profile.last_name,
+  };
+}
+
+export async function requireAuthenticatedIdentity(
+  client?: ServerClient,
+): Promise<AuthenticatedIdentity> {
+  const supabase = await serverClient(client);
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims.sub;
+
+  if (claimsError || typeof userId !== "string" || !userId) {
+    throw new AuthorizationError("UNAUTHENTICATED");
+  }
+
+  const claimedEmail = claimsData.claims.email;
+
+  return {
+    id: userId,
+    email: typeof claimedEmail === "string" ? claimedEmail : null,
   };
 }
 

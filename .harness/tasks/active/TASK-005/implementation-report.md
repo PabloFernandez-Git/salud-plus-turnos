@@ -1,6 +1,6 @@
 # TASK-005 — Implementation Report — Fase A
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
 
 **Rol:** Implementer
 
@@ -316,5 +316,127 @@ hubo commit, push ni PR.
 - TASK-005 completa permanece activa en el Harness y no se archiva.
 - Supabase DEV: `ehllxymqyzrofydrvtzo`; PROD fuera de alcance.
 - Seis migrations de TASK-005 y tres de TASK-004 sincronizadas local/remoto.
+- Cero fixtures, cero PLATFORM_ADMIN persistentes y ningún secreto versionado.
+- El bootstrap persistente del primer PLATFORM_ADMIN continúa sin ejecutarse.
+
+## TASK-005B1 — Auth UI and Center Access
+
+**Estado:** `TASK-005B1 COMPLETED`
+
+**Alcance:** login/logout, recovery, callback PKCE, actualización de contraseña, resolución 0/1/N,
+selector de Center, shell tenant mínimo y placeholder temporal protegido para PLATFORM_ADMIN. B2
+(`/platform` funcional y administración de usuarios) permanece fuera de alcance.
+
+### Preflight y límites
+
+- Branch/HEAD iniciales confirmados: `task/005-auth-users-center-access` en
+  `9c81e0fc03f4bf3ee4fd1e1a9b0d026e2584e889`, working tree limpio antes de bootstrap.
+- `pnpm bootstrap` y `pnpm supabase:check:dev`: PASS contra DEV `ehllxymqyzrofydrvtzo`.
+- PROD no fue consultado ni modificado; no se aplicaron ni editaron migrations.
+- No se ejecutó bootstrap persistente, no se creó un PLATFORM_ADMIN persistente y no se invocaron
+  primitives de provisioning. El contrato `operation_id` de Fase A quedó intacto.
+- El guard de secretos no imprimió valores. El cliente administrativo continúa fuera del código
+  cliente y el E2E sólo lo usa para crear/eliminar identidades Auth temporales.
+
+### Rutas y flujo implementado
+
+- `/login`: email/password, Zod server-side, `signInWithPassword`, error genérico, estado pending,
+  labels y navegación a recovery. Una sesión existente se resuelve inmediatamente al destino
+  autorizado.
+- `/`: landing server-side que resuelve el contexto actual.
+- `/no-access`: sólo para identidad autenticada sin PLATFORM_ADMIN ni Center accesible; no lista
+  memberships históricas o Centers inactivos e incluye logout.
+- `/select-center`: lista exclusivamente Centers activos alcanzables por memberships activas del
+  usuario, con nombre y rol. Con cero o una opción redirige al destino canónico.
+- `/centers/[centerId]`: usa `requireCenterMembership(centerId)`, muestra Center, cuenta, rol y
+  logout. ID inválido o Center no autorizado retorna 404 sin filtrar nombre o existencia.
+- `/platform`: placeholder mínimo protegido con `requirePlatformAdmin()`. Informa que B2 habilitará
+  la administración; no lista/crea/modifica Centers ni concede acceso tenant.
+- `/forgot-password`: validación de email y `resetPasswordForEmail` con callback exacto
+  `http://localhost:3000/auth/callback`; el resultado público siempre es anti-enumeración.
+- `/auth/callback`: intercambio SSR/PKCE mediante `exchangeCodeForSession`, validación de `code`,
+  error seguro y destino allowlisted exclusivamente a `/update-password`.
+- `/update-password`: exige sesión válida, valida nueva contraseña y confirmación (mínimo 10), usa
+  `updateUser` y vuelve a la resolución normal de acceso.
+
+La resolución aprobada quedó centralizada en `src/modules/access/server/access.ts` y
+`src/modules/access/domain/access-routing.ts`:
+
+```text
+1 Center accesible  → /centers/[centerId]
+N > 1               → /select-center
+0 + PLATFORM_ADMIN  → /platform (placeholder B1)
+0 sin permiso global → /no-access
+```
+
+Un PLATFORM_ADMIN con memberships conserva el flujo tenant 1/N, pero cada ruta vuelve a exigir su
+membership. El permiso global nunca satisface `requireCenterMembership`.
+
+### UI y fronteras de seguridad
+
+- Formularios en español, responsive básico, foco inicial, autocomplete, labels, errores asociados,
+  `aria-invalid`, mensajes `alert/status` y botones disabled con texto pending.
+- No se agregó signup, localStorage, preferencia de Center, cambio de email ni módulos operativos.
+- Los Client Components importan únicamente Actions/tipos y configuración pública; no hay secret ni
+  admin client en el bundle.
+- Las Server Actions sensibles vuelven a autenticar/autorizar. El proxy sólo refresca cookies y no
+  reemplaza los guards.
+- Logout usa `signOut({ scope: "local" })`; el E2E confirmó que `/` vuelve a `/login` después del
+  cierre.
+
+### Tests B1
+
+- Unitarios: login inválido/válido, logout, recovery anti-enumeration, password menor a 10,
+  password válida, rutas 0/1/N, inactivos ignorados, callback sin open redirect y PLATFORM_ADMIN
+  sin bypass tenant.
+- Test directo de la primitive real `requireCenterMembership`: permite A, deniega B, membership
+  inactiva, Center inactivo y PLATFORM_ADMIN sin membership.
+- `pnpm test:e2e:auth-access:dev`: PASS, 9/9 en Chromium contra Auth/RLS DEV reales:
+  login inválido/válido, cookie SSR, usuario autenticado fuera de login, logout, 0/1/2 Centers,
+  selección, cross-center 404, inactivos, recovery genérico, callback inválido, PLATFORM_ADMIN
+  temporal sin acceso tenant y update password real con re-login usando la nueva contraseña.
+- Fixtures E2E: cinco Auth users `task005b1-*`, tres Centers y memberships temporales. Setup y
+  cleanup usan el guard exacto de DEV y PostgreSQL de test; `afterAll` verificó cero Auth users,
+  perfiles y Centers residuales. El PLATFORM_ADMIN existió únicamente durante la suite.
+
+### Verificación final
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:schema:dev` | PASS. |
+| `pnpm db:test:auth-foundation:dev` | PASS; cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS; signup OFF, password/redirects y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS — 9/9 y cleanup cero. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS — 40 tests en 9 archivos. |
+| `pnpm build` | PASS — rutas B1 compiladas. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF. |
+
+### Desviaciones y decisiones encontradas
+
+- No fue necesario ningún cambio de DB ni migration.
+- El placeholder `/platform` es deliberadamente informativo y server-protected; no implementa el
+  panel B2.
+- El E2E no puede usar DML directo con la secret key moderna porque los grants de Fase A lo impiden
+  correctamente. Sus fixtures DB usan la conexión PostgreSQL DEV validada, igual que las suites
+  aprobadas, y la secret key queda limitada a Auth Admin temporal.
+- Next.js exige que un archivo `"use server"` exporte sólo funciones async. El estado inicial de los
+  formularios quedó en Client Components; las Actions no exportan objetos.
+- No se modificó `review.md`. No hubo commit, push, PR, cierre ni archivo de TASK-005.
+
+### Checkpoint formal de B1
+
+- Review independiente final: `TASK-005B1 REVIEW PASS`.
+- Estado final de B1: `TASK-005B1 COMPLETED`.
+- Siguiente gate: `TASK-005B2 READY_FOR_IMPLEMENTATION`.
+- TASK-005 completa permanece activa en el Harness y no se archiva.
+- El diff B1 desde `9c81e0fc03f4bf3ee4fd1e1a9b0d026e2584e889` no modifica DB, migrations,
+  RLS, grants, RPCs ni tipos generados.
+- Supabase DEV: `ehllxymqyzrofydrvtzo`; PROD fuera de alcance.
 - Cero fixtures, cero PLATFORM_ADMIN persistentes y ningún secreto versionado.
 - El bootstrap persistente del primer PLATFORM_ADMIN continúa sin ejecutarse.

@@ -1,7 +1,7 @@
 # TASK-005 — Diseño final de Auth, plataforma y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
-**Tipo:** contrato de diseño aprobado; todavía no implementado.
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
+**Tipo:** contrato de diseño aprobado; A y B1 implementadas, B2 pendiente.
 
 ## 1. Decisión final y límites
 

@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — Fase A completada; Fase B lista para implementación
+**Fase:** Auth, plataforma y acceso a centros — Fase A y B1 completadas; B2 lista para implementación
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
 
 ## Completado
 
@@ -55,21 +55,26 @@
   y pruebas reales de response-loss/retry/concurrencia sin ampliar RLS tenant.
 - TASK-005A obtuvo `TASK-005A REVIEW PASS`; ambos findings quedaron cerrados y la Fase A se cerró
   formalmente como checkpoint sin cerrar ni archivar TASK-005.
+- TASK-005B1 implementó login/logout, recovery/callback/update password, resolución 0/1/N de
+  memberships activas en Centers activos, selector, shell tenant protegido y placeholder temporal
+  de PLATFORM_ADMIN. Las pruebas unitarias y 9 E2E DEV pasan con cleanup cero.
+- TASK-005B1 obtuvo `TASK-005B1 REVIEW PASS` y se cerró formalmente como checkpoint sin cambios de
+  schema, migrations, RLS, grants ni RPCs, y sin cerrar ni archivar TASK-005.
 
 ## Próximo
 
-Iniciar TASK-005B desde el checkpoint aprobado para implementar la UI funcional y los flujos web
-previstos. Antes de cualquier bootstrap persistente del primer PLATFORM_ADMIN se mantiene la
-autorización humana adicional exigida; ese bootstrap no se ejecutó durante Fase A.
+Iniciar TASK-005B2 desde el checkpoint aprobado para implementar `/platform` funcional y la
+administración mínima de usuarios. Antes de cualquier bootstrap persistente del primer
+PLATFORM_ADMIN se mantiene la autorización humana adicional exigida; ese bootstrap no fue ejecutado.
 
 ## Estado operativo
 
 - Branch: `task/005-auth-users-center-access`, creada desde `main` en
   `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
   working tree limpio.
-- TASK-005 Fase A: `TASK-005A COMPLETED`; Fase B: `TASK-005B READY_FOR_IMPLEMENTATION`. Brief, Plan,
-  propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la tarea
-  completa sigue abierta.
+- TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
+  `TASK-005B2 READY_FOR_IMPLEMENTATION`. Brief, Plan, propuesta e implementation report permanecen
+  en `.harness/tasks/active/TASK-005/` porque la tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
 - Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las seis migrations de TASK-005 están

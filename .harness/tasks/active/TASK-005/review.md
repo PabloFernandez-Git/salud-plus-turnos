@@ -1,8 +1,8 @@
-# Review — TASK-005A Auth, RLS y Platform Foundation
+# Review — TASK-005 Auth, RLS y acceso
 
 **Rol:** Reviewer / Verifier independiente + Database/RLS Reviewer + Security Reviewer
 
-**Fecha:** 2026-09-22; re-reviews focalizados 2026-09-23
+**Fecha:** 2026-09-22; re-reviews de Fase A y review B1 2026-09-23
 
 **Branch verificada:** `task/005-auth-users-center-access`
 
@@ -11,10 +11,191 @@
 **Destino remoto verificado:** Supabase DEV `ehllxymqyzrofydrvtzo`, `sa-east-1`,
 `ACTIVE_HEALTHY`, linkeado. La CLI sólo mostró este proyecto DEV. PROD permaneció fuera de alcance.
 
-**Resultado:** `TASK-005A REVIEW PASS`
+**Resultado Fase A:** `TASK-005A REVIEW PASS`
 
-**Alcance del veredicto:** exclusivamente Fase A. TASK-005 completa no se cierra ni se archiva y no
-se avanzó a TASK-005B.
+**Resultado B1:** `TASK-005B1 REVIEW PASS`
+
+**Alcance del veredicto:** Fase A y B1 fueron revisadas y aprobadas por separado. TASK-005 completa
+no se cierra ni se archiva; B2 todavía no comenzó.
+
+## Review independiente — TASK-005B1 — 2026-09-23
+
+### Veredicto
+
+`TASK-005B1 REVIEW PASS`
+
+La aprobación alcanza exclusivamente B1: login/logout, recovery/callback/update-password,
+resolución de acceso 0/1/N, selector, shell tenant protegido y placeholder `/platform`. No se
+implementó la administración global ni tenant de B2. TASK-005 continúa abierta.
+
+### Login y sesión SSR
+
+**Resultado:** PASS.
+
+- `loginAction` recibe `FormData`, valida email/password con Zod en servidor y llama
+  `signInWithPassword` mediante el cliente SSR basado en cookies.
+- Los errores del proveedor se colapsan en el único mensaje
+  `No pudimos iniciar sesión con esos datos.`. Un E2E independiente comparó email existente con
+  password incorrecta contra email inexistente y obtuvo exactamente el mismo resultado público.
+- No existe signup público, enlace de registro ni Action de alta.
+- No existe `next` post-login controlable por el usuario: el servidor calcula el destino desde DB.
+- Los formularios exponen labels asociados, autocomplete correcto, foco inicial, errores asociados,
+  `aria-invalid`, mensaje con `alert/status` y botón pending/disabled.
+- El proxy llama `getClaims()` para refrescar/copiar cookies, pero la autorización final vuelve a
+  ejecutar guards y queries DB en Server Components/Actions. No se usa localStorage, sessionStorage,
+  cookies de Center ni estado React como autoridad.
+
+Cadena verificada:
+
+```text
+signInWithPassword
+→ cookies SSR
+→ request server-side / getClaims
+→ requireUser + estado actual DB/RLS
+→ destino autorizado
+→ signOut local
+→ guards vuelven a rechazar la sesión
+```
+
+### Resolución 0/1/N y selector
+
+**Resultado:** PASS.
+
+`getAccessOverview()` parte de `requireUser()`, consulta exclusivamente memberships activas del UUID
+autenticado y después Centers activos alcanzables por esas memberships. Consulta por separado la
+fila propia de `platform_admins`; no infiere permisos desde claims de rol.
+
+| Estado actual | Destino observado |
+| --- | --- |
+| 0 Centers + sin PLATFORM_ADMIN | `/no-access` |
+| 1 Center activo | `/centers/[centerId]` |
+| 2 Centers activos | `/select-center` |
+| membership inactiva / Center inactivo | no cuentan; `/no-access` en el fixture |
+| 0 Centers + PLATFORM_ADMIN | `/platform` |
+
+`/select-center` muestra sólo nombre y role de los Centers accesibles. Los links únicamente navegan;
+`/centers/[centerId]` vuelve a autorizar el ID. Con cero o una opción, el selector redirige al destino
+canónico y no crea preferencias/cookies de autoridad.
+
+### Tenant isolation y `/centers/[centerId]`
+
+**Resultado:** PASS.
+
+- El parámetro se valida como UUID antes de consultar.
+- `requireCenterMembership(centerId)` exige identidad/perfil actual, membership activa del mismo
+  usuario y Center activo mediante dos queries RLS.
+- Si la membership no existe, la segunda query de Center ni siquiera se ejecuta; un actor de A no
+  obtiene nombre, timezone ni señal de existencia de B.
+- ID inválido, Center ajeno, membership inactiva o Center inactivo terminan en 404. El E2E oficial
+  confirmó A→B 404; el probe independiente desactivó el Center accedido y confirmó 404 sin nombre.
+- PLATFORM_ADMIN sin membership recibió 404 en tenant. La URL nunca se usa como permiso.
+
+### `/platform` placeholder
+
+**Resultado:** PASS.
+
+La página comienza por `requirePlatformAdmin()` y sólo después resuelve si la misma identidad posee
+alguna membership propia para ofrecer navegación tenant independiente. No llama RPCs globales, no
+lista Centers, no crea/modifica datos y no importa operaciones de provisioning. Un E2E independiente
+confirmó que un ADMIN tenant es rechazado y vuelve a su destino tenant; PLATFORM_ADMIN sin
+membership ve sólo el placeholder y tampoco accede a un Center por URL. No se adelantó B2.
+
+### Logout
+
+**Resultado:** PASS.
+
+La Action usa exactamente `signOut({ scope: "local" })` con el cliente SSR, luego redirige a
+`/login`. El E2E oficial confirmó que `/` vuelve a login. El probe independiente agregó navegación
+atrás y acceso directo posterior a `/centers/[centerId]`: ambos terminaron en login y ningún Server
+Component recuperó una sesión útil.
+
+### Recovery, callback y update-password
+
+**Resultado:** PASS con límite de cobertura documentado.
+
+- Recovery valida email con Zod y usa exclusivamente
+  `http://localhost:3000/auth/callback`. El error de Supabase nunca se expone y el resultado público
+  es siempre anti-enumeración. Un probe real comparó cuenta existente/inexistente y obtuvo el mismo
+  mensaje.
+- El callback sólo acepta `code`, llama `exchangeCodeForSession(code)` y allowlistea `next` mediante
+  igualdad exacta con `/update-password`. Ausencia/código inválido termina en un mensaje seguro de
+  login.
+- HTTPS externo, protocol-relative, valor percent-encoded, double-encoded y esquema `javascript:`
+  fueron probados y permanecieron en el origen local. No hay password ni token persistido por código
+  en URL, localStorage o sessionStorage.
+- `/update-password` exige `getClaims()` válido tanto al renderizar como en la Server Action, sólo
+  envía `{ password }` a `updateUser`, valida mínimo 10 y confirmación coincidente con Zod y nunca
+  modifica email. El éxito vuelve a la resolución normal de acceso.
+- La suite unitaria confirma que 9 caracteres no alcanzan Auth; `auth:check:dev` confirma además que
+  Supabase Auth rechaza 9 y acepta 10 sin composición. El E2E actual valida el estado UI y realiza un
+  cambio real seguido de logout/re-login con la contraseña nueva.
+
+**Límite:** la entrega de email y el click de un recovery link PKCE válido no están automatizados
+end-to-end; el E2E cubre recovery público, callback inválido y update real bajo sesión válida. La
+implementación exacta de `exchangeCodeForSession` y los redirects efectivos de Auth DEV fueron
+revisados, por lo que este límite no bloquea B1, pero deberá conservarse visible mientras DEV use el
+SMTP de desarrollo.
+
+### Fronteras, secretos y diff
+
+**Resultado:** PASS.
+
+- El diff desde `9c81e0fc03f4bf3ee4fd1e1a9b0d026e2584e889` no contiene cambios bajo
+  `supabase/`; no se modificaron migrations, schema, RLS, grants ni RPCs de Fase A.
+- Ningún Client Component importa `admin.ts`, `createSupabaseAdminClient` o secrets. El único uso
+  nuevo de `SUPABASE_SECRET_KEY` está en el runner E2E Node para crear/eliminar Auth fixtures.
+- No hay logs de credenciales/passwords, password en query/href, recovery token en storage ni uso
+  nuevo de service-role legacy.
+- `security:check:client-bundle` inspeccionó fuentes y `.next/static` después del build y pasó.
+- Provisioning/idempotencia/fingerprints, RLS cross-center, último ADMIN y separación
+  PLATFORM_ADMIN/tenant pasaron nuevamente sus suites reales.
+
+### E2E y verificaciones ejecutadas
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm test:e2e:auth-access:dev` | Primer intento: timeout transitorio en el segundo login, cleanup cero. Rerun limpio: PASS 9/9. |
+| probe E2E independiente | PASS 6/6 — anti-enumeración, `/platform` deny, logout/back, Center inactivo, recovery comparable y redirects codificados. Archivo retirado. |
+| `pnpm db:test:schema:dev` | PASS. |
+| `pnpm db:test:auth-foundation:dev` | PASS con concurrencia y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS con cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS con cleanup cero. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS — lint, typecheck y 40/40 tests. |
+| `pnpm build` | PASS — once rutas compiladas; rutas protegidas dinámicas. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF, sin whitespace errors. |
+| `supabase projects list` | PASS — único proyecto visible/linkeado DEV `ehllxymqyzrofydrvtzo`, `sa-east-1`, `ACTIVE_HEALTHY`. |
+
+### Cleanup final
+
+Una auditoría independiente posterior a todas las suites confirmó:
+
+- 0 Auth users temporales B1;
+- 0 `public.users` temporales;
+- 0 Centers B1;
+- 0 memberships B1;
+- 0 PLATFORM_ADMIN temporales;
+- 0 `private.provisioning_operations`;
+- 0 procesos E2E `task005b1-*` activos.
+
+No se leyó ni imprimió `SUPABASE_SECRET_KEY`. No se ejecutó bootstrap persistente y PROD permaneció
+fuera de alcance.
+
+### Riesgos residuales
+
+- La primera corrida E2E tuvo un timeout no reproducido en una Server Action de login; el cleanup
+  funcionó y el rerun 9/9 más el probe 6/6 pasaron. Es riesgo de estabilidad del entorno DEV, no una
+  falla funcional reproducible.
+- El flujo válido completo email → PKCE callback no está automatizado por ausencia de inbox SMTP de
+  test; se conserva la cobertura estática/configuración + Auth real parcial indicada arriba.
+- SMTP de desarrollo y rate limiting definitivo siguen sin ser aptos para PROD, que permanece fuera
+  de alcance.
+
+No hubo commit, push, PR, bootstrap persistente, cierre/archivo de TASK-005 ni trabajo de B2.
 
 ## Segundo re-review focalizado — 2026-09-23
 
