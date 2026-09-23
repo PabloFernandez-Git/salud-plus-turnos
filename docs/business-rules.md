@@ -1,6 +1,6 @@
 # Reglas de negocio
 
-**Versión:** 0.3
+**Versión:** 0.4
 
 ## 1. Aislamiento por centro
 
@@ -24,6 +24,37 @@
 8. Una relación con rol Profesional debe vincularse a un ProfesionalEnCentro del mismo centro; los
    roles Administrador y Recepción no llevan ese vínculo.
 9. Los roles combinados quedan fuera del MVP.
+10. Todo centro activo debe conservar al menos una membership ADMIN activa.
+11. No se puede desactivar, degradar ni autodesactivar al último ADMIN activo de un centro.
+12. La contraseña inicial tiene un mínimo de 10 caracteres, sin exigir reglas artificiales de
+    composición ni cambio obligatorio en el primer login.
+13. Si un email ya pertenece a una cuenta, se reutilizan su identidad Auth y su `User`; no se
+    modifican automáticamente contraseña, email, nombre/apellido ni accesos de otros centros.
+14. `auth.users.email` es la fuente de verdad y `public.users.email` es una proyección lowercase,
+    única y protegida por RLS. El cambio de email queda fuera del alcance inicial de Auth.
+15. Toda operación que cruce Auth y PostgreSQL usa un `operation_id` estable, creado antes de
+    iniciar el intento y vinculado a un hash inmutable de su intención.
+16. Repetir el mismo `operation_id` devuelve el resultado confirmado; reutilizarlo con otro payload
+    falla y nunca crea un segundo Center o una segunda membership.
+17. Una excepción después de invocar PostgreSQL exige reconciliar primero. Sólo se elimina el Auth
+    user creado por esa operación cuando el lock de operación confirma que no hubo commit; ante
+    incertidumbre se preserva la identidad sin acceso.
+
+## 2.1. Administración global de plataforma
+
+1. `PLATFORM_ADMIN` es un permiso global separado de los roles de `CenterMembership`.
+2. Ser PLATFORM_ADMIN no crea ni implica acceso a ningún centro.
+3. Ser ADMIN de un centro no concede acceso a `/platform`.
+4. PLATFORM_ADMIN puede listar, crear, activar y desactivar centros y provisionar el primer ADMIN.
+5. Puede consultar datos administrativos básicos del centro y contadores agregados de memberships,
+   ProfessionalCenter y Specialty activos.
+6. PLATFORM_ADMIN no obtiene por ese rol acceso a pacientes, Person, PatientCenter, agenda,
+   appointments, notas administrativas ni disponibilidad.
+7. Un centro nuevo y activo se crea junto con exactamente una primera membership ADMIN activa.
+8. Desactivar un centro no borra datos ni desactiva memberships; impide la operación tenant.
+9. Reactivar un centro exige que exista al menos un ADMIN activo.
+10. El primer PLATFORM_ADMIN se crea una única vez mediante tooling seguro sobre una plataforma
+    todavía no inicializada. Los centros posteriores se crean desde `/platform`.
 
 ## 3. Profesional
 

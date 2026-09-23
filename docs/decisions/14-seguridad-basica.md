@@ -34,6 +34,12 @@ PostgreSQL
 - las credenciales administrativas de Supabase no deberán exponerse al navegador;
 - `.env.local` no deberá versionarse;
 - las variables `NEXT_PUBLIC_*` solo podrán contener valores seguros para el cliente.
+- para Auth Admin se utilizará únicamente `SUPABASE_SECRET_KEY` moderna;
+- no se incorporará `SUPABASE_SERVICE_ROLE_KEY` legacy;
+- el cliente administrativo usará `supabase-js`, estará marcado `server-only`, separado de clientes
+  SSR/browser y tendrá persistencia, auto-refresh y detección de sesión en URL desactivados;
+- la secret key sólo podrá usarse para Auth Admin, compensación y bootstrap/reconciliación
+  controlada, nunca como vía normal de datos del producto.
 
 ### Autorización
 
@@ -47,6 +53,9 @@ Toda operación sensible deberá validar en servidor:
 - estado del acceso;
 - rol;
 - ownership cuando corresponda.
+
+Las operaciones globales validarán separadamente `platform_admins`. Ser PLATFORM_ADMIN no satisface
+una membership de centro, y una membership ADMIN no satisface el permiso global.
 
 ### Inputs externos
 
@@ -93,6 +102,9 @@ La contraseña inicial definida por el Administrador tendrá un mínimo de:
 **10 caracteres**
 
 No será obligatorio cambiarla en el primer inicio de sesión.
+
+El mismo mínimo se configurará en Supabase Auth. No se exigirán reglas artificiales de composición.
+Los usuarios administrativos se crean con email confirmado server-side y no existe signup público.
 
 ### Uploads
 

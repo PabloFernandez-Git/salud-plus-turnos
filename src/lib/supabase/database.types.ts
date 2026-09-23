@@ -300,6 +300,29 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_admins: {
+        Row: {
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "platform_admins_user_fk";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       professional_center_specialties: {
         Row: {
           center_id: string;
@@ -470,6 +493,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string;
+          email: string;
           first_name: string;
           id: string;
           last_name: string;
@@ -477,6 +501,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          email: string;
           first_name: string;
           id: string;
           last_name: string;
@@ -484,6 +509,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          email?: string;
           first_name?: string;
           id?: string;
           last_name?: string;
@@ -496,7 +522,217 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      admin_provision_center_user: {
+        Args: {
+          p_auth_user_id: string;
+          p_center_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_operation_id: string;
+          p_professional_center_id: string;
+          p_role: Database["public"]["Enums"]["membership_role"];
+        };
+        Returns: {
+          application_user_created: boolean;
+          membership_id: string;
+          user_id: string;
+        }[];
+      };
+      admin_resolve_user_by_email: {
+        Args: { p_center_id: string; p_email: string };
+        Returns: {
+          center_membership_exists: boolean;
+          center_membership_is_active: boolean;
+          email: string;
+          first_name: string;
+          identity_exists: boolean;
+          last_name: string;
+          user_id: string;
+        }[];
+      };
+      admin_set_center_membership: {
+        Args: {
+          p_center_id: string;
+          p_is_active: boolean;
+          p_membership_id: string;
+          p_professional_center_id: string;
+          p_role: Database["public"]["Enums"]["membership_role"];
+        };
+        Returns: {
+          is_active: boolean;
+          membership_id: string;
+          professional_center_id: string;
+          role: Database["public"]["Enums"]["membership_role"];
+        }[];
+      };
+      bind_auth_provisioning_operation: {
+        Args: {
+          p_auth_user_id: string;
+          p_auth_user_was_created: boolean;
+          p_operation_id: string;
+          p_payload_hash: string;
+        };
+        Returns: {
+          auth_user_id: string;
+          auth_user_was_created: boolean;
+          operation_status: string;
+          result_application_user_created: boolean;
+          result_center_id: string;
+          result_membership_id: string;
+          result_user_id: string;
+        }[];
+      };
+      bootstrap_platform_admin: {
+        Args: {
+          p_auth_user_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_operation_id: string;
+        };
+        Returns: {
+          user_id: string;
+        }[];
+      };
+      mark_auth_provisioning_compensation: {
+        Args: {
+          p_auth_user_id: string;
+          p_compensated: boolean;
+          p_operation_id: string;
+          p_payload_hash: string;
+        };
+        Returns: {
+          operation_status: string;
+        }[];
+      };
+      platform_create_center_with_admin: {
+        Args: {
+          p_admin_auth_user_id: string;
+          p_admin_first_name: string;
+          p_admin_last_name: string;
+          p_center_address: string;
+          p_center_email: string;
+          p_center_name: string;
+          p_center_phone: string;
+          p_center_timezone: string;
+          p_operation_id: string;
+        };
+        Returns: {
+          application_user_created: boolean;
+          center_id: string;
+          membership_id: string;
+        }[];
+      };
+      platform_list_centers: {
+        Args: never;
+        Returns: {
+          active_membership_count: number;
+          active_professional_center_count: number;
+          active_specialty_count: number;
+          address: string;
+          center_id: string;
+          created_at: string;
+          email: string;
+          is_active: boolean;
+          name: string;
+          phone: string;
+        }[];
+      };
+      platform_resolve_user_by_email: {
+        Args: { p_email: string };
+        Returns: {
+          email: string;
+          first_name: string;
+          identity_exists: boolean;
+          last_name: string;
+          user_id: string;
+        }[];
+      };
+      platform_set_center_active: {
+        Args: { p_center_id: string; p_is_active: boolean };
+        Returns: {
+          center_id: string;
+          is_active: boolean;
+        }[];
+      };
+      prepare_platform_admin_bootstrap_operation: {
+        Args: {
+          p_email: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_operation_id: string;
+        };
+        Returns: {
+          auth_user_id: string;
+          auth_user_was_created: boolean;
+          operation_status: string;
+          payload_hash: string;
+          result_application_user_created: boolean;
+          result_center_id: string;
+          result_membership_id: string;
+          result_user_id: string;
+        }[];
+      };
+      prepare_platform_center_provisioning_operation: {
+        Args: {
+          p_actor_user_id: string;
+          p_admin_email: string;
+          p_admin_first_name: string;
+          p_admin_last_name: string;
+          p_center_address: string;
+          p_center_email: string;
+          p_center_name: string;
+          p_center_phone: string;
+          p_center_timezone: string;
+          p_operation_id: string;
+        };
+        Returns: {
+          auth_user_id: string;
+          auth_user_was_created: boolean;
+          operation_status: string;
+          payload_hash: string;
+          result_application_user_created: boolean;
+          result_center_id: string;
+          result_membership_id: string;
+          result_user_id: string;
+        }[];
+      };
+      prepare_tenant_user_provisioning_operation: {
+        Args: {
+          p_actor_user_id: string;
+          p_center_id: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_operation_id: string;
+          p_professional_center_id: string;
+          p_role: Database["public"]["Enums"]["membership_role"];
+          p_user_email: string;
+        };
+        Returns: {
+          auth_user_id: string;
+          auth_user_was_created: boolean;
+          operation_status: string;
+          payload_hash: string;
+          result_application_user_created: boolean;
+          result_center_id: string;
+          result_membership_id: string;
+          result_user_id: string;
+        }[];
+      };
+      reconcile_auth_provisioning_operation: {
+        Args: { p_operation_id: string; p_payload_hash: string };
+        Returns: {
+          actor_user_id: string;
+          auth_user_id: string;
+          auth_user_was_created: boolean;
+          operation_status: string;
+          operation_type: string;
+          result_application_user_created: boolean;
+          result_center_id: string;
+          result_membership_id: string;
+          result_user_id: string;
+          scope_center_id: string;
+        }[];
+      };
     };
     Enums: {
       appointment_status: "PENDING" | "CONFIRMED" | "ATTENDED" | "CANCELLED" | "NO_SHOW";

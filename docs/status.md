@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Preparación de Auth, usuarios y acceso a centros
-**Tarea activa:** ninguna; la próxima tarea todavía requiere Task Brief
+**Fase:** Auth, plataforma y acceso a centros — Fase A completada; Fase B lista para implementación
+**Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `READY_FOR_NEXT_TASK`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B READY_FOR_IMPLEMENTATION`
 
 ## Completado
 
@@ -36,30 +36,67 @@
   regeneración de tipos desde DEV pasaron; no quedaron datos de prueba persistentes.
 - Las tres migrations de TASK-004 están aplicadas y sincronizadas con Supabase DEV; los tipos
   TypeScript generados reflejan las once tablas, enums, relaciones y nulabilidad del schema real.
-- RLS está habilitada en las once tablas sin policies permisivas y sin grants de tabla para `anon` o
-  `authenticated`. El resultado actual es default-deny; Auth y las policies funcionales todavía no
-  están implementadas.
+- TASK-004 dejó inicialmente RLS default-deny en las once tablas, sin policies permisivas ni grants
+  de dominio; TASK-005 Fase A abrió después sólo las seis lecturas aprobadas para `authenticated`.
 - TASK-004 obtuvo Review PASS independiente de Database/RLS y Security y fue cerrada y archivada.
+- TASK-005 completó y obtuvo aprobación humana de su diseño de Auth, secret key moderna, email
+  proyectado, autorización tenant, PLATFORM_ADMIN global, `/platform`, bootstrap excepcional, RLS,
+  grants, RPCs y pruebas.
+- TASK-005 Fase A aplicó exclusivamente en Supabase DEV seis migrations incrementales con email
+  proyectado, `platform_admins`, helpers anti-recursión, seis policies SELECT, grants mínimos y RPCs
+  estrechas. DB lint y la suite transaccional de catálogo/RLS/grants pasan.
+- La infraestructura local incluye cliente Admin `server-only`, refresh SSR, guards de autorización,
+  orquestación con compensación, tooling one-shot y suites para Auth/RLS/concurrencia.
+- La configuración Auth DEV efectiva fue verificada: signup público OFF, contraseña mínima 10 sin
+  composición, Site URL `http://localhost:3000` y redirects de callback/recovery exactos.
+- La suite Auth/RLS foundation pasó con concurrencia real y cleanup verificado: cero fixtures de
+  dominio, cero usuarios Auth temporales y ningún PLATFORM_ADMIN persistente.
+- La remediación de review agregó idempotencia por `operation_id`, reconciliación antes de compensar
+  y pruebas reales de response-loss/retry/concurrencia sin ampliar RLS tenant.
+- TASK-005A obtuvo `TASK-005A REVIEW PASS`; ambos findings quedaron cerrados y la Fase A se cerró
+  formalmente como checkpoint sin cerrar ni archivar TASK-005.
 
 ## Próximo
 
-Definir un Task Brief independiente para Auth, usuarios y acceso a centros sobre el schema ya
-creado. La etapa deberá coordinar Supabase Auth con `public.users` y `center_memberships`, diseñar la
-autorización server-side y agregar policies RLS funcionales sin debilitar el aislamiento
-multi-centro. No corresponde implementar ese alcance como parte del cierre de TASK-004.
+Iniciar TASK-005B desde el checkpoint aprobado para implementar la UI funcional y los flujos web
+previstos. Antes de cualquier bootstrap persistente del primer PLATFORM_ADMIN se mantiene la
+autorización humana adicional exigida; ese bootstrap no se ejecutó durante Fase A.
 
 ## Estado operativo
 
-- Branch: `task/004-initial-postgres-schema`.
-- TASK-004: `CLOSED`; artefactos archivados en `.harness/tasks/archive/TASK-004/`.
-- Supabase DEV: schema inicial aplicado; tres migrations sincronizadas; tipos regenerados; cero
-  fixtures persistentes al cierre.
-- Seguridad actual: RLS default-deny en las once tablas, cero policies funcionales y cero helpers
-  `SECURITY DEFINER` propios.
-- Próximo gate: aprobar objetivo, criterios, riesgos e impacto del Task Brief de Auth, usuarios y
-  acceso a centros antes de implementar.
-- PROD no fue utilizado. Continúan fuera de alcance durante este cierre: Auth funcional, policies
-  permisivas, seeds, UI, cambios en PROD, commit, push y PR.
+- Branch: `task/005-auth-users-center-access`, creada desde `main` en
+  `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
+  working tree limpio.
+- TASK-005 Fase A: `TASK-005A COMPLETED`; Fase B: `TASK-005B READY_FOR_IMPLEMENTATION`. Brief, Plan,
+  propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la tarea
+  completa sigue abierta.
+- Branch: `task/005-auth-users-center-access`.
+- `pnpm bootstrap` y health check DEV: PASS.
+- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las seis migrations de TASK-005 están
+  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (nueve versiones totales).
+- DB lint: cero resultados. Advisors de seguridad: sólo las siete advertencias esperadas por RPCs
+  `SECURITY DEFINER` autenticadas, todas con validación interna y grants explícitos aprobados.
+- Suites de schema/concurrencia, catálogo/RLS/grants y Auth foundation: PASS; tipos regenerados desde
+  DEV.
+- La existencia de `SUPABASE_SECRET_KEY` moderna se verificó sin exponerla; `.env.local` está ignorado
+  y no versionado. La configuración Auth Dashboard fue confirmada mediante comportamiento efectivo.
+- No se ejecutó el bootstrap persistente. El bootstrap, provisioning y compensación sí se validaron
+  con fixtures temporales DEV y cleanup.
+- Cero fixtures persistentes, cero usuarios Auth temporales de TASK-005 y cero PLATFORM_ADMIN
+  persistentes. PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
+
+## Decisiones aprobadas de TASK-005
+
+- `SUPABASE_SECRET_KEY` moderna, server-only y limitada a Auth Admin/compensación/bootstrap.
+- `public.users.email` como proyección lowercase, no nula y única; cambio de email fuera de alcance.
+- Centro activo por `/centers/[centerId]/...`, sin preferencia persistida.
+- `platform_admins` global separado de `membership_role` y sin bypass tenant.
+- Bootstrap one-shot únicamente para el primer PLATFORM_ADMIN.
+- `/platform` como mecanismo funcional para crear/activar/desactivar Centers y primer ADMIN.
+- RPCs administrativas estrechas, seis policies SELECT y grants mínimos.
+- Todo Center activo conserva al menos un ADMIN activo con enforcement concurrentemente seguro.
+- Recovery DEV con SMTP de desarrollo y redirects explícitos; custom SMTP obligatorio antes de PROD.
+- No quedan decisiones `REQUIRES_HUMAN_DECISION` abiertas en el diseño.
 
 ## Decisiones postergadas
 

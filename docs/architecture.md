@@ -56,11 +56,28 @@ Server Actions y Route Handlers son adaptadores. La lógica de negocio reutiliza
 ## Seguridad
 
 - Supabase Auth para identidad.
-- Autorización server-side basada en usuario + centro activo + membership + rol.
+- Autorización global server-side mediante `platform_admins` para `/platform`.
+- Autorización tenant server-side basada en usuario + centro activo + membership + rol.
+- Los permisos global y tenant son independientes y nunca se sustituyen entre sí.
 - RLS como barrera de aislamiento por centro.
-- Service role únicamente en servidor.
+- `SUPABASE_SECRET_KEY` moderna únicamente en un cliente administrativo `supabase-js` server-only,
+  separado de los clientes SSR/browser y limitado a Auth Admin, compensación y bootstrap o
+  reconciliación controlada. No se incorpora la key legacy `service_role`.
+- Las mutaciones Auth→PostgreSQL persisten una operación privada identificada por UUID y hash de
+  payload. Las RPCs serializan por ese UUID, guardan el resultado en la misma transacción de negocio
+  y permiten distinguir commit, rollback confirmado y estado indeterminado antes de compensar Auth.
 - Inputs externos revalidados con Zod.
 - IDs no implican permiso sobre un recurso.
+
+```text
+/platform
+→ requirePlatformAdmin()
+→ RPCs globales estrechas
+
+/centers/[centerId]/...
+→ requireCenterMembership(centerId)
+→ requireRole(...) / requireProfessionalContext(...)
+```
 
 ## Base de datos
 
