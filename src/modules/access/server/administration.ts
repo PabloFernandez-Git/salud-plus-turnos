@@ -10,6 +10,12 @@ import { requirePlatformAdmin, requireRole } from "./authorization";
 
 type ServerClient = SupabaseClient<Database>;
 
+export type PlatformCenterSummary =
+  Database["public"]["Functions"]["platform_list_centers"]["Returns"][number];
+
+export type PlatformIdentityResolution =
+  Database["public"]["Functions"]["platform_resolve_user_by_email"]["Returns"][number];
+
 const centerStatusSchema = z.object({ centerId: z.uuid(), isActive: z.boolean() });
 const membershipUpdateSchema = z
   .object({
@@ -36,6 +42,16 @@ export async function listPlatformCenters(client?: ServerClient) {
   const { data, error } = await supabase.rpc("platform_list_centers");
   if (error) throw error;
   return data;
+}
+
+export async function resolvePlatformIdentityByEmail(email: string, client?: ServerClient) {
+  const supabase = client ?? (await createSupabaseServerClient());
+  await requirePlatformAdmin(supabase);
+  const { data, error } = await supabase
+    .rpc("platform_resolve_user_by_email", { p_email: email })
+    .single();
+  if (error) throw error;
+  return data as PlatformIdentityResolution;
 }
 
 export async function setCenterActive(

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/supabase/database.types";
 
-import { AuthorizationError, requireCenterMembership } from "./authorization";
+import { AuthorizationError, requireCenterMembership, requirePlatformAdmin } from "./authorization";
 
 type Row = Record<string, unknown>;
 
@@ -127,5 +127,39 @@ describe("requireCenterMembership", () => {
         }),
       ),
     ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
+  });
+});
+
+describe("requirePlatformAdmin", () => {
+  it("allows an explicit PLATFORM_ADMIN", async () => {
+    await expect(
+      requirePlatformAdmin(
+        fakeClient({
+          centers: [],
+          memberships: [],
+          platformAdmins: [{ user_id: "user-a" }],
+        }),
+      ),
+    ).resolves.toMatchObject({ id: "user-a" });
+  });
+
+  it.each(["ADMIN", "RECEPTION", "PROFESSIONAL"])(
+    "denies a tenant %s without PLATFORM_ADMIN",
+    async (role) => {
+      await expect(
+        requirePlatformAdmin(
+          fakeClient({
+            centers: [activeCenterA],
+            memberships: [{ ...activeMembershipA, role }],
+          }),
+        ),
+      ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "PLATFORM_FORBIDDEN" });
+    },
+  );
+
+  it("denies an authenticated user without any platform grant", async () => {
+    await expect(
+      requirePlatformAdmin(fakeClient({ centers: [], memberships: [] })),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "PLATFORM_FORBIDDEN" });
   });
 });

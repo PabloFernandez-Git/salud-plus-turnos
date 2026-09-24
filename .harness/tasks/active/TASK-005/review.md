@@ -2,7 +2,7 @@
 
 **Rol:** Reviewer / Verifier independiente + Database/RLS Reviewer + Security Reviewer
 
-**Fecha:** 2026-09-22; re-reviews de Fase A y review B1 2026-09-23
+**Fecha:** 2026-09-22; re-reviews de Fase A y reviews B1/B2 2026-09-23; re-review focalizado B2 2026-09-24
 
 **Branch verificada:** `task/005-auth-users-center-access`
 
@@ -15,8 +15,611 @@
 
 **Resultado B1:** `TASK-005B1 REVIEW PASS`
 
-**Alcance del veredicto:** Fase A y B1 fueron revisadas y aprobadas por separado. TASK-005 completa
-no se cierra ni se archiva; B2 todavía no comenzó.
+**Resultado B2:** `TASK-005B2 REVIEW PASS`
+
+**Alcance del veredicto:** Fase A, B1 y B2 están aprobadas. TASK-005 completa no se cierra ni se
+archiva; B3 no comenzó.
+
+## Tercer re-review focalizado — TASK-005B2 — 2026-09-24
+
+### Veredicto
+
+`TASK-005B2 REVIEW PASS`
+
+Los dos findings restantes quedaron **CERRADOS**. Root y payload durable rechazan propiedades
+desconocidas sin transformar el snapshot en ausencia, y la suite E2E sincroniza la respuesta 503
+antes de cualquier refresh. Dos ejecuciones completas consecutivas pasaron 8/8, sin
+`Route is already handled`, operaciones `PENDING` ni residuos.
+
+La aprobación alcanza exclusivamente B2. TASK-005 continúa abierta; B3 no comenzó.
+
+### Finding 1 — schemas strict root/payload — CERRADO
+
+- `persistedPlatformOperationIntentSchema` y `platformCenterIntentPayloadSchema` usan `.strict()`.
+  No existe otro objeto anidado durable: el payload contiene únicamente campos escalares y queda
+  cubierto como unidad cerrada.
+- Propiedad extra en root → `INVALID`; propiedad extra dentro de payload → `INVALID`.
+- `adminInitialPassword` inyectada dentro del payload → parseo rechazado y cero escritura durable.
+  El hook prueba además que intentar persistir un payload con password no crea entrada en storage.
+- Los tests verifican que el contenido original queda byte-for-byte intacto, no se llama al factory
+  UUID, `operationId` permanece ausente, provisioning no se monta y remount/refresh continúa
+  bloqueado. Sólo el botón explícito de abandono elimina el valor y crea B.
+
+Matriz revalidada:
+
+```text
+ABSENT  (getItem === null) → puede crear una intención nueva
+VALID   (schema completo + actor/scope exactos) → recupera A
+INVALID (cualquier contenido presente no confiable) → bloqueado, sin UUID, submit ni auto-delete
+```
+
+JSON corrupto, versión desconocida, UUID inválido, actor/scope incorrectos, payload incompleto o
+inválido, propiedades desconocidas y excepción de lectura permanecen `INVALID`; ninguno degrada a
+`ABSENT` ni aporta campos parciales.
+
+### Finding 2 — race response-loss E2E — CERRADO
+
+`createResponseLossInterceptor()` usa un deferred explícito. El handler:
+
+```text
+route.fetch()
+→ exige upstream 200
+→ await route.fulfill(503)
+→ resuelve browserResponseDelivered
+```
+
+El test espera `browserResponseDelivered` antes de consultar, desmontar el route handler o refrescar.
+No usa sleeps como barrera principal. `afterEach` espera además cualquier route work en vuelo antes
+del teardown, eliminando la carrera que anteriormente dejaba operaciones `PENDING`.
+
+El escenario estricto real pasó dos veces y confirmó:
+
+```text
+operation_id A
+→ Auth + PostgreSQL COMMIT real
+→ upstream 200 y browser 503 entregado
+→ se agrega propiedad desconocida al snapshot completo
+→ refresh → INVALID / sin B
+→ segundo refresh → INVALID / sin B
+→ 1 Center + 1 membership ADMIN + 1 operación SUCCEEDED
+→ abandono explícito → snapshot eliminado + UUID B, sin segundo provisioning
+```
+
+Resultados consecutivos: **8/8 + 8/8**, ambos con cleanup cero y sin `Route is already handled`.
+
+### Reactivación y regresiones funcionales
+
+La corrección de la carrera de reactivación modifica sólo el harness. El E2E ya no confía únicamente
+en el texto UI: espera por polling que `centers.is_active = true` en PostgreSQL, navega la sesión
+tenant con una URL única y exige destino final `/centers/[centerId]`. La propiedad no fue debilitada:
+desactivar sigue enviando al tenant a `/no-access`, conserva la membership y reactivar restaura acceso
+tenant real.
+
+No hay diff bajo `supabase/`; las nueve migrations siguen sincronizadas local/remoto. No cambiaron
+migrations, schema, RLS, RPCs, grants, fingerprints ni provisioning DB. Autorización `/platform`,
+identidad nueva/existente, activate/deactivate, tenant isolation, B1 login/access y provisioning A
+pasaron sus regresiones.
+
+### Password, actor y secretos
+
+- Password excluida del schema durable y rechazada si se intenta inyectar como propiedad extra.
+- No apareció en `sessionStorage`, `localStorage`, cookies, URL, logs, IndexedDB, DB de provisioning,
+  snapshot durable ni artefactos cliente.
+- Storage continúa namespaced por PLATFORM_ADMIN y el actor dentro del snapshot debe coincidir con el
+  actor autenticado; storage no autoriza. Página, lecturas y mutaciones conservan
+  `requirePlatformAdmin()` server-side.
+
+### Auth foundation y checks
+
+| Verificación | Resultado |
+| --- | --- |
+| branch / HEAD / DEV | PASS: `task/005-auth-users-center-access`, `1c90881dab31ea5f9811057a012c8af664b59e33`, DEV `ehllxymqyzrofydrvtzo`; PROD fuera de alcance. |
+| `pnpm bootstrap` | PASS; no ejecutó bootstrap persistente. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; observó por PID real tanto el bootstrap advisory lock como el Center ADMIN advisory lock; cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS y cleanup cero. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` corrida 1 | PASS 8/8 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` corrida 2 | PASS 8/8 y cleanup cero. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 77/77 tests en 13 archivos. |
+| `pnpm build` | PASS; `/platform` dinámica. |
+| `pnpm security:check:client-bundle` | PASS; frontera de secretos limpia. |
+| migration sync | PASS: nueve migrations locales/remotas coinciden. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF. |
+
+`scripts/verify-auth-foundation.mjs` mantiene concurrencia real: captura el PID de la misma conexión
+transaccional bloqueada, exige en `pg_locks` un advisory lock `granted = false`, libera la transacción
+ganadora y luego verifica el resultado funcional. Ambos barriers fueron observados en esta ronda.
+
+### Cleanup y riesgo residual
+
+Auditoría read-only final contra DEV: 0 Auth users, 0 `public.users`, 0 Centers, 0 memberships, 0
+PLATFORM_ADMIN, 0 `private.provisioning_operations` y 0 procesos DB/E2E. No quedó listener local en
+puerto 3000.
+
+Permanece aceptado el riesgo ya delimitado: cerrar deliberadamente la pestaña o borrar manualmente
+`sessionStorage` pierde metadata no secreta. El contrato aprobado es response-loss + refresh dentro
+de la misma pestaña y se cumple.
+
+No se ejecutó bootstrap persistente, no se tocó PROD, no hubo commit/push/PR, TASK-005 continúa
+abierta y B3 no comenzó.
+
+## Segundo re-review focalizado — TASK-005B2 B2-F1 — 2026-09-24
+
+### Veredicto
+
+`TASK-005B2 CHANGES_REQUESTED`
+
+El finding ALTO B2-F1 permanece **ABIERTO / parcialmente remediado**. La implementación ya distingue
+`ABSENT`, `VALID` e `INVALID` para ausencia real, snapshots válidos, JSON corrupto, versión/campos/UUID,
+actor, scope, payload y errores de lectura. En esos caminos `INVALID` no borra storage, no crea UUID y
+no monta provisioning; el abandono explícito es el único camino que elimina el snapshot y crea B.
+
+No obstante, la validación no rechaza toda estructura inesperada: los `z.object()` de
+`persistedPlatformOperationIntentSchema` y `platformCenterIntentPayloadSchema` no son estrictos. Zod
+elimina propiedades desconocidas y devuelve `VALID`. Además, el E2E oficial nuevo tiene una carrera
+reproducible entre `route.fetch()/route.fulfill()` y el refresh, por lo que la evidencia requerida no
+queda verde ni limpia en su forma entregada.
+
+### ABSENT / VALID / INVALID
+
+**Resultado por camino:**
+
+- `getItem() === null` → `ABSENT` → se crea una intención nueva: PASS.
+- Snapshot completamente válido, actor actual y scope exacto → `VALID` → recupera A y payload completo:
+  PASS.
+- JSON corrupto, versión desconocida, campos faltantes, UUID inválido, actor distinto, scope distinto,
+  timezone/payload inválido o fallo de lectura → `INVALID`: PASS. No se usa ningún campo parcial, no se
+  borra el valor, no se llama al generador y la UI sólo muestra el estado bloqueado.
+- Escritura fallida → el submit hace `preventDefault()` y no llega al provisioning: PASS.
+- Borrado fallido durante abandono → conserva `INVALID`, conserva el snapshot, muestra error y no crea
+  B: PASS.
+- Rerender, dos refresh y navegación/remount no cambian `INVALID`: PASS en unit y en el probe E2E
+  sincronizado del reviewer.
+
+**Defecto restante — estructura inesperada:** un probe independiente agregó por separado una propiedad
+desconocida en la raíz y otra dentro de `payload`. En ambos casos
+`readPlatformOperationIntent(...).status` fue `valid`; las propiedades fueron descartadas. Esto no
+genera por sí mismo un segundo Center, pero contradice el criterio explícito de este re-review:
+`estructura inesperada → INVALID` y “no recuperar parcialmente contenido que no pasó validación
+completa”. Los tests del Implementer no incluyen este caso.
+
+**Objeto:** `src/modules/access/schemas/platform.ts`, schemas
+`platformCenterIntentPayloadSchema` y `persistedPlatformOperationIntentSchema`.
+
+**Criterio restante:** validar de forma cerrada la estructura durable (incluido `payload`) y agregar
+casos para propiedades desconocidas en ambos niveles que demuestren `INVALID`, snapshot intacto, cero
+UUID y provisioning desmontado.
+
+### E2E de snapshot inválido
+
+La prueba entregada sí modela conceptualmente el escenario correcto: POST real, Auth y commit PostgreSQL,
+upstream 200, 503 sólo al browser, corrupción de snapshot, dos `page.reload()`, cero input
+`operationId`, snapshot intacto, conteos 1/1/1 antes del abandono y UUID nuevo sólo después del botón
+explícito.
+
+Sin embargo, `pnpm test:e2e:platform-admin:dev` falló **2/2** en ese caso con
+`route.fulfill: Route is already handled`. El test espera que DB muestre el commit, pero eso puede
+ocurrir antes de que el callback termine `route.fetch()` y `route.fulfill(503)`; entonces avanza al
+refresh y cierra/muta la página mientras el interceptor sigue activo. Cada fallo abortó los cuatro
+casos restantes y el teardown dejó una operación `PENDING` porque el request todavía terminaba durante
+el cleanup.
+
+Para separar producto de harness, el reviewer agregó temporalmente una única barrera que espera la
+finalización de `route.fulfill(503)` antes de corromper/recargar, ejecutó sólo el mismo E2E real y retiró
+el cambio. Ese probe pasó 1/1 y confirmó:
+
+```text
+operation_id A + Auth/DB COMMIT real + upstream 200 + browser 503
+→ snapshot corrupto
+→ refresh real
+→ INVALID, sin operation_id
+→ segundo refresh real
+→ INVALID, sin operation_id
+→ antes de abandonar: 1 Center, 1 ADMIN activa, 1 SUCCEEDED
+→ abandono humano explícito
+→ snapshot eliminado y UUID B generado, sin segundo efecto DB
+```
+
+Por tanto, la lógica de producto para JSON corrupto está corregida y B no aparece automáticamente;
+la suite oficial aún debe incorporar una sincronización equivalente y demostrar ejecución completa y
+cleanup determinista.
+
+### Password, actor y autorización
+
+- El snapshot contiene sólo versión, scope, actor UUID, operation UUID y payload material no secreto.
+  La contraseña no forma parte del schema/estado persistido y no apareció en session/local storage,
+  cookies, URL, logs, IndexedDB, bundle ni DB de provisioning. Tras refresh queda vacía.
+- La clave está namespaced por actor y el contenido vuelve a exigir el mismo `actorUserId`; contenido
+  de otro actor bajo la clave actual queda `INVALID`. Otro PLATFORM_ADMIN con clave propia ve ausencia
+  real, no recupera la intención anterior.
+- Storage no autoriza. `/platform` y cada lectura/mutación global continúan usando
+  `requirePlatformAdmin()` server-side. No hay cambios en RLS, RPCs, grants, fingerprints ni schema DB.
+
+### Advisory-lock harness
+
+La corrección de `scripts/verify-auth-foundation.mjs` es válida. Obtiene `pg_backend_pid()` en la misma
+conexión/transaction B que ejecuta la RPC bloqueada y consulta `pg_locks` por ese PID, `locktype =
+'advisory'` y `granted = false`. No depende de `application_name` detrás del pooler ni reemplaza la
+espera por una assertion trivial. Después libera A y verifica el resultado de B. Bootstrap y último
+ADMIN conservan transacciones concurrentes reales y ambos barriers fueron observados.
+
+`pnpm db:test:auth-foundation:dev` pasó 2/2: en ambas ejecuciones imprimió los PIDs realmente esperando
+para bootstrap y Center ADMIN y terminó con cleanup cero.
+
+### Checks y regresiones
+
+| Verificación | Resultado |
+| --- | --- |
+| branch / HEAD / DEV | PASS: `task/005-auth-users-center-access`, `1c90881dab31ea5f9811057a012c8af664b59e33`, DEV `ehllxymqyzrofydrvtzo`; PROD fuera de alcance. |
+| diff `supabase/` / migration sync | PASS: cero cambios funcionales DB y las nueve migrations local/remoto sincronizadas. |
+| `pnpm bootstrap` | PASS; no ejecutó bootstrap persistente. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS 2/2 con los dos advisory locks observados y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS y cleanup cero. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` | **FAIL 2/2** en el nuevo caso por la carrera `Route is already handled`; sólo 3/8 corrieron en cada intento. |
+| probe E2E sincronizado del reviewer | PASS 1/1 para el escenario real inválido, doble refresh, abandono y cleanup cero. |
+| tests focalizados del hook | 17/17 PASS incluyendo probes read/remove failure; el probe de estructura desconocida confirmó la aceptación indebida como `VALID`. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 71/71 tests en 13 archivos. |
+| `pnpm build` | PASS; `/platform` dinámica. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo advertencias informativas LF/CRLF. |
+
+Autorización `/platform`, identidad nueva/existente, activate/deactivate, tenant isolation, B1,
+response-loss válido y provisioning/fingerprints A no mostraron regresiones en las suites que sí
+completaron. El test oficial B2 no pudo volver a ejecutar sus cuatro casos posteriores debido a su
+falla serial, por lo que no se los declara verdes en esta ronda sólo por resultados históricos.
+
+### Cleanup y riesgo residual
+
+Cada uno de los dos fallos oficiales dejó una única operación `PENDING` huérfana. Antes de eliminarla,
+el reviewer verificó UUID exacto, tipo `PLATFORM_CREATE_CENTER`, `auth_user_id/result_center_id` nulos y
+actor ya ausente; eliminó sólo esas dos filas. El probe sincronizado posterior terminó con su cleanup
+oficial cero. La auditoría final confirmó 0 Auth users, 0 `public.users`, 0 Centers, 0 memberships, 0
+PLATFORM_ADMIN, 0 provisioning operations y 0 procesos DB de tests.
+No quedó listener local en puerto 3000 ni proceso E2E activo.
+
+Se mantiene como riesgo residual aceptado que cerrar deliberadamente la pestaña o borrar manualmente
+`sessionStorage` pierda metadata no secreta. El contrato aprobado continúa limitado a response-loss +
+refresh dentro de la misma pestaña; no se amplía alcance.
+
+No se modificó implementación durante el review, no se ejecutó bootstrap persistente, no se tocó PROD,
+no hubo commit/push/PR, TASK-005 continúa abierta y B3 no comenzó.
+
+## Re-review focalizado — TASK-005B2 B2-F1 — 2026-09-24
+
+### Veredicto
+
+`TASK-005B2 CHANGES_REQUESTED`
+
+El camino normal de response-loss + refresh quedó corregido: con un snapshot válido el navegador
+recupera `operation_id A`, conserva el payload, deja la contraseña vacía y el retry real termina con
+un Center, una membership ADMIN y una operación `SUCCEEDED`. Sin embargo, el finding ALTO permanece
+**ABIERTO / parcialmente remediado** porque un snapshot pendiente inválido u obsoleto se borra
+silenciosamente y el hook genera `operation_id B`. Un probe E2E independiente reprodujo nuevamente
+dos Centers para la misma intención humana después de un commit real y una respuesta perdida.
+
+### Estado del finding histórico B2-F1
+
+#### Lo corregido
+
+- `sessionStorage` persiste sólo UUID, versión y payload material no secreto, namespaced por UUID del
+  PLATFORM_ADMIN. Password no forma parte del schema ni del JSON serializado.
+- El E2E oficial deja completar un POST real (`route.fetch()` devuelve 200), sustituye únicamente la
+  respuesta al browser por 503, hace `page.reload()` real y comprueba que se recupera A.
+- El retry cruza UI B2, Server Action, Auth y RPC reales. Resultado observado: exactamente un Center,
+  una membership ADMIN activa y una fila `private.provisioning_operations` `SUCCEEDED`, todas ligadas
+  a A; luego el snapshot se elimina.
+- El payload recuperado queda read-only para nombre, dirección, teléfono, email/timezone del Center y
+  nombre/apellido/email del ADMIN. Para una identidad nueva la contraseña vuelve vacía; si Auth aún
+  la necesita, la Action devuelve `AUTH_CREATE_FAILED` en modo `same-operation` y exige reingresarla
+  manteniendo A.
+- Rerender, submit, error ambiguo y refresh conservan A mientras el snapshot sea válido. Éxito
+  inequívoco lo limpia; `Crear otro centro` o abandono explícito emiten un UUID nuevo.
+
+#### Defecto restante reproducido — ALTO
+
+**Objeto:** `src/modules/access/components/use-platform-operation-intent.ts:24-40,70-78`.
+
+`readPlatformOperationIntent()` no distingue “no existe intención” de “existe una intención pendiente
+pero no puede validarse”. Ante JSON corrupto, versión/schema obsoleto u otro contenido inválido,
+ejecuta `removeItem()` y retorna `null`; el inicializador interpreta ese `null` como ausencia de
+intención y crea automáticamente B.
+
+**Escenario E2E independiente contra DEV:**
+
+```text
+PLATFORM_ADMIN inicia alta con operation_id A
+→ POST real llega al servidor
+→ Auth + PostgreSQL confirman Center + ADMIN y el upstream responde 200
+→ el browser recibe 503 simulado después del commit
+→ el snapshot pendiente de A queda ilegible/corrupto
+→ refresh real de /platform
+→ el hook borra el snapshot y genera operation_id B sin abandono explícito
+→ se reenvía el mismo formulario con la identidad Auth ya existente
+→ PostgreSQL confirma un segundo Center y una segunda membership ADMIN
+```
+
+El probe verificó `B != A` y conteo exacto final de dos Centers antes de su cleanup. La DB se comporta
+correctamente: las dos operaciones tienen UUID distintos, por lo que fingerprints/idempotencia A no
+pueden reconocerlas como la misma intención. Esto incumple de forma directa el criterio solicitado
+`snapshot inválido → no ejecutar provisioning inseguro` y el requisito de no caer silenciosamente a
+un UUID nuevo para una intención pendiente.
+
+**Riesgo:** corrupción parcial, cambio incompatible de schema o estado obsoleto durante una intención
+ambigua puede reabrir exactamente la duplicación tenant que B2-F1 buscaba cerrar. El usuario no recibe
+una señal de que abandonó A ni una opción consciente de reconciliar o descartar.
+
+**Criterio de aceptación restante:**
+
+1. diferenciar de forma explícita `storage key ausente` de `storage key presente pero inválida/no
+   legible`;
+2. ante estado presente inválido/no legible, bloquear provisioning y no borrar ni sustituir A de
+   forma silenciosa; exponer un estado seguro de recuperación/abandono;
+3. sólo una acción deliberada de abandono puede descartar esa intención y generar B cuando no sea
+   posible recuperar A;
+4. agregar unit/component y E2E del caso commit real + response-loss + snapshot inválido/obsoleto +
+   refresh, demostrando que no se envía una nueva alta sin abandono explícito;
+5. conservar el camino válido ya logrado: mismo A, payload fijo, password no persistida y exactamente
+   un efecto de negocio.
+
+### Password, storage, lifecycle y aislamiento
+
+- **Password/storage válido:** PASS. La contraseña no apareció en `sessionStorage`, `localStorage`,
+  cookies, URL/query params, logs capturados, IndexedDB (no se usa), bundle, tablas propias ni
+  `provisioning_operations`; después del refresh el input quedó vacío.
+- **Storage no disponible:** PASS de seguridad. Si `setItem` falla, el submit se cancela y se muestra
+  error. Si la lectura lanza, el componente no habilita el formulario; no hay fallback a una Action.
+  El manejo no es amable, pero es fail-closed.
+- **Storage inválido:** FAIL. Se elimina y se genera B automáticamente, como se detalla arriba.
+- **Aislamiento entre usuarios:** PASS. La clave incluye el UUID autenticado; un segundo
+  PLATFORM_ADMIN no recupera la intención del primero. El UUID no otorga autorización y todas las
+  mutaciones conservan `requirePlatformAdmin()` server-side. Logout/login no convierte metadata del
+  browser en autoridad.
+- **Lifecycle seguro con estado válido:** PASS. Payload material bloqueado, retry sin password después
+  de commit, password nuevamente requerida si Auth no llegó a prepararse, éxito limpia y abandono
+  explícito crea un UUID distinto.
+
+`sessionStorage` no sobrevive el cierre deliberado de la pestaña/sesión. Se acepta como riesgo
+residual para B2 porque el criterio aprobado exige recuperación tras refresh en la misma pestaña y no
+estableció recuperación cross-tab/cross-session; exigirla ahora sería ampliar alcance. Esto no excusa
+el defecto bloqueante ante una clave pendiente presente pero inválida.
+
+### Regresiones y evidencia ejecutada
+
+| Verificación | Resultado del re-review |
+| --- | --- |
+| branch / HEAD / diff DB | PASS: `task/005-auth-users-center-access`, HEAD/base B1 `1c90881dab31ea5f9811057a012c8af664b59e33`; cero cambios bajo `supabase/`. |
+| `pnpm bootstrap` | PASS después de reconstruir dependencias locales; no ejecutó bootstrap persistente de PLATFORM_ADMIN. |
+| `pnpm supabase:check:dev` | PASS contra DEV `ehllxymqyzrofydrvtzo`; PROD no fue tocado. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 7/7. El nuevo caso prueba POST/commit real, 503 sólo hacia browser, refresh real, A recuperado, retry B2, un Center/membership y cleanup. |
+| probe E2E independiente snapshot inválido | **REPRODUCE defecto restante:** después de commit + response-loss, refresh eliminó A inválido, generó B y permitió exactamente dos Centers/dos memberships; cleanup cero. |
+| tests focalizados de storage | PASS para snapshot válido, password ausente, actor distinto y `setItem` no disponible; confirma FAIL funcional de snapshot inválido al generar B. |
+| `pnpm db:test:schema:dev` | PASS, incluida concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | **FAIL 3/3** en `The bootstrap advisory-lock wait was not observed`; las tres ejecuciones completaron cleanup cero. B2 no cambió DB/migrations, pero la regresión requerida no queda verde y no se oculta en el veredicto. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS con Auth/PostgreSQL reales. |
+| `pnpm auth:check:dev` | PASS y cleanup cero. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9 y cleanup cero. |
+| migration sync | PASS: nueve migrations local/remoto sincronizadas. |
+| DB lint | PASS: cero errores/resultados. |
+| security advisors | PASS con las mismas siete WARN `SECURITY DEFINER` conocidas, cero ERROR y ninguna superficie nueva. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 61/61 tests en 13 archivos. |
+| `pnpm build` | PASS; `/platform` continúa dinámica. |
+| `pnpm security:check:client-bundle` | PASS; sin secret/admin client en cliente. |
+
+Las pruebas B2 confirmaron además autorización `/platform`, identidad nueva/existente,
+activate/deactivate, tenant isolation, B1, fingerprints/reconciliación A y manejo de secretos. El diff
+no introdujo migrations, RLS, grants ni RPCs.
+
+### Cleanup del re-review
+
+Auditoría read-only final contra DEV: 0 `auth.users`, 0 `public.users`, 0 Centers, 0 memberships, 0
+PLATFORM_ADMIN, 0 `private.provisioning_operations` y 0 sesiones DB de tests. Los probes temporales y
+el store temporal generado durante bootstrap fueron retirados. No se ejecutó bootstrap persistente,
+no se tocó PROD y no hubo commit, push, PR, archivo/cierre de TASK-005 ni trabajo de B3.
+
+## Review independiente — TASK-005B2 — Platform Admin — 2026-09-23
+
+### Veredicto
+
+`TASK-005B2 CHANGES_REQUESTED`
+
+La autorización global, los datos expuestos, el provisioning normal, la activación/desactivación y
+las regresiones A/B1 pasan. B2 queda bloqueada por un defecto reproducible en el lifecycle de la
+intención de alta frente a pérdida de respuesta seguida de refresh: el navegador pierde el
+`operation_id` confirmado y permite producir un segundo Center para la misma intención humana.
+
+### Finding abierto
+
+#### B2-F1 — ALTO — el `operation_id` no sobrevive response-loss + refresh y permite duplicar el Center
+
+**Objetos afectados:**
+
+- `src/app/platform/page.tsx` — genera `randomUUID()` en cada montaje de `/platform`;
+- `src/modules/access/components/use-platform-operation-intent.ts` — conserva el UUID sólo en
+  `useState`;
+- `src/modules/access/components/create-center-panel.tsx` — el bloqueo de payload depende de que el
+  cliente haya recibido un `PlatformActionState.retryMode`, sin recuperación durable después de
+  perder la respuesta.
+
+**Escenario reproducido contra DEV con UI, Action, Auth y PostgreSQL reales:**
+
+```text
+PLATFORM_ADMIN completa Center + ADMIN nuevo con operation_id A
+→ POST real de Server Action
+→ PostgreSQL confirma Center + public.users + membership ADMIN + SUCCEEDED
+→ el probe deja terminar el request upstream y descarta deliberadamente su respuesta al browser
+→ React recibe un error de transporte no convertido en estado ambiguo controlado
+→ refresh completo de /platform
+→ el Server Component entrega operation_id B, distinto de A
+→ se reingresa exactamente el mismo Center/email
+→ la identidad Auth existente se reutiliza
+→ se confirma un segundo Center y una segunda membership ADMIN
+```
+
+El probe determinista observó dos Centers con el mismo payload material y dos operaciones
+`SUCCEEDED`, una para cada UUID. El primer commit no duplicó Auth; la duplicación ocurrió porque el
+refresh perdió la intención original. Esto no es un defecto del protocolo A: con el mismo UUID, un
+probe integrado separado confirmó un único Center/membership y rechazo de una mutación material. El
+problema está en el lifecycle B2 que permite reemplazar el UUID sin una acción deliberada del usuario.
+
+**Riesgo:** una respuesta de Server Action perdida después de un commit válido puede inducir al
+PLATFORM_ADMIN a crear silenciosamente un segundo tenant. El nuevo UUID evita que las fingerprints e
+idempotencia de Fase A reconozcan el retry.
+
+**Criterio de aceptación restante:**
+
+1. una intención iniciada debe recuperar el mismo `operation_id` después de un refresh completo o
+   recuperación equivalente del estado ambiguo, sin persistir la contraseña fuera de Auth;
+2. después de commit + pérdida de respuesta, la UI debe reconstruir/reconciliar el resultado de A y
+   el retry debe usar el UUID original;
+3. el payload material debe permanecer fijado para ese retry; para cambiar datos debe existir una
+   acción deliberada de “nueva intención” que emita otro UUID;
+4. agregar un E2E real que deje confirmar el request de negocio, descarte la respuesta al navegador,
+   recargue o recupere la UI, reintente y demuestre exactamente un Center, una membership ADMIN y una
+   operación efectiva;
+5. conservar la propiedad actual de que reutilizar el mismo UUID con argumentos materiales distintos
+   falla antes de cualquier efecto.
+
+### Autorización `/platform` y Server Actions
+
+**Resultado:** PASS.
+
+- La página empieza con `requirePlatformAdmin()` y las lecturas `listPlatformCenters` y
+  `getAccessOverview` consultan estado actual por cliente SSR. No dependen de botones, proxy, claims
+  de rol ni estado React como autoridad.
+- Resolución exacta, alta y activar/desactivar vuelven a ejecutar `requirePlatformAdmin()` antes de
+  validar o mutar; los wrappers DB vuelven a guardear y las RPCs conservan la validación interna de
+  Fase A.
+- Unit tests y revisión de código confirman PLATFORM_ADMIN permitido; ADMIN, RECEPTION,
+  PROFESSIONAL y authenticated común denegados. Un probe real con sesión ADMIN tenant obtuvo DENY
+  tanto en `platform_list_centers` como en `platform_set_center_active`.
+- Unauthenticated sigue redirigiendo a `/login`; B1 E2E volvió a pasar. No se implementó B3.
+
+### Tabla, contadores y aislamiento
+
+**Resultado:** PASS.
+
+- La tabla muestra exclusivamente nombre, estado, dirección, teléfono, email, fecha de alta, los
+  tres contadores y acciones. Tiene estado vacío y CTA, fallbacks, badges y contenedor
+  `overflow-x-auto`.
+- Los datos vienen sólo de `platform_list_centers`; no se descargan memberships,
+  ProfessionalCenter ni Specialty. El alta real mostró `Usuarios = 1`, `Profesionales = 0` y
+  `Especialidades = 0`.
+- El diff desde `1c90881dab31ea5f9811057a012c8af664b59e33` no toca `supabase/`: cero migrations,
+  RLS, grants, RPCs o tipos modificados.
+- Un probe con sesión PLATFORM_ADMIN sin membership obtuvo cero filas tenant mediante RLS. Las
+  suites A volvieron a confirmar aislamiento cross-center, direct writes denied, último ADMIN y que
+  Person/PatientCenter/pacientes/appointments/agenda/availabilities/notas siguen cerrados.
+
+### Alta con identidad nueva y existente
+
+**Resultado funcional:** PASS, sujeto al finding de lifecycle.
+
+- Zod normaliza nombres/contactos con trim, email lowercase y opcionales vacíos; timezone IANA
+  inválida y password de 9 caracteres son rechazados, 10 aceptados.
+- Identidad nueva: Auth confirmado, perfil y exactamente una membership ADMIN activa. Password sólo
+  viaja en el formulario/Action y Auth Admin; no aparece en URL, logs ni tablas propias.
+- Identidad existente: la UI no renderiza password; la Action vuelve a resolver y reemplaza cualquier
+  nombre/password enviados por los valores autoritativos. El E2E real confirmó email, password,
+  nombres y membership previa sin cambios y sólo agregó el nuevo acceso ADMIN.
+- La resolución retorna únicamente existencia, UUID/email/nombres mínimos; no filtra otros Centers
+  ni roles.
+
+### `operation_id`, retry y concurrencia
+
+**Resultado:** FAIL por B2-F1.
+
+- PASS dentro de un montaje: rerender, submit y retry conservan el UUID; pending deshabilita submit;
+  `Crear otro centro` genera uno diferente. El servidor valida UUID y la DB liga actor, scope, tipo
+  y payload material; el UUID no autoriza.
+- PASS integrado sin refresh: el probe de reviewer hizo commit real + fault injection post-commit a
+  través de `performCreatePlatformCenterAction`, reconcilió `SUCCEEDED`, reintentó el mismo UUID y
+  obtuvo el mismo Center/membership. La mutación de nombre con ese UUID falló sin segundo efecto.
+- FAIL al perder la respuesta HTTP y recargar: el estado in-memory desaparece, se genera un UUID
+  nuevo y la misma intención crea un segundo Center. La suite oficial no cubre esta frontera.
+- Las suites de Fase A volvieron a pasar response-loss, fingerprints, dos ejecuciones concurrentes
+  con el mismo UUID, estado incierto, rollback y compensación fallida.
+
+### Activate/deactivate
+
+**Resultado:** PASS.
+
+`CenterStatusForm` pide confirmación, deshabilita mientras envía y la Action reautoriza/valida antes
+de llamar exclusivamente `platform_set_center_active`. El E2E confirmó que desactivar conserva la
+membership pero niega tenant, y reactivar restaura acceso con ADMIN activo. La suite A mantiene el
+rechazo de reactivación sin ADMIN y la invariante concurrente del último ADMIN. No hay delete.
+
+### Secretos y fronteras cliente/servidor
+
+**Resultado:** PASS.
+
+- Ningún Client Component importa `admin.ts`, `createSupabaseAdminClient` ni módulos Admin.
+- El único uso B2 de la secret key está en el runner E2E Node para fixtures. No hay key legacy,
+  password en URL/logs, secretos en source maps/bundle ni datasets tenant en `/platform`.
+- `security:check:client-bundle` pasó después del build. No se mostró ni imprimió el valor de
+  `SUPABASE_SECRET_KEY` y no se ejecutó bootstrap persistente.
+
+### E2E, probes y regresiones ejecutadas
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS con `CI=true`; la primera invocación no interactiva sólo encontró el prompt de pnpm para su store. |
+| `pnpm supabase:check:dev` | PASS contra DEV `ehllxymqyzrofydrvtzo`. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 6/6 y cleanup cero. Cubre empty/list, alta nueva, `Usuarios = 1`, activate/deactivate, ADMIN/common deny e identidad existente. No cubre response-loss + refresh. |
+| probe integrado Action B2 independiente | PASS: commit+response-loss interno, retry mismo UUID, mutación material DENY, ADMIN global DENY y PLATFORM_ADMIN tenant DENY; cleanup cero. |
+| probe E2E independiente response-loss + refresh | **REPRODUCE B2-F1**: UUID A fue reemplazado por B y la misma intención confirmó dos Centers. Un primer intento con `route.abort` fue no concluyente por error del harness; la repetición determinista dejó terminar upstream y devolvió 503 al browser. Cleanup cero. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9 y cleanup cero. |
+| `pnpm db:test:schema:dev` | PASS, incluida concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS, incluido último ADMIN/RLS y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS, incluido response-loss/retry/fingerprints/concurrencia/compensación y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS con Auth/PostgreSQL reales y fault injection test-only. |
+| `pnpm auth:check:dev` | PASS: signup OFF, mínimo 10, Site URL y redirects exactos; cleanup cero. |
+| `supabase migration list --linked` | PASS: nueve migrations local/remoto sincronizadas. |
+| `supabase db lint --linked --schema public,private --level warning` | PASS: cero resultados. |
+| Security advisors `--fail-on error` | PASS con exactamente las siete WARN `SECURITY DEFINER` conocidas y cero ERROR/nueva superficie. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 56/56 tests en 13 archivos. |
+| `pnpm build` | PASS; `/platform` dinámica. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF. |
+
+### Cleanup final
+
+Auditoría independiente posterior a todas las suites/probes:
+
+- 0 Auth fixtures;
+- 0 `public.users` fixtures;
+- 0 Centers y Specialty fixtures;
+- 0 memberships fixtures;
+- 0 PLATFORM_ADMIN fixtures;
+- 0 `private.provisioning_operations`;
+- 0 sesiones `pg_stat_activity` con `application_name task005*`;
+- 0 listener local en puerto 3000;
+- los archivos/probes temporales del reviewer fueron retirados.
+
+### Riesgos residuales y estado
+
+- **Bloqueante:** B2-F1 permanece abierto; hasta corregirlo, la foundation idempotente de A no
+  protege la intención humana a través de un refresh de browser después de response-loss.
+- La suite oficial B2 debe incorporar esta frontera para evitar regresión; hoy sus 6 casos sólo
+  prueban el UUID dentro del montaje y una nueva intención después de éxito conocido.
+- Se mantienen los riesgos ya aceptados pre-PROD: SMTP de desarrollo, rate limiting definitivo y
+  retención futura de operaciones. PROD continuó fuera de alcance.
+
+Sólo se actualizó este review. No hubo corrección de implementación, bootstrap persistente, commit,
+push, PR, cierre/archivo de TASK-005 ni trabajo de B3.
 
 ## Review independiente — TASK-005B1 — 2026-09-23
 

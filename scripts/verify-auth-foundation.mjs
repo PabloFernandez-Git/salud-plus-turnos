@@ -102,6 +102,40 @@ function assertEqual(actual, expected, description) {
   }
 }
 
+async function observePendingAdvisoryLock(controlClient, blockedPid, description) {
+  if (!Number.isInteger(blockedPid)) {
+    throw new Error(`${description}: the blocked connection PID is unavailable.`);
+  }
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const waiting = await controlClient.query(
+      `select exists (
+         select 1
+         from pg_catalog.pg_locks
+         where pid=$1
+           and locktype='advisory'
+           and not granted
+       ) as is_waiting`,
+      [blockedPid],
+    );
+    if (waiting.rows[0].is_waiting) {
+      console.log(`${description}: PID ${blockedPid} is waiting on an advisory lock.`);
+      return;
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 50));
+  }
+
+  const activity = await controlClient.query(
+    `select state,wait_event_type,wait_event
+     from pg_catalog.pg_stat_activity
+     where pid=$1`,
+    [blockedPid],
+  );
+  throw new Error(`${description}: advisory-lock wait was not observed.`, {
+    cause: { blockedPid, activity: activity.rows[0] ?? null },
+  });
+}
+
 const runId = randomUUID().replaceAll("-", "").slice(0, 16);
 const password = randomBytes(24).toString("base64url");
 const fixtureNames = [
@@ -364,28 +398,16 @@ try {
     "Admin",
   ]);
   await transactionB.query("begin");
+  const bootstrapBlockedPid = Number(
+    (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
+  );
   const losingBootstrap = transactionB.query(
     "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
     [bootstrapOperationB, noMember.id, "Second", "Bootstrap"],
   );
   void losingBootstrap.catch(() => {});
 
-  let observedBootstrapWait = false;
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const waiting = await control.query(
-      `select 1
-       from pg_catalog.pg_stat_activity
-       where application_name='task005-bootstrap-b'
-         and wait_event_type='Lock'
-         and wait_event='advisory'`,
-    );
-    if (waiting.rowCount === 1) {
-      observedBootstrapWait = true;
-      break;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, 50));
-  }
-  if (!observedBootstrapWait) throw new Error("The bootstrap advisory-lock wait was not observed.");
+  await observePendingAdvisoryLock(control, bootstrapBlockedPid, "Bootstrap concurrency barrier");
 
   await transactionA.query("commit");
   const losingBootstrapResult = await Promise.allSettled([losingBootstrap]);
@@ -729,6 +751,9 @@ try {
   ]);
 
   await transactionB.query("begin");
+  const centerBlockedPid = Number(
+    (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
+  );
   await transactionB.query("set local role authenticated");
   await transactionB.query("select set_config('request.jwt.claim.sub',$1,true)", [adminA2.id]);
   const secondChange = transactionB.query(
@@ -737,22 +762,7 @@ try {
   );
   void secondChange.catch(() => {});
 
-  let observedAdvisoryWait = false;
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const waiting = await control.query(
-      `select 1
-       from pg_catalog.pg_stat_activity
-       where application_name='task005-concurrency-b'
-         and wait_event_type='Lock'
-         and wait_event='advisory'`,
-    );
-    if (waiting.rowCount === 1) {
-      observedAdvisoryWait = true;
-      break;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, 50));
-  }
-  if (!observedAdvisoryWait) throw new Error("The center advisory-lock wait was not observed.");
+  await observePendingAdvisoryLock(control, centerBlockedPid, "Center ADMIN concurrency barrier");
 
   await transactionA.query("commit");
   const secondResult = await Promise.allSettled([secondChange]);

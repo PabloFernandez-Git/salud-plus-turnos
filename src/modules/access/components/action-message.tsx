@@ -2,9 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-import type { AuthActionState } from "../actions/auth-actions";
+type MessageState = {
+  message?: string;
+  status: string;
+};
 
-export function ActionMessage({ state }: { state: AuthActionState }) {
+export function ActionMessage({ state }: { state: MessageState }) {
   const messageRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 # TASK-005 — Implementation Report — Fase A
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 READY_FOR_IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
 
 **Rol:** Implementer
 
@@ -319,6 +319,264 @@ hubo commit, push ni PR.
 - Cero fixtures, cero PLATFORM_ADMIN persistentes y ningún secreto versionado.
 - El bootstrap persistente del primer PLATFORM_ADMIN continúa sin ejecutarse.
 
+## TASK-005B2 — Platform Admin
+
+**Estado:** `TASK-005B2 COMPLETED`
+
+**Alcance:** `/platform` funcional para listar Centers, consultar metadata/contadores agregados,
+crear Center + primer ADMIN y activar/desactivar Center. La administración general de usuarios y
+memberships tenant queda fuera de B2 y se mantiene para TASK-005B3.
+
+### Preflight y límites
+
+- Baseline inicial confirmado: branch `task/005-auth-users-center-access`, HEAD
+  `1c90881dab31ea5f9811057a012c8af664b59e33` y working tree limpio antes de bootstrap.
+- `pnpm bootstrap`, guard de secret moderna y `pnpm supabase:check:dev`: PASS contra DEV
+  `ehllxymqyzrofydrvtzo`.
+- `SUPABASE_SECRET_KEY` no se mostró ni imprimió; la key legacy permaneció ausente y el archivo local
+  continuó ignorado.
+- PROD, bootstrap persistente, PLATFORM_ADMIN persistente, migrations, commit, push, PR, cierre y
+  archivo de TASK-005 permanecieron fuera de alcance.
+- No se modificaron migrations, RLS, grants, RPCs ni tipos generados. B2 consume la foundation A sin
+  ampliar permisos.
+
+### Rutas, componentes y listado
+
+- `/platform` reemplaza el placeholder B1 por un panel responsive, server-rendered y protegido al
+  comienzo con `requirePlatformAdmin()`.
+- El encabezado incluye identidad de sesión, `Crear centro`, navegación tenant independiente sólo si
+  la misma identidad ya posee memberships y logout local.
+- `loading.tsx` agrega estado de carga sin adelantar datos.
+- `PlatformCentersTable` consume exclusivamente `platform_list_centers` mediante
+  `listPlatformCenters`; no descarga datasets de memberships, Professionals ni Specialties.
+- La tabla muestra exactamente Centro, Estado, Dirección, Teléfono, Email, Fecha de alta, Usuarios,
+  Profesionales, Especialidades y Acciones; en pantallas chicas usa scroll horizontal.
+- Badges Activo/Inactivo, fallbacks de metadata vacía y estado inicial
+  `Todavía no hay centros creados.` con acción `Crear centro` quedaron implementados.
+- Los contadores conservan la semántica DB aprobada: memberships activas, ProfessionalCenter
+  activos y Specialty activas. El E2E confirmó `Usuarios = 1` inmediatamente después del alta.
+
+### Alta Center + primer ADMIN
+
+- El formulario usa resolución exacta server-side mediante `platform_resolve_user_by_email`; la UI
+  sólo recibe existencia y el email normalizado, no otros Centers, roles o memberships.
+- Identidad nueva: solicita nombre, apellido y contraseña inicial de mínimo 10 caracteres; Auth se
+  crea confirmado mediante el orchestration aprobado.
+- Identidad existente: no renderiza password, vuelve a resolver en servidor y usa los nombres
+  autoritativos sólo para fijar la intención. No acepta nombres/password enviados por el cliente ni
+  modifica email, credenciales, perfil o memberships previas.
+- Center valida con Zod nombre, contactos opcionales y timezone IANA explícita; el default visible es
+  `America/Argentina/Buenos_Aires`.
+- La Server Action empieza reautorizando PLATFORM_ADMIN, valida runtime, resuelve identidad y llama
+  `createCenterWithFirstAdmin(...)` con el cliente SSR del actor. Después de éxito revalida
+  `/platform`; no inicia sesión como el nuevo ADMIN.
+- La UX distingue validación, creación confirmada, éxito confirmado por retry, estado ambiguo o
+  reconciliable y error genérico sin exponer causas internas.
+
+### Lifecycle real de `operation_id`
+
+1. El Client Component espera la hidratación, busca primero una intención versionada en
+   `sessionStorage` y sólo genera un UUID v4 si no existe una pendiente. Un refresh con intención A
+   no genera ni adopta un UUID B.
+2. La clave de storage queda namespaced por el UUID del PLATFORM_ADMIN autenticado. El snapshot
+   contiene versión, scope, actor, `operation_id` y el payload material no secreto: Center, email
+   del ADMIN, nombres de una identidad nueva y el resultado de resolución. Se valida por completo
+   con Zod al leer y antes de escribir; ningún dato de un snapshot inválido se usa parcialmente.
+3. El snapshot se escribe sincrónicamente antes del POST. Si `sessionStorage` no está disponible, el
+   submit se bloquea y no sale al servidor. Rerender, submit, error transitorio, response-loss y
+   refresh conservan el mismo UUID.
+4. Una intención recuperada muestra `Hay una creación de centro pendiente de confirmar`, reconstruye
+   el payload y bloquea los campos materiales. `Reintentar / verificar` vuelve a enviar el UUID A;
+   PostgreSQL conserva la fingerprint autoritativa y rechaza cualquier payload diferente.
+5. La contraseña inicial nunca integra el snapshot ni otra persistencia. Después del refresh queda
+   vacía. Si la operación ya confirmó o ya vinculó Auth, A reconcilia usando A sin password; si Auth
+   todavía necesita crear la identidad, la Action conserva A y solicita ingresar la contraseña otra
+   vez.
+6. Éxito inequívoco o rollback inequívoco retiran un snapshot válido. `Crear otro centro`,
+   `Iniciar una nueva alta` y `Abandonar e iniciar nueva alta` son decisiones explícitas: eliminan A
+   del storage, desmontan sus datos y generan un UUID nuevo. Un snapshot inválido sólo puede
+   retirarse mediante el abandono explícito; desmontar o refrescar por sí solo nunca lo limpia.
+7. El UUID, el snapshot y el indicador de retry nunca autorizan: `/platform`, resolución, alta y
+   cambio de estado revalidan PLATFORM_ADMIN en servidor; el UUID continúa validándose como UUID.
+
+La estrategia elegida fue `sessionStorage` porque cubre la frontera exigida de refresh dentro de la
+pestaña sin enviar metadata a cookies/URL/servidor ni persistir secretos. Su alcance deliberado es la
+sesión de esa pestaña; el submit falla cerrado cuando el navegador no permite conservar el snapshot.
+
+### Remediación B2-F1 — response-loss + refresh
+
+- Causa raíz: `page.tsx` generaba un UUID nuevo en cada render de servidor y el hook anterior sólo
+  conservaba el valor en `useState`. Tras COMMIT real y respuesta perdida, el refresh destruía A y
+  presentaba B antes de poder reconciliar.
+- `/platform` ya no genera el UUID en servidor. `usePlatformOperationIntent` recupera A antes de
+  crear un fallback y mantiene en memoria el resultado recuperado aun después de retirar la copia
+  persistida por un éxito, para poder mostrar la confirmación hasta que el usuario elija otra alta.
+- El payload bloqueado no incluye `adminInitialPassword`; el schema durable rechaza propiedades
+  extra antes de serializar. No se usa `localStorage`, IndexedDB, cookie, URL, DB, archivo ni log.
+- El retry recuperado transporta un flag validado únicamente para UX. No concede permisos. Permite
+  que la orquestación A inspeccione una operación que ya tenga Auth/COMMIT sin exigir una password
+  ausente; un `AUTH_CREATE_FAILED` conserva el mismo UUID y devuelve un error de campo para pedirla.
+- El E2E deja terminar el POST upstream 200 y su COMMIT, reemplaza sólo la respuesta al browser por
+  una 503, verifica la fila `SUCCEEDED`, refresca realmente `/platform`, recupera el UUID A, comprueba
+  campos materiales `readonly` y password vacía, reintenta y confirma exactamente un Center, una
+  membership ADMIN y una operación. Inspecciona `sessionStorage`, `localStorage`, cookies, URL y
+  consola para excluir la password.
+
+### Segunda remediación B2-F1 — snapshot inválido fail-closed
+
+- Causa raíz restante: la lectura anterior devolvía `null` tanto para ausencia real como para
+  JSON/schema inválidos y, ante el segundo caso, ejecutaba `sessionStorage.removeItem(...)`. El
+  inicializador no podía distinguir ambos estados y generaba automáticamente B.
+- La lectura ahora produce un resultado discriminado `ABSENT | VALID | INVALID`. Sólo `ABSENT`
+  habilita una intención nueva; `VALID` recupera A; `INVALID` conserva el contenido durable intacto,
+  no extrae `operation_id`, actor ni payload, no invoca el generador UUID y no monta el formulario.
+- JSON malformado, versión desconocida, campos faltantes, UUID inválido, actor/scope inconsistentes,
+  payload inválido y excepción al leer storage quedan todos en `INVALID`. Refreshes repetidos
+  permanecen bloqueados y no convierten el estado en ausencia.
+- La UI explica que existe una creación pendiente no recuperable de forma segura y ofrece una sola
+  salida mutante: `Abandonar intención pendiente e iniciar una nueva alta`. Esa acción separada
+  elimina el snapshot y genera B sólo si la eliminación fue efectiva; si storage falla, continúa
+  bloqueada.
+- El schema durable liga la intención a versión, scope y actor completos además del payload material.
+  Storage no autoriza: todas las Actions conservan `requirePlatformAdmin()` y toda entrada server-side
+  sigue validándose. La password continúa excluida del snapshot y de cualquier persistencia.
+- El E2E exacto completa Auth + PostgreSQL con A, deja que upstream responda 200, entrega 503 al
+  browser, agrega una propiedad inesperada al snapshot y refresca dos veces. En ambos refreshes confirma UI bloqueada,
+  contenido inválido sin auto-delete, ausencia de un input/UUID B y exactamente un Center, una
+  membership ADMIN y una operación. Recién tras el abandono explícito aparece B, distinto de A, sin
+  ejecutar un segundo provisioning.
+
+### Tercera remediación B2-F1 — schemas cerrados y barrier E2E
+
+- `platformCenterIntentPayloadSchema` y `persistedPlatformOperationIntentSchema` ahora usan
+  validación Zod estricta. La raíz acepta exclusivamente versión, scope, actor, operation ID y
+  payload; el payload anidado acepta exclusivamente sus nueve campos materiales. Una propiedad
+  desconocida en cualquiera de esos niveles produce `INVALID` en vez de ser eliminada.
+- Los tests prueban por separado `extraField` en la raíz y dentro del payload. En ambos casos el
+  snapshot queda byte-for-byte intacto en `sessionStorage`, no se invoca el generador UUID, no existe
+  `operationId` disponible para montar provisioning y el estado continúa bloqueado tras remount. Una
+  propiedad `adminInitialPassword` inyectada también se rechaza sin escritura durable.
+- Los dos interceptores response-loss comparten una barrera explícita. El handler ejecuta
+  `route.fetch()`, exige upstream 200, espera `route.fulfill(503)` y sólo entonces resuelve
+  `browserResponseDelivered`; el test espera esa Promise antes de consultar/refrescar. No se usan
+  sleeps como sincronización.
+- El teardown espera además cualquier trabajo de route ya iniciado antes del cleanup, evitando que
+  una operación tardía compita con el borrado de fixtures. El cleanup continúa limitado a UUIDs,
+  actores, emails y nombres con namespace exclusivo de esta ejecución.
+- El escenario inválido usa ahora JSON completo con una propiedad extra en la raíz: COMMIT real con
+  A, upstream 200, 503 entregado, refresh, UI `INVALID`, cero B y conteos 1/1/1; sólo el abandono
+  explícito crea B.
+- La suite oficial final se ejecutó dos veces consecutivas con el código definitivo: 8/8 + 8/8,
+  ambas con cleanup cero y sin `Route is already handled`.
+
+### Activar y desactivar
+
+- `CenterStatusForm` solicita confirmación nativa explícita, deshabilita el botón durante submit y
+  muestra el resultado junto a la acción.
+- La Server Action reautoriza PLATFORM_ADMIN y usa exclusivamente `platform_set_center_active`
+  mediante el wrapper aprobado.
+- Desactivar cambia sólo `centers.is_active`; el E2E confirmó que la membership ADMIN continúa
+  activa pero el tenant queda sin acceso.
+- Reactivar restaura el acceso tenant cuando existe ADMIN activo. El error de PostgreSQL por ausencia
+  de ADMIN se convierte en un mensaje seguro y no expone SQL.
+
+### Autorización y fronteras
+
+- PLATFORM_ADMIN explícito: panel permitido.
+- ADMIN, RECEPTION y PROFESSIONAL tenant sin `platform_admins`: `PLATFORM_FORBIDDEN`.
+- Identidad autenticada común: panel denegado.
+- La autorización no depende de botones, estado React, fields hidden, client-side role, proxy ni
+  `operation_id`.
+- Ningún Client Component importa Admin Supabase ni secretos. `/platform` no consulta ni enlaza
+  patients, persons, patient_centers, appointments, agenda, notes o availabilities.
+- PLATFORM_ADMIN continúa sin membership implícita ni bypass tenant; el E2E confirmó 404 en una ruta
+  tenant sin membership.
+
+### Tests B2
+
+- Schemas: timezone IANA válida/inválida, default aprobado, password de 9/10 caracteres y rechazo
+  estricto de propiedades desconocidas en root y payload durable anidado.
+- Autorización: PLATFORM_ADMIN permitido; ADMIN, RECEPTION, PROFESSIONAL y usuario común denegados.
+- Componentes: estado vacío, acción de alta, metadata, badges y los tres contadores aprobados.
+- Actions: reautorización previa, alta con identidad nueva, identidad existente con datos del cliente
+  ignorados, retry con mismo UUID y estado confirmado.
+- Hook de intención: rerender conserva UUID; unmount/remount recupera el snapshot; éxito lo retira;
+  abandonar explícitamente genera otro UUID; propiedades password se eliminan antes de persistir.
+  La suite diferencia storage vacío y snapshot válido de JSON corrupto, versión desconocida,
+  campos faltantes, UUID, actor, scope y payload inválidos, propiedades extra en root/payload y error
+  de lectura; todos los casos `INVALID` bloquean, sobreviven al remount y no invocan el generador
+  hasta el abandono explícito.
+- Actions: un retry recuperado puede reconciliar sin password persistida; si Auth aún la necesita,
+  conserva el mismo UUID y la solicita nuevamente.
+- `pnpm test:e2e:platform-admin:dev`: PASS 8/8 con Auth/PostgreSQL DEV reales:
+  - login PLATFORM_ADMIN y listado vacío;
+  - Center + ADMIN nuevo, metadata, un único Center/ADMIN y `Usuarios = 1`;
+  - desactivar → Inactivo → tenant DENY, membership conservada;
+  - reactivar → Activo → tenant permitido;
+  - ADMIN tenant y usuario común → `/platform` DENY;
+  - identidad existente reutilizada sin password en UI y con password/email/nombres/membership
+    previa verificados sin cambios.
+  - COMMIT real + response-loss HTTP + refresh real + recuperación de A + retry/reconciliación, con
+    exactamente un Center, una membership ADMIN y una operación `SUCCEEDED`.
+  - COMMIT real + response-loss HTTP + snapshot inválido + dos refreshes reales, sin B ni nuevo
+    provisioning; abandono explícito posterior como único punto que elimina el snapshot y crea B.
+- La suite captura el `operation_id` enviado por UI, comprueba una única operación `SUCCEEDED` y un
+  único `result_center_id`, y verifica que `Crear otro centro` produce un UUID diferente.
+
+### Verificación final
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS. |
+| `pnpm supabase:check:dev` | PASS contra DEV aprobado. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; ambos advisory locks observados por PID backend real, RLS/roles/último ADMIN y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; response-loss/retry/fingerprints/cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS; orchestration y fault injection test-only reales. |
+| `pnpm auth:check:dev` | PASS; signup/password/redirects y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9; login/logout, 0/1/N, isolation y recovery/update. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 8/8 + 8/8 consecutivos; barrier 503, response-loss + refresh válido/strict-invalid, abandono explícito y cleanup cero. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS; lint, typecheck y 77/77 tests en 13 archivos. |
+| `pnpm build` | PASS; `/platform` dinámica compilada. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF. |
+
+### Cleanup y desviaciones
+
+- Cada suite remota eliminó en `finally` sus filas dependientes, profiles, Auth users, Centers,
+  memberships, PLATFORM_ADMIN y `private.provisioning_operations`.
+- Auditoría B2 final: 0 Auth fixtures, 0 `public.users`, 0 Centers, 0 memberships, 0
+  PLATFORM_ADMIN, 0 provisioning operations y ningún proceso E2E persistente.
+- El primer regression run de provisioning detectó que una versión intermedia de B2 había agregado
+  metadata UX al retorno de `createCenterWithFirstAdmin`. Se retiró ese cambio y el contrato exacto
+  de Fase A volvió a pasar; el estado “confirmado por retry” vive ahora sólo en la Server Action.
+- El E2E B1 esperaba literalmente el placeholder retirado. Se actualizó únicamente esa aserción al
+  panel funcional y el rerun completo pasó 9/9.
+- El primer run del nuevo probe encontró que retirar el snapshot también desmontaba prematuramente el
+  mensaje de éxito recuperado. Se separó limpieza durable de estado visual en memoria; el rerun
+  completo pasó 7/7 y cleanup cero.
+- El fallo 3/3 de `db:test:auth-foundation:dev` informado por review se reprodujo en DEV limpio con
+  cleanup cero. La propiedad DB seguía operativa: la fragilidad estaba en identificar la sesión
+  bloqueada por `application_name` a través del pooler. El harness ahora captura
+  `pg_backend_pid()` dentro de cada transacción abierta y observa en `pg_locks` el advisory lock no
+  concedido para ese PID; mantiene además las aserciones funcionales. El rerun final observó ambos
+  waits y pasó con cleanup cero, sin cambios de DB.
+- Durante la repetición E2E, dos corridas intermedias completaron sin error ambos response-loss pero
+  fallaron después en la comprobación tenant tras reactivar. La prueba esperaba sólo el texto UI y
+  volvía a una URL previamente redirigida. Se agregó una barrera de lectura DB para
+  `centers.is_active = true` y una URL de navegación única; con el código final pasaron dos corridas
+  completas consecutivas 8/8 y ambos cleanup terminaron en cero.
+- La primera regresión B1 terminó 8/9 por una lectura transitoria de `input.validity` en update
+  password, sin diff en ese componente; cleanup quedó en cero y el rerun limpio pasó 9/9.
+- Riesgo residual explícito: `sessionStorage` garantiza refresh en la misma pestaña, no recuperación
+  tras cerrar deliberadamente la pestaña/sesión del browser. Ante lectura o escritura bloqueada la
+  UI falla cerrada; el abandono requiere que storage vuelva a permitir la eliminación. Permanecen
+  además SMTP DEV/rate limiting pre-PROD y retención futura de operaciones.
+
+No se modificó `review.md`. No hubo bootstrap persistente, migration, commit, push, PR, cierre ni
+archivo de TASK-005.
+
 ## TASK-005B1 — Auth UI and Center Access
 
 **Estado:** `TASK-005B1 COMPLETED`
@@ -440,3 +698,19 @@ membership. El permiso global nunca satisface `requireCenterMembership`.
 - Supabase DEV: `ehllxymqyzrofydrvtzo`; PROD fuera de alcance.
 - Cero fixtures, cero PLATFORM_ADMIN persistentes y ningún secreto versionado.
 - El bootstrap persistente del primer PLATFORM_ADMIN continúa sin ejecutarse.
+
+## Checkpoint formal de B2
+
+- Review independiente final: `TASK-005B2 REVIEW PASS`.
+- Los dos findings de B2 quedaron cerrados.
+- Estado final: `TASK-005B2 COMPLETED`.
+- El detalle completo de implementación y verificación B2 está registrado en la sección
+  `TASK-005B2 — Platform Admin` de este reporte.
+- TASK-005 completa permanece activa y no se cierra ni archiva; TASK-005B3 no fue iniciada.
+- Supabase DEV: `ehllxymqyzrofydrvtzo`; PROD permaneció fuera de alcance.
+- Nueve migrations continúan sincronizadas local/remoto; B2 no modificó schema, migrations, RLS,
+  grants, RPCs ni tipos generados.
+- Cero fixtures, cero Auth users temporales, cero PLATFORM_ADMIN persistentes y cero operaciones de
+  provisioning temporales.
+- Ningún secreto fue versionado.
+- No hubo bootstrap persistente, migration, commit, push ni PR.

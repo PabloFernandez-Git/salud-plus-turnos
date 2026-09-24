@@ -306,13 +306,13 @@ test.describe.serial("TASK-005B1 Auth UI and Center access", () => {
     await expect(page).toHaveURL(/\/no-access$/);
   });
 
-  test("PLATFORM_ADMIN sin membership recibe placeholder protegido, no acceso tenant", async ({
+  test("PLATFORM_ADMIN sin membership recibe panel protegido, no acceso tenant", async ({
     page,
   }) => {
     await login(page, "platform");
     await expect(page).toHaveURL(/\/platform$/);
     await expect(
-      page.getByRole("heading", { name: "Administración próximamente disponible" }),
+      page.getByRole("heading", { level: 1, name: "Centros", exact: true }),
     ).toBeVisible();
 
     const response = await page.goto(`/centers/${centerA.id}`);
