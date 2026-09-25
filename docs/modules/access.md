@@ -21,6 +21,12 @@ Existe una sola membership y un único rol por User-Center. Para rol Professiona
 `CenterMembership` referencia obligatoriamente un `ProfessionalCenter` del mismo centro. Para
 Administrator y Reception ese vínculo no existe. Los roles combinados quedan fuera del MVP.
 
+Un `ProfessionalCenter` puede tener como máximo una membership `PROFESSIONAL` activa. Las
+memberships inactivas pueden conservar la asociación histórica; no se modelan asistentes, delegados
+o cuentas compartidas reutilizando el mismo vínculo. Alta, reactivación y cambio a Professional
+exigen un ProfessionalCenter activo y libre. La desactivación pura conserva rol/vínculo y se permite
+aunque el ProfessionalCenter ya esté inactivo, porque reduce permisos.
+
 Roles MVP:
 - Administrator;
 - Reception;

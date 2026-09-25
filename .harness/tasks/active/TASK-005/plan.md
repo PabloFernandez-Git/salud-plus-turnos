@@ -1,6 +1,6 @@
 # TASK-005 — Plan
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
 
 ## Estrategia
 
@@ -75,7 +75,7 @@ Aunque el diseño está aprobado, antes de crear SQL/código o tocar DEV el Impl
 5. Implementar reactivación/desactivación/cambio de rol mediante RPC separada.
 6. Probar fallos entre Auth y DB y compensar sólo Auth users creados por la ejecución actual.
 
-## Fase 5 — UI funcional mínima (TASK-005B1 y TASK-005B2 completadas; B3 no iniciada)
+## Fase 5 — UI funcional mínima (TASK-005B1/B2 completadas; B3 en design review)
 
 1. Login/logout, recovery y cambio de contraseña.
 2. Landing con prioridad de contexto, selector de centros y estado sin acceso.
@@ -84,6 +84,27 @@ Aunque el diseño está aprobado, antes de crear SQL/código o tocar DEV el Impl
 5. Administración mínima de usuarios/memberships para ADMIN.
 6. Mensajes seguros para cuenta existente, membership activa/inactiva, conflicto y fallo parcial.
 7. Sin trabajo visual sofisticado; accesibilidad y estados de error/carga sí son obligatorios.
+
+### Plan de ejecución propuesto para TASK-005B3
+
+1. `B3-D1` resuelta: máximo una membership PROFESSIONAL activa por ProfessionalCenter; las
+   memberships inactivas pueden conservar la asociación histórica.
+2. Revalidar branch, diff, las doce migrations y el baseline persistente DEV; registrar IDs exactos
+   que las suites no pueden borrar.
+3. Crear una migration incremental transaccional que agregue el UNIQUE parcial de asociaciones
+   activas, endurezca `admin_provision_center_user` y haga state-aware
+   `admin_set_center_membership`. Desactivar sin cambiar rol/PC debe funcionar aunque el PC esté
+   inactivo; alta, reactivación o cambio a PROFESSIONAL exigen PC activo/same-center y libre.
+4. Implementar query/listado server-only, schemas, servicios y Server Actions tenant, siempre detrás
+   de `requireRole(centerId, ["ADMIN"])`.
+5. Implementar intención idempotente tenant, alta staged y reactivación/edición explícita sin
+   persistir password ni editar identidad global.
+6. Crear `/centers/[centerId]/users`, tabla/panel y navegación mínima desde el shell del Center.
+7. Agregar unit/component tests y suites DEV/E2E con cleanup exclusivo por IDs de la corrida.
+8. Ejecutar verificación funcional, Auth/RLS/grants, aislamiento cross-center, concurrencia del
+   último ADMIN, seguridad de secretos y preservación del baseline persistente.
+9. Actualizar implementation report y pasar review independiente de Security/Database/UI/E2E antes
+   del checkpoint B3.
 
 ## Fase 6 — Verificación y review
 
@@ -162,5 +183,8 @@ reescribir migrations aplicadas.
 - `TASK-005B2 COMPLETED` — completado como checkpoint.
 - `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS` — completado; BP-F1/BP-F2 cerrados.
 - `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` — completado como checkpoint.
-- TASK-005B3 — no iniciada.
+- `TASK-005B3 ANALYZE + PLAN` — completado.
+- `TASK-005B3 READY FOR DESIGN REVIEW` — completado.
+- `TASK-005B3 DESIGN APPROVED` — completado; B3-D1 opción A.
+- `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION` — actual.
 - `CLOSED` — no iniciado.

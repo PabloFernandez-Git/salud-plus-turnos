@@ -1,6 +1,6 @@
 # TASK-005 — Auth, usuarios y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
 
 ## Objetivo
 
@@ -22,14 +22,17 @@ PLATFORM_ADMIN y los roles de centro son contextos independientes. `PLATFORM_ADM
 
 ## Gate humano
 
-Las decisiones humanas de Auth/acceso fueron aprobadas y la propuesta revisada incorpora el cambio
-de bootstrap por centro a PLATFORM_ADMIN + `/platform`. No quedan entradas
-`REQUIRES_HUMAN_DECISION` abiertas.
+Las decisiones humanas del diseño original fueron aprobadas y la propuesta revisada incorpora el
+cambio de bootstrap por centro a PLATFORM_ADMIN + `/platform`. `B3-D1` quedó aprobada con máximo una
+membership PROFESSIONAL activa por ProfessionalCenter, preservando filas inactivas históricas. No
+quedan decisiones humanas abiertas en B3.
 
-El gate autorizó TASK-005A y esa foundation obtuvo review PASS. El checkpoint actual autoriza iniciar
-TASK-005B siguiendo el Plan; no autoriza por sí solo ejecutar el bootstrap persistente del primer
-PLATFORM_ADMIN, tocar PROD, hacer push, abrir PR o mergear. Antes de cualquier cambio remoto de Fase
-B seguirá siendo obligatorio revalidar DEV y el diff. PROD permanece fuera de alcance.
+TASK-005A/B1/B2 y la remediación de preflight obtuvieron review PASS. El humano autorizó después el
+bootstrap persistente y validó el smoke real. El gate actual autoriza únicamente ANALYZE + PLAN de
+B3. El design review final habilita una instrucción posterior de implementación, pero esta fase no
+autoriza por sí sola aplicar migrations, tocar PROD, hacer push, abrir PR o mergear. Antes de
+implementar seguirá siendo obligatorio revalidar DEV, el baseline persistente y el diff. PROD
+permanece fuera de alcance.
 
 ## Decisiones aprobadas incorporadas
 
@@ -101,8 +104,8 @@ B seguirá siendo obligatorio revalidar DEV y el diff. PROD permanece fuera de a
 - [x] Tablas operativas permanecen cerradas; contadores se obtienen por RPC agregada.
 - [x] UI mínima y tests positivos/negativos definidos.
 - [x] Documentación permanente alineada con PLATFORM_ADMIN.
-- [x] No quedan decisiones humanas pendientes.
-- [x] No se implementó ni se modificó Supabase.
+- [x] Las decisiones humanas del contrato base quedaron cerradas antes de A/B1/B2.
+- [x] B3-D1 resuelta: máximo una membership PROFESSIONAL activa por ProfessionalCenter.
 
 ## Impactos
 
@@ -141,6 +144,8 @@ B seguirá siendo obligatorio revalidar DEV y el diff. PROD permanece fuera de a
 ## Condición de salida
 
 TASK-005A, TASK-005B1, TASK-005B2 y la remediación de preflight quedaron `COMPLETED` después de sus
-respectivos `REVIEW PASS`; BP-F1 y BP-F2 están cerrados. Estos checkpoints no cierran ni archivan
-TASK-005. TASK-005B3 no fue iniciada. El retry persistente del primer PLATFORM_ADMIN sigue sujeto a
-una instrucción humana explícita y no forma parte de este checkpoint.
+respectivos `REVIEW PASS`; BP-F1 y BP-F2 están cerrados. El bootstrap persistente y el smoke manual
+posterior fueron ejecutados exitosamente bajo instrucción humana, dejando un PLATFORM_ADMIN, un
+Center y su primera membership ADMIN como datos persistentes de DEV. Estos checkpoints no cierran
+ni archivan TASK-005. TASK-005B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`, sin haber creado código,
+migrations ni datos durante esta fase documental.

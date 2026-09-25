@@ -39,6 +39,12 @@
 17. Una excepción después de invocar PostgreSQL exige reconciliar primero. Sólo se elimina el Auth
     user creado por esa operación cuando el lock de operación confirma que no hubo commit; ante
     incertidumbre se preserva la identidad sin acceso.
+18. Un `ProfessionalCenter` admite como máximo una membership `PROFESSIONAL` activa. Las
+    memberships inactivas pueden conservar el vínculo como historial; asistentes, delegados o
+    cuentas compartidas requieren un modelo explícito diferente.
+19. Desactivar una membership `PROFESSIONAL` sin cambiar su rol ni vínculo debe ser posible aunque
+    el `ProfessionalCenter` ya esté inactivo. Crear, reactivar, cambiar a `PROFESSIONAL` o cambiar el
+    vínculo exige un `ProfessionalCenter` activo y perteneciente al mismo centro.
 
 ## 2.1. Administración global de plataforma
 

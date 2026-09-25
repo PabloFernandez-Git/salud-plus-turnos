@@ -1,7 +1,7 @@
 # TASK-005 — Diseño final de Auth, plataforma y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
-**Tipo:** contrato de diseño aprobado; A, B1, B2 y remediación de preflight implementadas; B3 no iniciada.
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
+**Tipo:** contrato base aprobado; el detalle B3 está en `b3-tenant-admin-design.md`.
 
 ## 1. Decisión final y límites
 
@@ -9,8 +9,10 @@ TASK-005 implementará Auth funcional, autorización global/tenant, RLS/grants m
 operativa básica. El bootstrap por centro de la propuesta anterior queda reemplazado por un único
 bootstrap del primer PLATFORM_ADMIN y por `/platform` como mecanismo normal para crear centros.
 
-No quedan decisiones `REQUIRES_HUMAN_DECISION` abiertas. Pasar a `READY_FOR_IMPLEMENTATION` no
-implica que esta actualización documental cree schema, policies, secretos, usuarios o UI.
+El contrato base no conserva decisiones abiertas. `B3-D1` quedó aprobada: un ProfessionalCenter
+admite como máximo una membership PROFESSIONAL activa, mientras las inactivas pueden conservarse
+como historial. El detalle está en `b3-tenant-admin-design.md`. Esta actualización documental no
+crea schema, policies, secretos, usuarios ni UI.
 
 Principios invariables:
 
@@ -703,5 +705,6 @@ Además:
 
 ## Gate final
 
-No quedan decisiones humanas abiertas. TASK-005 queda `READY_FOR_IMPLEMENTATION`, sujeto al gate
-operativo previo a migrations/configuración Auth/cambios DEV y a reviews independientes posteriores.
+Este gate aprobó el contrato base que permitió implementar A/B1/B2. B3 completó su design review,
+resolvió B3-D1 y queda `DESIGN APPROVED FOR IMPLEMENTATION`, sujeto a una instrucción posterior que
+inicie efectivamente la implementación.

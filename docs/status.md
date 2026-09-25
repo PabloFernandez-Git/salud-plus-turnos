@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2 y remediación de preflight completadas; B3 no iniciada
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2 y preflight completados; diseño B3 aprobado
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
 
 ## Completado
 
@@ -69,13 +69,21 @@
   revalidación final de `auth.users`, serialización con lock `SHARE`, y pruebas de
   concurrencia/idempotencia sin ampliar grants de dominio.
 - La remediación obtuvo `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS`; BP-F1 y BP-F2 quedaron
-  cerrados. TASK-005 continúa activa y B3 no fue iniciada.
+  cerrados.
+- El bootstrap persistente del primer PLATFORM_ADMIN se ejecutó después de su autorización humana.
+  El smoke manual real confirmó login, `/platform`, creación de `Centro Médico Salud Plus`
+  reutilizando la identidad existente como primer ADMIN, acceso tenant, refresh, logout y redirect
+  directo al único Center activo al volver a iniciar sesión.
+- TASK-005B3 completó ANALYZE + PLAN y design review. B3-D1 fue aprobada con máximo una membership
+  PROFESSIONAL activa por ProfessionalCenter, preservando asociaciones inactivas históricas cuando
+  el modelo actual lo permite. B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`; TASK-005 continúa
+  activa.
 
 ## Próximo
 
-TASK-005 permanece activa y TASK-005B3 no fue iniciada. El próximo paso posible es el retry
-controlado del bootstrap persistente del primer PLATFORM_ADMIN usando la operación preservada;
-continúa sujeto a una instrucción humana explícita y todavía no fue ejecutado.
+Iniciar TASK-005B3 como implementación en una instrucción posterior, siguiendo
+`.harness/tasks/active/TASK-005/b3-tenant-admin-design.md`. Antes de crear/aplicar la migration se
+debe revalidar branch, diff, las doce migrations sincronizadas y el baseline persistente DEV.
 
 ## Estado operativo
 
@@ -83,7 +91,8 @@ continúa sujeto a una instrucción humana explícita y todavía no fue ejecutad
   `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
   working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
-  `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3 no iniciada. Brief, Plan,
+  `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
+  `DESIGN APPROVED FOR IMPLEMENTATION`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
@@ -96,12 +105,18 @@ continúa sujeto a una instrucción humana explícita y todavía no fue ejecutad
   DEV.
 - La existencia de `SUPABASE_SECRET_KEY` moderna se verificó sin exponerla; `.env.local` está ignorado
   y no versionado. La configuración Auth Dashboard fue confirmada mediante comportamiento efectivo.
-- No se ejecutó el bootstrap persistente. El bootstrap, provisioning y compensación sí se validaron
-  con fixtures temporales DEV y cleanup.
-- Cero filas en `auth.users`, `public.users`, `platform_admins`, `centers` y `center_memberships`.
-  `private.provisioning_operations` conserva únicamente la operación real
-  `352a309e-f137-488e-b6e7-4b53e2cdb7b2`, `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, sin IDs Auth/resultado
-  ni `completed_at`. PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
+- Baseline DEV persistente auditado read-only: 1 `auth.users`, 1 `public.users`, 1
+  `platform_admins`, 1 Center activo, 1 membership ADMIN activa, 0 Professional, 0
+  ProfessionalCenter y 0 Specialty. El User posee, de forma independiente, PLATFORM_ADMIN global y
+  ADMIN tenant.
+- Center persistente: `Centro Médico Salud Plus`
+  (`76dcbe41-38be-475d-a590-f4ae6619c1e8`, `America/Argentina/Buenos_Aires`).
+- `private.provisioning_operations` conserva dos operaciones reales `SUCCEEDED`: bootstrap
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2` y creación de Center
+  `964ec4bf-eeba-4f4f-914a-d2a8ca101934`. Esta última reutilizó la identidad; no creó otra.
+- Cero Auth users con namespaces temporales conocidos de TASK-005. Los datos anteriores son
+  persistentes de desarrollo y no deben borrarse ni entrar en cleanup de tests.
+- PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
 
 ## Decisiones aprobadas de TASK-005
 
@@ -114,7 +129,9 @@ continúa sujeto a una instrucción humana explícita y todavía no fue ejecutad
 - RPCs administrativas estrechas, seis policies SELECT y grants mínimos.
 - Todo Center activo conserva al menos un ADMIN activo con enforcement concurrentemente seguro.
 - Recovery DEV con SMTP de desarrollo y redirects explícitos; custom SMTP obligatorio antes de PROD.
-- No quedan decisiones `REQUIRES_HUMAN_DECISION` abiertas en el diseño.
+- B3-D1 aprobada: un ProfessionalCenter admite como máximo una membership PROFESSIONAL activa. La
+  autoridad será un UNIQUE parcial, reforzado por RPCs y el lock común del Center. No se modelan
+  cuentas compartidas/delegadas ni quedan decisiones humanas abiertas en B3.
 
 ## Decisiones postergadas
 
