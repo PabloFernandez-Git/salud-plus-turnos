@@ -21,6 +21,7 @@ declare
   secured_function regprocedure;
   service_only_function regprocedure;
   service_only_functions constant regprocedure[] := array[
+    'public.bootstrap_platform_preflight()'::regprocedure,
     'public.prepare_platform_center_provisioning_operation(uuid,uuid,text,text,text,text,text,text,text,text)'::regprocedure,
     'public.prepare_tenant_user_provisioning_operation(uuid,uuid,uuid,text,text,text,public.membership_role,uuid)'::regprocedure,
     'public.prepare_platform_admin_bootstrap_operation(uuid,text,text,text)'::regprocedure,
@@ -36,6 +37,7 @@ declare
     'private.active_professional_center_id(uuid)'::regprocedure,
     'private.can_administer_user(uuid)'::regprocedure,
     'private.can_view_professional(uuid)'::regprocedure,
+    'public.bootstrap_platform_preflight()'::regprocedure,
     'public.platform_list_centers()'::regprocedure,
     'public.platform_resolve_user_by_email(text)'::regprocedure,
     'public.admin_resolve_user_by_email(uuid,text)'::regprocedure,
@@ -150,6 +152,26 @@ begin
       )
   ) then
     raise exception 'anon or authenticated has an unapproved domain table privilege';
+  end if;
+
+  if pg_catalog.has_table_privilege(
+    'service_role',
+    'public.platform_admins',
+    'SELECT'
+  ) or pg_catalog.has_table_privilege(
+    'service_role',
+    'public.users',
+    'SELECT'
+  ) or pg_catalog.has_table_privilege(
+    'service_role',
+    'public.centers',
+    'SELECT'
+  ) or pg_catalog.has_table_privilege(
+    'service_role',
+    'public.center_memberships',
+    'SELECT'
+  ) then
+    raise exception 'service_role received an unapproved domain table SELECT grant';
   end if;
 
   foreach secured_function in array secured_functions loop

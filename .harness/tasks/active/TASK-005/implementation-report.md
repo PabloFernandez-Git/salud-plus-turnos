@@ -1,6 +1,6 @@
 # TASK-005 — Implementation Report — Fase A
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
 
 **Rol:** Implementer
 
@@ -97,6 +97,7 @@ forman nueve versiones. La cuarta reemplaza únicamente
 | `pnpm check` | PASS; 22 tests en 6 archivos. |
 | `pnpm build` | PASS. |
 | `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo avisos informativos LF/CRLF. |
 | `pnpm format:check` | PASS. |
 | `git diff --check` | PASS; sólo advertencias de conversión LF/CRLF del entorno. |
 
@@ -714,3 +715,290 @@ membership. El permiso global nunca satisface `requireCenterMembership`.
   provisioning temporales.
 - Ningún secreto fue versionado.
 - No hubo bootstrap persistente, migration, commit, push ni PR.
+
+## Bootstrap preflight remediation — incidente del primer intento persistente
+
+Estado de esta remediación: lista para review independiente; no se registra aprobación de Reviewer.
+TASK-005B3 no fue iniciada y el bootstrap persistente no fue reintentado.
+
+### Incidente y causa
+
+El primer intento real alcanzó la preparación idempotente y dejó la operación
+`352a309e-f137-488e-b6e7-4b53e2cdb7b2` en `PENDING`, sin `auth_user_id`, `result_user_id` ni
+`completed_at`. Luego el script intentó leer directamente `public.platform_admins`, `public.users`,
+`public.centers` y `public.center_memberships` mediante PostgREST. El rol `service_role` no tiene
+`SELECT` sobre esas tablas por diseño; PostgreSQL devolvió `42501 permission denied for table
+platform_admins`. RLS, exposición del schema y el cliente Admin no eran la causa.
+
+### Remediación DB
+
+- Migration incremental aplicada únicamente a DEV:
+  `20260924120000_add_bootstrap_platform_preflight.sql`.
+- Nueva RPC `public.bootstrap_platform_preflight()` sin parámetros, `STABLE`, `SECURITY DEFINER`,
+  `search_path=''`, referencias totalmente calificadas y sin SQL dinámico.
+- La respuesta contiene solamente seis booleanos: `platform_is_empty` y el estado vacío de
+  `auth.users`, `public.users`, `public.platform_admins`, `public.centers` y
+  `public.center_memberships`. No devuelve counts, emails, nombres ni UUIDs.
+- `private.provisioning_operations` no forma parte de la condición de plataforma vacía. Por eso la
+  operación PENDING preservada no bloquea el retry.
+- Grants exactos: `REVOKE ALL` a `PUBLIC`, `anon`, `authenticated` y `service_role`; luego
+  `GRANT EXECUTE` exclusivamente a `service_role`. No se agregó ningún `GRANT SELECT` de dominio.
+
+### Remediación del operador
+
+- `scripts/bootstrap-platform-admin.mjs` reemplaza las cuatro lecturas directas por una única
+  llamada a `bootstrap_platform_preflight()` y valida los seis booleanos de forma fail-closed.
+- Los errores de esa RPC se serializan mediante allowlist de `code`, `message`, `details` y `hint`;
+  no se imprimen objetos de request, headers, keys, tokens ni password.
+- Se conservaron los guards exactos de proyecto DEV, confirmación humana, operation ID estable,
+  secret key server-only y password mínimo. No se alteró el flujo de reconciliación/compensación.
+
+### Pruebas agregadas y ajustadas
+
+- Nueva suite `pnpm db:test:bootstrap-preflight:dev`:
+  - confirma que `service_role` sigue recibiendo `42501` al hacer `SELECT` directo;
+  - confirma que `anon` y `authenticated` reciben `42501` al ejecutar la RPC;
+  - ejecuta la RPC mediante el cliente service-only y exige exactamente seis booleanos;
+  - prueba `auth.users` y cada entidad pública mediante fixtures dentro de transacciones que siempre
+    hacen rollback;
+  - demuestra que cualquier entidad controlada vuelve falso el preflight;
+  - demuestra que la operación PENDING aislada no vuelve no-vacía la plataforma;
+  - reejecuta `prepare_platform_admin_bootstrap_operation` con el mismo operation ID y la misma
+    intención, obtiene el mismo `PENDING` y comprueba que la fila no mutó;
+  - confirma al final el baseline de cero Auth/domain rows y una única operación preservada.
+- Los asserts de cleanup de Auth foundation y provisioning reconciliation ahora cuentan sólo sus
+  propios user/operation IDs. Sus rutinas de borrado ya eran selectivas; este ajuste impide falsos
+  fallos y protege explícitamente la operación real ajena a cada suite.
+- `supabase/tests/auth-access-foundation.sql` incorpora la RPC a los contratos SECURITY DEFINER y
+  service-only, y prueba que `service_role` no recibió SELECT sobre las cuatro tablas consultadas por
+  el script anterior.
+
+### Verificación efectiva
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS. |
+| `pnpm supabase:check:dev` | PASS contra `ehllxymqyzrofydrvtzo`. |
+| migration dry-run / apply / sync | PASS; diez migrations local/DEV sincronizadas. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS; repetida al final, rollback y baseline confirmados. |
+| `pnpm db:test:schema:dev` | PASS; concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; RLS/grants/concurrencia y cleanup. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; cleanup selectivo. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS; configuración Auth y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS, 9/9 y cleanup. |
+| `pnpm test:e2e:platform-admin:dev` | PASS, 8/8 y cleanup. |
+| `pnpm db:types` | PASS; contrato de la nueva RPC generado. |
+| DB lint public/private | PASS; cero resultados. |
+| Security Advisor `--fail-on error` | PASS; cero ERROR y los mismos siete WARN intencionales previos. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS; 77 tests en 13 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+
+### Estado DEV y límites confirmados
+
+- `auth.users=0`, `public.users=0`, `platform_admins=0`, `centers=0` y
+  `center_memberships=0`.
+- `private.provisioning_operations=1`: exclusivamente la operación real preservada
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2`, aún `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con IDs de
+  Auth/resultado y `completed_at` nulos.
+- Cero fixtures persistentes y cero procesos de test al cierre.
+- El bootstrap persistente no fue ejecutado ni reintentado; no se creó ningún Auth user ni un nuevo
+  operation ID.
+- PROD permaneció fuera de alcance. No se modificó `review.md`, no se inició B3 y no hubo commit,
+  push, PR ni merge.
+
+## Bootstrap preflight remediation — segunda corrección de review
+
+Estado: ambos findings MEDIOS implementados y verificados; listo para re-review independiente. El
+veredicto del Reviewer no se modifica desde este reporte.
+
+### BP-F1 — contrato exacto del consumidor
+
+- El contrato productivo vive en `scripts/lib/bootstrap-platform-preflight.mjs` y enumera exactamente
+  las seis columnas declaradas por `public.bootstrap_platform_preflight()`:
+  `platform_is_empty`, `auth_users_empty`, `public_users_empty`, `platform_admins_empty`,
+  `centers_empty` y `center_memberships_empty`.
+- `assertBootstrapPlatformPreflightResponse()` exige objeto no nulo y no array, igualdad exacta de
+  own keys mediante `Reflect.ownKeys`, ausencia de faltantes/extras y valores estrictamente booleanos.
+  Cualquier divergencia falla cerrado con el mismo error genérico, sin serializar la respuesta.
+- `scripts/bootstrap-platform-admin.mjs` consume ese validador real antes de leer flags o avanzar a
+  Auth. El diagnóstico allowlisted de errores Supabase (`code/message/details/hint`) permanece igual.
+- La suite unitaria importa el mismo helper productivo y cubre: objeto exacto válido, propiedad extra,
+  propiedad faltante, string en lugar de boolean, `null` y array. Resultado: 6/6 PASS.
+
+### BP-F2 — revalidación Auth bajo el lock final
+
+- Migration incremental nueva, aplicada sólo a DEV:
+  `20260924140000_harden_bootstrap_final_auth_revalidation.sql`.
+- La firma `public.bootstrap_platform_admin(uuid,uuid,text,text)`, retorno, `SECURITY DEFINER`,
+  `search_path=''`, fingerprints, operation lock, global bootstrap lock, estados y resultado
+  idempotente se conservan.
+- Después de bloquear y leer `private.provisioning_operations FOR UPDATE`, la RPC valida que el
+  parámetro coincida con `operation.auth_user_id` y copia ese binding autoritativo a
+  `v_bound_auth_user_id`. Tanto la lectura de email como los INSERT/resultados usan ese valor; el UUID
+  del caller no se convierte en autoridad separada.
+- Para una operación aún no completada, después de ambos advisory locks y antes de escribir
+  `public.users`/`platform_admins`, rechaza si existe cualquier `auth.users.id IS DISTINCT FROM
+  v_bound_auth_user_id`. El retorno temprano `SUCCEEDED` queda antes del nuevo predicado, preservando
+  retries idempotentes aun si la plataforma evoluciona después del commit confirmado.
+- ACL reafirmada: `REVOKE ALL` de `PUBLIC`, `anon`, `authenticated` y `service_role`, seguido de
+  `GRANT EXECUTE` sólo a `service_role`. No se agregó SELECT sobre `auth.users` ni tablas públicas.
+
+### Prueba real del TOCTOU
+
+`pnpm db:test:bootstrap-preflight:dev` agrega dos escenarios PostgreSQL reales, cada uno dentro de una
+transacción revertida:
+
+1. Preflight inicialmente vacío; Auth A; intent preparado/vinculado a A; Auth B competidor; RPC final.
+   Resultado exigido y observado: SQLSTATE `23514`, cero `public.users`, cero `platform_admins`,
+   operación temporal aún `AUTH_READY`, `result_user_id/completed_at` nulos.
+2. Sólo Auth A y A exactamente vinculada: RPC final crea una fila de perfil y una de
+   `platform_admins`, marca `SUCCEEDED` y devuelve A. Un retry devuelve A sin duplicar; incluso después
+   de agregar un Auth posterior al éxito, el resultado confirmado sigue siendo idempotente.
+
+Ambos escenarios terminan en `ROLLBACK`; no usan ni mutan la operación persistente real. Las suites
+Auth foundation y reconciliation crean ahora la identidad de plataforma y completan su bootstrap
+temporal antes de crear las demás identidades de sus fixtures, respetando la nueva invariante. La
+prueba de concurrencia bootstrap conserva dos operation IDs temporales ligados a la misma única
+identidad Auth, observa el advisory lock real y mantiene exactamente un efecto global.
+
+### Verificación de esta corrección
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` / `pnpm supabase:check:dev` | PASS; entorno y conectividad read-only contra `ehllxymqyzrofydrvtzo`. |
+| migrations local/DEV | PASS; once migrations sincronizadas hasta `20260924140000`. |
+| contrato productivo, seis casos unitarios | PASS. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS; contrato, grants, TOCTOU, caso positivo, retry, rollback y PENDING real. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; ambos advisory locks observados y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; response-loss/compensación/retry y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS, 9/9 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` | PASS, 8/8 y cleanup cero. |
+| DB lint public/private | PASS; cero resultados. |
+| Security Advisor `--fail-on error` | PASS; cero ERROR, mismos siete WARN aceptados. |
+| `pnpm db:types` | PASS; firma compatible sin cambio de contrato TypeScript. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS; lint/typecheck y 83 tests en 14 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS. |
+
+### Estado y límites
+
+- La operación real `352a309e-f137-488e-b6e7-4b53e2cdb7b2` continúa
+  `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, sin Auth/result user ni `completed_at`.
+- El bootstrap persistente no fue invocado; no se creó ni compensó una identidad para esa operación.
+- Cero Auth/domain/PLATFORM_ADMIN/operation fixtures persistentes. Los operation IDs adicionales
+  existieron sólo dentro de transacciones de test revertidas.
+- PROD permaneció fuera de alcance; B3 no comenzó. No hubo commit, push, PR ni merge. El cambio de
+  `review.md` pertenece al Reviewer y se preservó sin edición del Implementer.
+
+## Bootstrap preflight remediation — tercera corrección de review
+
+Estado: BP-F1 permanece cerrado y BP-F2 fue endurecido contra el intervalo posterior al SELECT. El
+bootstrap persistente no fue ejecutado; el veredicto del Reviewer no se modifica desde este reporte.
+
+### BP-F2 — estabilidad de `auth.users` hasta COMMIT
+
+- Migration incremental nueva, aplicada únicamente a DEV:
+  `20260924160000_serialize_bootstrap_auth_users.sql`.
+- La documentación oficial de PostgreSQL establece que `INSERT`, `UPDATE` y `DELETE` adquieren
+  `ROW EXCLUSIVE`, mientras que `SHARE` entra en conflicto con ese modo y permite lecturas normales.
+  `SHARE` es el modo menos restrictivo de la matriz que impide las tres escrituras relevantes; no se
+  usó `SHARE ROW EXCLUSIVE`, `EXCLUSIVE` ni `ACCESS EXCLUSIVE`.
+- La RPC conserva firma, owner, `SECURITY DEFINER`, `search_path=''`, referencias calificadas,
+  fingerprint, estados, binding autoritativo y resultado idempotente. El orden efectivo es:
+  advisory lock de operación → advisory lock global de bootstrap → `LOCK TABLE auth.users IN SHARE
+  MODE` → lock/lectura de `provisioning_operations` → binding/fingerprint → revalidaciones → inserts
+  públicos → `SUCCEEDED`. Todos los locks son transaccionales y se liberan al COMMIT/ROLLBACK.
+- El table lock se adquiere antes del SELECT decisivo y antes de tomar el row lock de la operación.
+  Si ya existe una escritura Auth, la RPC espera sosteniendo sólo advisory locks; GoTrue no necesita
+  esos locks y puede finalizar. Si la RPC obtuvo `SHARE`, toda escritura Auth posterior espera hasta
+  el COMMIT. Ese orden único evita el ciclo que produciría tomar filas de negocio antes de esperar
+  por `auth.users`.
+- El lock vive sólo durante la RPC final one-shot: no hay red, interacción humana ni llamadas Auth
+  dentro de esa transacción; sólo validaciones, dos inserts y la actualización de la operación. Un
+  timeout/cancelación aborta la transacción completa, libera locks y deja el flujo fail-closed para
+  reconciliación. Las lecturas Auth continúan; escrituras y mantenimiento que requiera un lock
+  conflictivo esperan durante esa ventana corta. No se agregó trigger ni cambio global a GoTrue y la
+  operación normal posterior del producto no invoca este bootstrap.
+- ACL reafirmada sin ampliaciones: `REVOKE ALL` de `PUBLIC`, `anon`, `authenticated` y `service_role`;
+  `GRANT EXECUTE` exclusivamente a `service_role`. No existe grant nuevo sobre `auth.users` ni tablas
+  de dominio.
+
+### Prueba determinística B-after-check
+
+`scripts/verify-bootstrap-preflight.mjs` usa tres sesiones PostgreSQL y Auth Admin real:
+
+1. crea Auth A por GoTrue y vincula autoritativamente una operación temporal a A;
+2. una transacción blocker inserta `public.users(A)` sin commit para detener la RPC exactamente en su
+   primer INSERT público;
+3. observa en `pg_locks` que el backend RPC ya posee `ShareLock` concedido sobre `auth.users` y está
+   esperando el blocker, por lo que ya atravesó la adquisición del lock y las revalidaciones;
+4. inicia `auth.admin.createUser(B)` real y exige observar un `RowExclusiveLock` no concedido sobre
+   `auth.users`; B debe permanecer sin confirmar;
+5. libera el blocker: la RPC retorna A, pero la transacción sigue abierta y B continúa esperando;
+6. hace COMMIT de PLATFORM_ADMIN; sólo entonces GoTrue confirma B.
+
+El orden observado fue `ShareLock RPC granted` → `RowExclusive GoTrue waiting` → RPC lista pero sin
+commit y B pendiente → COMMIT PLATFORM_ADMIN → Auth B confirmado. La suite conserva además el caso
+positivo sólo-A, B-preexistente rechazado con `23514` antes de cualquier concesión y retry `SUCCEEDED`
+sin duplicados. Todo fixture Auth/DB/operation se elimina selectivamente y el baseline real se
+verifica al final.
+
+### BP-F1 — cobertura adicional solicitada
+
+- Se añadió el caso versionado con `auth_users_empty: 1`; el mismo validador productivo lo rechaza
+  antes de cualquier creación Auth. La suite del contrato pasa 7/7. No se rediseñó BP-F1.
+
+### Verificación de esta corrección
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` / `pnpm supabase:check:dev` | PASS contra `ehllxymqyzrofydrvtzo`. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS; A-only, B-preexistente, B-after-check serializado, retry y cleanup. |
+| `pnpm db:test:schema:dev` | PASS; concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; locks reales y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; response-loss/retry/compensación y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS, 1/1. |
+| `pnpm auth:check:dev` | PASS y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS, 9/9 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` | PASS, 8/8 y cleanup cero. |
+| DB lint public/private | PASS; cero hallazgos. |
+| Security Advisor `--fail-on error` | PASS; cero ERROR y los mismos siete WARN aceptados. |
+| migrations local/DEV | PASS; 12/12 sincronizadas hasta `20260924160000`. |
+| `pnpm db:types` | PASS. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS; lint, typecheck y 84 tests en 14 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+
+### Estado preservado
+
+- DEV mantiene cero `auth.users`, `public.users`, `platform_admins`, `centers` y
+  `center_memberships`.
+- `private.provisioning_operations` conserva únicamente
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2`, `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con
+  `auth_user_id`, `result_user_id` y `completed_at` nulos.
+- Cero fixtures y procesos de test al cierre. PROD permaneció fuera de alcance; no se ejecutó el
+  bootstrap real, no se inició B3 y no hubo commit, push, PR ni merge.
+
+## Checkpoint formal — Bootstrap preflight remediation
+
+- Veredicto independiente: `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS`.
+- Findings BP-F1 y BP-F2: cerrados.
+- Estado final: `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`.
+- TASK-005 permanece activa y TASK-005B3 no fue iniciada.
+- Doce migrations local/DEV sincronizadas; PROD fuera de alcance.
+- La plataforma permanece vacía: cero `auth.users`, `public.users`, `platform_admins`, `centers` y
+  `center_memberships`.
+- `private.provisioning_operations` conserva únicamente
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2` en `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con
+  `auth_user_id`, `result_user_id` y `completed_at` nulos.
+- Ningún secreto fue versionado y `.env.local` permanece ignorado.
+- El bootstrap persistente no fue ejecutado ni reintentado en este checkpoint.

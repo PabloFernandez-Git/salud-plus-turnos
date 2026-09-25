@@ -593,6 +593,17 @@ export type Database = {
           user_id: string;
         }[];
       };
+      bootstrap_platform_preflight: {
+        Args: never;
+        Returns: {
+          auth_users_empty: boolean;
+          center_memberships_empty: boolean;
+          centers_empty: boolean;
+          platform_admins_empty: boolean;
+          platform_is_empty: boolean;
+          public_users_empty: boolean;
+        }[];
+      };
       mark_auth_provisioning_compensation: {
         Args: {
           p_auth_user_id: string;

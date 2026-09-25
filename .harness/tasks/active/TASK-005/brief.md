@@ -1,6 +1,6 @@
 # TASK-005 — Auth, usuarios y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
 
 ## Objetivo
 
@@ -140,7 +140,7 @@ B seguirá siendo obligatorio revalidar DEV y el diff. PROD permanece fuera de a
 
 ## Condición de salida
 
-TASK-005A, TASK-005B1 y TASK-005B2 quedaron `COMPLETED` después de sus respectivos `REVIEW PASS`.
-Estos checkpoints no cierran ni archivan TASK-005. TASK-005B3 no fue iniciada. El bootstrap
-persistente del primer PLATFORM_ADMIN sigue sujeto a autorización humana adicional explícita y no
-forma parte de este checkpoint.
+TASK-005A, TASK-005B1, TASK-005B2 y la remediación de preflight quedaron `COMPLETED` después de sus
+respectivos `REVIEW PASS`; BP-F1 y BP-F2 están cerrados. Estos checkpoints no cierran ni archivan
+TASK-005. TASK-005B3 no fue iniciada. El retry persistente del primer PLATFORM_ADMIN sigue sujeto a
+una instrucción humana explícita y no forma parte de este checkpoint.

@@ -4,6 +4,10 @@ import {
   loadLocalEnv,
   loadSupabaseDevConfig,
 } from "./lib/supabase-dev-env.mjs";
+import {
+  assertBootstrapPlatformPreflightResponse,
+  bootstrapPlatformPreflightKeys,
+} from "./lib/bootstrap-platform-preflight.mjs";
 
 const expectedConfirmation = "BOOTSTRAP_PLATFORM_ADMIN_ON_ehllxymqyzrofydrvtzo";
 
@@ -44,6 +48,34 @@ const admin = createClient(dev.url, secretKey, {
     detectSessionInUrl: false,
   },
 });
+
+function formatSupabaseError(error) {
+  return JSON.stringify({
+    code: typeof error?.code === "string" ? error.code : null,
+    message: typeof error?.message === "string" ? error.message : null,
+    details: typeof error?.details === "string" ? error.details : null,
+    hint: typeof error?.hint === "string" ? error.hint : null,
+  });
+}
+
+async function assertEmptyPlatform() {
+  const { data, error } = await admin.rpc("bootstrap_platform_preflight").single();
+  if (error) {
+    throw new Error(
+      `No se pudo verificar la precondición de plataforma. ${formatSupabaseError(error)}`,
+    );
+  }
+
+  const preflight = assertBootstrapPlatformPreflightResponse(data);
+  if (!preflight.platform_is_empty) {
+    const nonEmptyEntities = bootstrapPlatformPreflightKeys
+      .filter((flag) => flag !== "platform_is_empty" && preflight[flag] === false)
+      .map((flag) => flag.replace(/_empty$/, ""));
+    throw new Error(
+      `La plataforma ya está inicializada; bootstrap rechazado (${nonEmptyEntities.join(", ")}).`,
+    );
+  }
+}
 
 async function prepareOperation() {
   const { data, error } = await admin
@@ -86,11 +118,7 @@ if (prepared.operation_status === "SUCCEEDED") {
   process.exit(0);
 }
 
-for (const table of ["platform_admins", "users", "centers", "center_memberships"]) {
-  const { count, error } = await admin.from(table).select("*", { count: "exact", head: true });
-  if (error) throw new Error(`No se pudo verificar la precondición de ${table}.`);
-  if (count !== 0) throw new Error("La plataforma ya está inicializada; bootstrap rechazado.");
-}
+await assertEmptyPlatform();
 
 let authUserId = prepared.auth_user_id;
 let authUserWasCreated = prepared.auth_user_was_created;

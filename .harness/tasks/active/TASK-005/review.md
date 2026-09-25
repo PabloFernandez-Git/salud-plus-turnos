@@ -20,6 +20,408 @@
 **Alcance del veredicto:** Fase A, B1 y B2 están aprobadas. TASK-005 completa no se cierra ni se
 archiva; B3 no comenzó.
 
+## Re-review final — remediación bootstrap preflight — 2026-09-24
+
+### Veredicto
+
+`BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS`
+
+BP-F1 permanece **CERRADO** y BP-F2 queda **CERRADO**. La transacción final bloquea escrituras de
+`auth.users` desde antes de la revalidación decisiva hasta el COMMIT real. Tanto la suite versionada
+como un probe independiente con GoTrue/Auth Admin real observaron el orden causal requerido. Este
+PASS aprueba exclusivamente la remediación del bootstrap; TASK-005 continúa abierta y B3 no comenzó.
+
+### BP-F1 — CERRADO
+
+- Se conserva el validador productivo de objeto exacto/seis booleanos, usado por el script antes de
+  crear o consultar Auth.
+- La suite versionada ahora cubre explícitamente valor numérico (`auth_users_empty: 1`) además de
+  extra, faltante/parcial, string, `null`, array y objeto exacto válido. Resultado focalizado: 7/7.
+- No apareció regresión ni nueva serialización de la respuesta inválida.
+
+### BP-F2 — CERRADO
+
+`20260924160000_serialize_bootstrap_auth_users.sql` redefine incrementalmente la única RPC final y
+mantiene este orden efectivo:
+
+1. advisory lock del `operation_id`;
+2. advisory lock global de bootstrap;
+3. `LOCK TABLE auth.users IN SHARE MODE`;
+4. lectura/lock `FOR UPDATE` de `private.provisioning_operations`;
+5. comparación caller/binding, email autoritativo y fingerprint;
+6. revalidaciones de Auth/dominio;
+7. inserts de perfil/PLATFORM_ADMIN y estado `SUCCEEDED`;
+8. COMMIT/ROLLBACK, que libera todos los locks.
+
+La función no puede conceder PLATFORM_ADMIN por una ruta alternativa sin adquirir `SHARE`: el lock
+es incondicional y precede incluso al retorno idempotente `SUCCEEDED`. El UUID admitido continúa
+derivado de `operation.auth_user_id`; `p_auth_user_id` sólo debe coincidir y no es autoridad por sí
+mismo.
+
+PostgreSQL conserva el table lock hasta finalizar la transacción, no hasta retornar la función.
+`SHARE` permite lecturas y entra en conflicto con `ROW EXCLUSIVE`, modo tomado por INSERT, UPDATE y
+DELETE. Es el modo menos restrictivo que bloquea las tres escrituras Auth relevantes; no se usó un
+lock exclusivo más amplio.
+
+### Evidencia concurrente independiente
+
+El Reviewer ejecutó un probe temporal distinto del harness versionado:
+
+1. Auth A fue creado mediante Auth Admin real, preparado y ligado autoritativamente a una operación
+   temporal.
+2. Un blocker detuvo la RPC en su primer INSERT público, después de las revalidaciones.
+3. `pg_locks` mostró `ShareLock` concedido al PID bootstrap sobre `auth.users`.
+4. Se inició `auth.admin.createUser(B)` real; `pg_locks` mostró su `RowExclusiveLock` no concedido y
+   la promesa Auth permaneció pendiente.
+5. Se liberó el blocker y la función devolvió A, manteniendo abierta la transacción. B continuó
+   esperando: la devolución lógica no liberó `SHARE`.
+6. Sólo después de `COMMIT` B pudo confirmar. Resultado:
+   `REVIEWER_CAUSAL_LOCK_PROBE=PASS`.
+
+El probe confirmó exactamente la carrera que vencía la versión anterior y luego retiró sus Auth
+users, perfil, PLATFORM_ADMIN y operación. El archivo temporal fue eliminado.
+
+La suite versionada verificó además:
+
+- B preexistente → SQLSTATE `23514`, cero perfil/PLATFORM_ADMIN y operación sin `SUCCEEDED`;
+- sólo A correctamente ligada → éxito;
+- retry mismo operation ID → mismo resultado y cero duplicados;
+- A creada por GoTrue + B posterior → B espera hasta COMMIT;
+- cleanup selectivo y operación real intacta.
+
+### Locks, rutas y riesgo residual
+
+- El lock existe únicamente dentro del bootstrap one-shot. No hay red, Auth Admin ni interacción
+  humana dentro de esa transacción; después de adquirirlo sólo hay lecturas/validaciones, dos inserts
+  y una actualización.
+- Excepción, timeout o cancelación hacen rollback y liberan automáticamente table/advisory/row locks.
+- No se agregó trigger, cambio GoTrue ni comportamiento persistente posterior del producto.
+- No se encontró ciclo concreto: si GoTrue ya escribe, el bootstrap espera `SHARE` sosteniendo sólo
+  advisory locks que GoTrue no necesita; si bootstrap obtuvo `SHARE`, GoTrue espera sin que la RPC
+  necesite recursos de GoTrue. Prepare/bind/reconcile/compensation serializan por operation lock y no
+  adquieren locks incompatibles en orden inverso.
+- Riesgo residual bajo aceptado: el bootstrap one-shot puede demorar brevemente una escritura Auth
+  concurrente. La sección crítica es corta y el comportamiento fail-closed es deliberado.
+
+### Migration, ACL y superficie
+
+- La migration 16:00 es incremental; ninguna migration histórica tracked fue editada. Local y DEV
+  muestran 12/12 versiones sincronizadas.
+- Se conservan firma, owner efectivo, `SECURITY DEFINER`, `search_path=''`, referencias calificadas,
+  ausencia de SQL dinámico, fingerprint, estados y grants service-only.
+- No hay grants SELECT nuevos sobre `auth.users` ni tablas de dominio. `PUBLIC`, `anon` y
+  `authenticated` siguen sin EXECUTE; `service_role` conserva únicamente EXECUTE.
+- `bootstrap_platform_preflight()` mantiene cero parámetros, `STABLE`, retorno mínimo y ACL previa.
+- DB lint no encontró errores. El Implementer registró Security Advisor sin ERROR y con los mismos
+  siete WARN históricos; la auditoría independiente de catálogo/ACL no encontró superficie pública
+  nueva. La lectura Management API del Advisor no se repitió por no existir una credencial separada
+  disponible para el Reviewer.
+
+### Verificación final
+
+| Verificación | Resultado |
+| --- | --- |
+| branch / HEAD / DEV | PASS: `task/005-auth-users-center-access`, `3552672d6b3f7e0ffa18bbb5441dda860e000ceb`, DEV `ehllxymqyzrofydrvtzo`; PROD fuera de alcance. |
+| migrations | PASS: 12 locales / 12 DEV sincronizadas. |
+| `pnpm bootstrap` | PASS; no ejecutó bootstrap persistente. |
+| test BP-F1 focalizado | PASS 7/7. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS inicial y final; locks causales, grants, casos negativo/positivo/retry y cleanup. |
+| probe Reviewer Auth/locks | PASS; `ShareLock` concedido, `RowExclusiveLock` esperando hasta COMMIT. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; ambos advisory locks observados y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS 1/1. |
+| `pnpm auth:check:dev` | PASS y cleanup. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9 y cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 8/8 y cleanup cero. |
+| DB lint public/private | PASS; cero hallazgos. |
+| `pnpm db:types` | PASS. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 84 tests/14 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo warnings LF/CRLF informativos. |
+
+### Estado y cleanup
+
+La verificación final read-only/rollback confirmó 0 `auth.users`, 0 `public.users`, 0
+`platform_admins`, 0 `centers`, 0 `center_memberships` y exactamente 1 operación. La fila
+`352a309e-f137-488e-b6e7-4b53e2cdb7b2` permanece `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con
+`auth_user_id`, `result_user_id` y `completed_at` nulos. Hay 0 fixtures, 0 procesos DB/E2E y 0
+listeners en puerto 3000.
+
+Antes de este re-review, `review.md` contenía sin alteraciones las secciones históricas escritas por
+Reviewer; el Implementer sólo agregó implementación/reporte/tests/migration. Esta sección fue
+agregada por Reviewer. No se ejecutó bootstrap persistente, no se creó PLATFORM_ADMIN real, no se
+tocó/compensó la operación real, no se accedió a PROD y no hubo commit/push/PR/merge ni trabajo de B3.
+
+## Re-review — remediación bootstrap preflight — 2026-09-24
+
+### Veredicto
+
+`BOOTSTRAP PREFLIGHT REMEDIATION CHANGES_REQUESTED`
+
+BP-F1 queda **CERRADO**. BP-F2 queda **ABIERTO / PARCIALMENTE REMEDIADO**: la RPC ahora detecta un
+Auth competidor que ya existe al ejecutar su check, pero no impide que aparezca después del check y
+antes de conceder acceso. Un probe concurrente independiente reprodujo ese segundo intervalo contra
+DEV. Este veredicto alcanza sólo la remediación del bootstrap; no revoca A/B1/B2, TASK-005 continúa
+abierta y B3 no comenzó.
+
+### BP-F1 — CERRADO — contrato exacto del response
+
+- `scripts/bootstrap-platform-admin.mjs` importa y ejecuta
+  `assertBootstrapPlatformPreflightResponse()` sobre el resultado real de la RPC. El helper no es una
+  copia de test desconectada: es exactamente el llamado antes del bloque que consulta/crea Auth.
+- Sólo acepta un objeto no nulo/no array con exactamente las seis own keys SQL y valores de tipo
+  boolean. `Reflect.ownKeys` impide extras string o symbol; igualdad de cardinalidad más
+  `hasOwnProperty` impide faltantes/objetos parciales. El contenido inválido nunca se usa
+  parcialmente ni se serializa en el error.
+- Unit tests versionados: objeto exacto PASS; extra, faltante/parcial, string, `null` y array DENY.
+  Probes Reviewer adicionales: number y objeto parcial DENY. La implementación satisface todos los
+  inputs solicitados.
+- Ante respuesta inválida, `assertEmptyPlatform()` rechaza antes de `getUserById`, `createUser`, bind
+  o RPC final. La preparación idempotente PENDING ocurre antes del preflight por diseño preexistente,
+  pero no se crea Auth ni se concede acceso ni se ejecuta ningún efecto posterior.
+
+**Observación LOW de cobertura:** la suite versionada no tiene un caso explícito de boolean
+reemplazado por number; el Reviewer confirmó que el código lo rechaza. Agregar ese caso evitaría que
+el contrato solicitado dependa de inferir que string y number comparten la misma rama genérica.
+
+### BP-F2 — MEDIA — ABIERTO — carrera Auth posterior al check
+
+**Objeto:** `public.bootstrap_platform_admin(...)` en
+`supabase/migrations/20260924140000_harden_bootstrap_final_auth_revalidation.sql`.
+
+La parte implementada es correcta:
+
+- toma operation lock y global bootstrap lock;
+- bloquea/lee `private.provisioning_operations FOR UPDATE`;
+- exige `operation.auth_user_id IS NOT DISTINCT FROM p_auth_user_id`;
+- deriva `v_bound_auth_user_id` del binding persistido y lo usa para email, inserts y resultado;
+- antes de insertar rechaza cualquier Auth que ya tenga `id IS DISTINCT FROM` A;
+- NULL/caller arbitrario no puede saltar el binding;
+- sólo A permite el caso positivo, y `SUCCEEDED` retorna idempotentemente antes de volver a exigir
+  plataforma vacía.
+
+Sin embargo, el `EXISTS` es un `SELECT` ordinario. Su lock `ACCESS SHARE` no entra en conflicto con el
+`ROW EXCLUSIVE` de un insert concurrente en `auth.users`. El advisory lock global sólo coordina
+callers de esta RPC; Auth Admin/GoTrue no adquiere ese lock. Por ello existe una segunda ventana entre
+el `EXISTS` y los inserts de acceso.
+
+**Reproducción independiente DEV:**
+
+1. Se creó temporalmente Auth A y una operación distinta de la real, preparada/vinculada y
+   `AUTH_READY`.
+2. Otra transacción insertó `public.users(A)` sin commit. Era invisible para la RPC, pero forzó que
+   su futuro INSERT de A esperara en el índice único después de completar todos los checks.
+3. Se inició la RPC final y se observó al backend bloqueado en `Lock`, demostrando que ya había pasado
+   la revalidación Auth y alcanzado el primer INSERT.
+4. En ese punto se insertó y confirmó Auth B.
+5. Se revirtió el blocker; la RPC final continuó y devolvió A exitosamente:
+   `FINAL_RPC_ACCEPTED_AUTH_CREATED_AFTER_CHECK`.
+6. La transacción de la RPC fue revertida y los UUIDs temporales fueron eliminados. La suite final
+   confirmó nuevamente el baseline exacto y la operación real intacta.
+
+**Impacto:** el bootstrap puede conceder PLATFORM_ADMIN mientras existe una segunda identidad Auth,
+incumpliendo la garantía “únicamente la identidad vinculada” y el requisito de no dejar otra ventana
+TOCTOU. B no obtiene por sí sola un rol, por lo que la severidad permanece MEDIA; la condición de
+plataforma vacía sí queda violada.
+
+**Criterio de aceptación restante:** antes de revalidar, la transacción final debe adquirir un lock o
+mecanismo DB equivalente que impida inserts/updates/deletes concurrentes relevantes en `auth.users`
+hasta el commit (por ejemplo, un table lock con modo que conflicte con `ROW EXCLUSIVE`), luego repetir
+el check de sólo A y recién entonces conceder acceso. Agregar un test concurrente que haga aparecer B
+**después** del check y demuestre que A no puede confirmar; el caso actual B-before-call no cubre esta
+propiedad. Preservar el retorno idempotente `SUCCEEDED` y el protocolo PENDING → Auth → bind → final.
+
+### Migration, ACL y regresiones
+
+- `20260924140000_harden_bootstrap_final_auth_revalidation.sql` es incremental. Ninguna migration
+  histórica tracked fue modificada. Local y DEV muestran 11/11 versiones sincronizadas.
+- Firma, `SECURITY DEFINER`, owner efectivo, `search_path=''`, referencias calificadas, fingerprint,
+  estados y grants service-only se conservan. No se agregó `SELECT` a `service_role` sobre
+  `auth.users` ni tablas de dominio.
+- `bootstrap_platform_preflight()` conserva cero parámetros, `STABLE`, `SECURITY DEFINER`, retorno
+  mínimo y ejecución exclusiva de `service_role`; `PUBLIC`/`anon`/`authenticated` continúan sin
+  `EXECUTE` y `service_role` sin los SELECT directos prohibidos.
+- La suite focalizada cubre correctamente B existente antes de la RPC, caso positivo sólo A, retry
+  `SUCCEEDED`, grants, preflight por entidad y rollback. Su mensaje “TOCTOU Auth rechazado” es más
+  amplio que lo realmente probado: no cubre B posterior al check.
+
+| Verificación | Resultado del re-review |
+| --- | --- |
+| branch / HEAD / DEV | PASS: `task/005-auth-users-center-access`, `3552672d6b3f7e0ffa18bbb5441dda860e000ceb`, DEV `ehllxymqyzrofydrvtzo`; PROD fuera de alcance. |
+| migrations | PASS: 11 locales / 11 DEV sincronizadas. |
+| `pnpm bootstrap` | PASS; no ejecutó bootstrap persistente. |
+| validator unitario | PASS 6/6; probes number/parcial PASS. Cobertura number faltante en suite versionada. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS antes y después de los probes; evidencia positiva válida pero insuficiente para late-B. |
+| probe concurrente late-B | **FAIL de seguridad reproducido:** la RPC aceptó A después de confirmar B tras el check. Cleanup completo. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; ambos advisory locks observados y cleanup cero. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS. |
+| `pnpm test:e2e:auth-access:dev` | PASS 9/9, cleanup cero. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 8/8, cleanup cero. |
+| DB lint public/private | PASS; cero errores. |
+| Security Advisor | El Implementer registra cero ERROR y los mismos siete WARN. No se obtuvo una credencial Management API separada para repetir esta lectura; la auditoría de catálogo/grants y Auth foundation no detectó nueva superficie pública. |
+| `pnpm db:types` | PASS. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 83 tests/14 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo warnings LF/CRLF informativos. |
+
+### Diff, historial y cleanup
+
+El diff del Implementer contra el baseline contiene únicamente la remediación preflight/final:
+migrations incrementales 12:00/14:00, script/helper/tests, ajustes de harness para preservar la
+operación real, tipos, package script e `implementation-report.md`. Los 132 renglones previos de
+`review.md` correspondían exactamente a la sección agregada por Reviewer en el review anterior; el
+Implementer no alteró findings históricos. Esta nueva sección también pertenece sólo al Reviewer.
+
+Estado final confirmado por la suite read-only/rollback: 0 `auth.users`, 0 `public.users`, 0
+`platform_admins`, 0 `centers`, 0 `center_memberships` y exactamente 1 operación. La fila real
+`352a309e-f137-488e-b6e7-4b53e2cdb7b2` continúa `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con
+`auth_user_id`, `result_user_id` y `completed_at` nulos. Hay 0 fixtures, 0 procesos DB/E2E y 0
+listeners en puerto 3000. Los probes temporales fueron retirados. No hubo bootstrap persistente,
+creación de PLATFORM_ADMIN real, cambio/compensación del operation ID, commit/push/PR/merge, acceso a
+PROD ni trabajo de B3.
+
+## Review independiente — remediación bootstrap preflight — 2026-09-24
+
+### Veredicto
+
+`BOOTSTRAP PREFLIGHT REMEDIATION CHANGES_REQUESTED`
+
+La RPC nueva resuelve correctamente el fallo original de grants mínimos y la evidencia DEV confirma
+que no se creó identidad ni permiso. Sin embargo, esta remediación todavía no satisface dos partes
+explícitas del contrato: el consumidor productivo no exige la forma exacta de seis campos y la RPC
+transaccional final no revalida el nuevo predicado sobre `auth.users` bajo el lock global. Este
+veredicto alcanza únicamente la remediación; no revoca los PASS de A/B1/B2. TASK-005 continúa
+abierta y B3 no debe comenzar.
+
+### Finding BP-F1 — MEDIA — respuesta inesperada no falla cerrado
+
+**Objeto:** `scripts/bootstrap-platform-admin.mjs:65-75`.
+
+**Evidencia:** `assertEmptyPlatform()` enumera las seis flags y comprueba que cada una exista y sea
+booleana, pero no compara el conjunto real de claves. Por lo tanto, una respuesta con las seis flags
+válidas **más campos inesperados** es aceptada. El helper del test sí exige igualdad exacta de keys,
+pero ese helper no es el código que ejecuta el bootstrap.
+
+**Impacto:** el operador no hace cumplir el retorno mínimo declarado ni falla cerrado si una
+regresión/mala configuración amplía el resultado de la RPC. Hoy la función desplegada devuelve sólo
+los seis booleanos, por lo que no hay fuga observada en DEV; el defecto está en la frontera que debía
+detectar precisamente una respuesta inesperada.
+
+**Criterio de aceptación:** validar en el código productivo que el resultado sea un objeto con
+exactamente las seis claves aprobadas, todas booleanas, sin extras; agregar pruebas del consumidor
+real para respuesta faltante, parcial, tipo incorrecto y propiedad adicional. Mantener el diagnóstico
+sanitizado y no imprimir el objeto completo.
+
+### Finding BP-F2 — MEDIA — `auth.users` no se revalida bajo el lock final
+
+**Objeto:** `public.bootstrap_platform_admin(...)`, actualmente definido en
+`supabase/migrations/20260923120000_enforce_provisioning_intent_fingerprints.sql:715-770`, y la nueva
+frontera entre `bootstrap_platform_preflight()` y esa RPC final.
+
+**Escenario reproducible por inspección del flujo y de las condiciones SQL:**
+
+1. El preflight observa `auth.users = 0`.
+2. Antes de la RPC final, el bootstrap crea su identidad Auth esperada y otro actor confiable que
+   dispone de Auth Admin —o un segundo bootstrap concurrente— crea una identidad Auth adicional.
+3. `bootstrap_platform_admin(...)` adquiere el advisory lock global, valida que existe la identidad
+   ligada a la operación y revalida `platform_admins`, `public.users`, `centers` y
+   `center_memberships`, pero no rechaza la identidad Auth ajena.
+4. La primera operación puede confirmar PLATFORM_ADMIN aun cuando ya no se cumple el predicado
+   aprobado “cualquier `auth.users` existente bloquea”, salvo la identidad objetivo que el propio
+   protocolo necesariamente creó.
+
+**Impacto:** se introdujo un TOCTOU para la única entidad nueva del preflight que la RPC final no
+revalida. El lock serializa las RPCs finales, pero no impide crear Auth antes de entrar a ese lock. La
+identidad extra no obtiene por sí sola acceso tenant/global, por lo que se clasifica MEDIA y no como
+escalación directa; sí invalida la garantía de bootstrap sobre plataforma vacía.
+
+**Criterio de aceptación:** mediante una migration incremental, hacer que la RPC final, bajo el
+advisory lock global y antes de insertar `public.users`/`platform_admins`, rechace cualquier
+`auth.users` distinto del `p_auth_user_id` autoritativamente ligado a la operación. Preservar retry
+idempotente y fingerprint. Agregar una prueba que inserte/cree una segunda identidad entre preflight
+y RPC final y demuestre que el bootstrap no confirma; la identidad objetivo única debe seguir siendo
+aceptada.
+
+### Auditoría de la RPC y grants
+
+- `public.bootstrap_platform_preflight()` no tiene parámetros, es SQL `STABLE`, `SECURITY DEFINER`,
+  `search_path=''`, no usa SQL dinámico y califica `auth.users` y las cuatro tablas `public`.
+- Owner efectivo en DEV: `postgres`. `SECURITY DEFINER` es necesario para conservar el modelo sin
+  `SELECT` directo de `service_role`.
+- El retorno efectivo y declarado contiene únicamente seis booleanos; no expone counts, emails,
+  UUIDs, nombres ni datos personales. Al estar ejecutable sólo por `service_role`, el oracle queda
+  limitado a la autoridad server-only que necesita el bootstrap.
+- ACL efectiva DEV: `PUBLIC`, `anon` y `authenticated` sin `EXECUTE`; `service_role` con
+  `EXECUTE`. `service_role` continúa sin `SELECT` sobre `public.users`, `platform_admins`, `centers`
+  ni `center_memberships`. No se detectaron grants adicionales.
+- Plataforma vacía produce las seis flags verdaderas. Cada una de las cinco entidades controladas
+  (`auth.users` y las cuatro tablas públicas) bloquea individualmente. Una operación PENDING aislada
+  no bloquea y no son necesarios counts ni datos de filas.
+
+### Script, secretos e idempotencia
+
+- Se eliminaron las lecturas directas incompatibles con los grants: el preflight consume sólo la
+  RPC nueva. Se conservaron los guards DEV, confirmación humana, mismo operation ID y mismo
+  payload/fingerprint.
+- La operación se prepara antes del preflight; volver a preparar
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2` con la misma intención devuelve el mismo `PENDING` sin
+  mutarlo. La operación PENDING existente puede continuar una vez corregidos los findings.
+- El diagnóstico nuevo allowlistea únicamente `code`, `message`, `details` y `hint`. La RPC no
+  recibe parámetros y la revisión no encontró impresión de secret key, Authorization/JWT, password,
+  cookies ni credenciales URL. El bundle cliente permanece limpio.
+- No se ejecutó el bootstrap persistente ni se generó otro operation ID.
+
+### Diff y verificaciones
+
+El diff contra `3552672d6b3f7e0ffa18bbb5441dda860e000ceb` está limitado a migration, script,
+tests/harness afectados, tipos generados, script de package y `implementation-report.md`. No hay
+cambios de producto B3. Antes de este review, `review.md` era byte-for-byte igual al baseline; esta
+sección fue agregada exclusivamente por Reviewer. El reporte contiene además una fila duplicada de
+`git diff --check`, observación editorial no bloqueante.
+
+| Verificación | Resultado independiente |
+| --- | --- |
+| branch / HEAD / DEV | PASS: `task/005-auth-users-center-access`, `3552672d6b3f7e0ffa18bbb5441dda860e000ceb`, DEV `ehllxymqyzrofydrvtzo`; PROD fuera de alcance. |
+| migrations | PASS: 10 locales / 10 DEV, sincronizadas; sólo la incremental `20260924120000` es nueva. |
+| `pnpm bootstrap` | PASS; no ejecuta bootstrap persistente. |
+| `pnpm supabase:check:dev` | PASS. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS inicial y PASS final: grants, cinco bloqueos individuales, PENDING no bloqueante, retry de prepare y cleanup. Una invocación intermedia en sandbox no alcanzó DB por falta de autenticación CLI; la repetición autorizada pasó. |
+| `pnpm db:test:schema:dev` | PASS con concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; RLS/grants y advisory locks reales. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS y cleanup selectivo. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS. |
+| `pnpm auth:check:dev` | PASS. |
+| `pnpm test:e2e:auth-access:dev` | Primera ejecución 8/9 por flake conocido de `validity` en update-password; rerun PASS 9/9, cleanup cero. No hay diff B1 relacionado. |
+| `pnpm test:e2e:platform-admin:dev` | PASS 8/8, cleanup cero. |
+| DB lint | PASS, cero resultados. |
+| Security Advisor | PASS sin ERROR; permanecen los mismos siete WARN SECURITY DEFINER conocidos y la RPC service-only nueva no agregó warning público. |
+| `pnpm db:types` | PASS; firma generada sin argumentos y seis booleanos. |
+| `pnpm format:check` | PASS. |
+| `pnpm check` | PASS: lint, typecheck y 77 tests/13 archivos. |
+| `pnpm build` | PASS. |
+| `pnpm security:check:client-bundle` | PASS. |
+| `git diff --check` | PASS; sólo warnings informativos LF/CRLF. |
+
+### Estado DEV y cleanup final
+
+La verificación final read-only/rollback confirmó: 0 `auth.users`, 0 `public.users`, 0
+`platform_admins`, 0 `centers`, 0 `center_memberships` y exactamente 1
+`private.provisioning_operations`. Es exclusivamente
+`352a309e-f137-488e-b6e7-4b53e2cdb7b2 / BOOTSTRAP_PLATFORM_ADMIN / PENDING`, con
+`auth_user_id`, `result_user_id` y `completed_at` nulos. No quedan fixtures de las suites y el puerto
+3000 tiene 0 listeners; la inspección de procesos encontró 0 runners DB/E2E activos. No se tocó
+PROD, no hubo bootstrap persistente, commit/push/PR/merge ni trabajo de B3.
+
 ## Tercer re-review focalizado — TASK-005B2 — 2026-09-24
 
 ### Veredicto

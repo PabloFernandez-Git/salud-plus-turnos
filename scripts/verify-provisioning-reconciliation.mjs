@@ -252,8 +252,11 @@ async function assertCleanup() {
        (select count(*)::int from auth.users where email like 'task005-remediation-%@example.test') auth_users,
        (select count(*)::int from public.users where email like 'task005-remediation-%@example.test') public_users,
        (select count(*)::int from public.centers where name like 'TASK-005 Remediation%') centers,
-       (select count(*)::int from private.provisioning_operations) operations,
-       (select count(*)::int from public.platform_admins) platform_admins`,
+       (select count(*)::int from private.provisioning_operations
+          where id=any($1::uuid[])) operations,
+       (select count(*)::int from public.platform_admins
+          where user_id=any($2::uuid[])) platform_admins`,
+    [operationIds, [...authUsers.values()].map(({ id }) => id)],
   );
   for (const [kind, count] of Object.entries(result.rows[0])) {
     assertEqual(count, 0, `${kind} cleanup`);
@@ -263,11 +266,6 @@ async function assertCleanup() {
 try {
   control = await connect("control");
   const platform = await createAuth("platform");
-  const firstAdmin = await createAuth("first-admin");
-  const rollbackUser = await createAuth("rollback");
-  const orphanUser = await createAuth("orphan");
-  const existingUser = await createAuth("existing");
-  const tenantUser = await createAuth("tenant");
 
   const bootstrapOperation = randomUUID();
   operationIds.push(bootstrapOperation);
@@ -310,6 +308,12 @@ try {
     [bootstrapOperation, platform.id, "Platform", "Remediation"],
   );
   assertEqual(bootstrapRetry.rows[0].user_id, platform.id, "bootstrap idempotent retry");
+
+  const firstAdmin = await createAuth("first-admin");
+  const rollbackUser = await createAuth("rollback");
+  const orphanUser = await createAuth("orphan");
+  const existingUser = await createAuth("existing");
+  const tenantUser = await createAuth("tenant");
 
   const centerOperation = randomUUID();
   operationIds.push(centerOperation);

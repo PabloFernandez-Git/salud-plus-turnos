@@ -1,7 +1,7 @@
 # TASK-005 — Diseño final de Auth, plataforma y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
-**Tipo:** contrato de diseño aprobado; A, B1 y B2 implementadas; B3 no iniciada.
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
+**Tipo:** contrato de diseño aprobado; A, B1, B2 y remediación de preflight implementadas; B3 no iniciada.
 
 ## 1. Decisión final y límites
 

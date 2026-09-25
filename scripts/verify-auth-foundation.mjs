@@ -158,8 +158,8 @@ let control;
 let transactionA;
 let transactionB;
 
-async function createAuthFixtures() {
-  for (const name of fixtureNames) {
+async function createAuthFixtures(names = fixtureNames) {
+  for (const name of names) {
     const email = `task005-${runId}-${name.toLowerCase()}@example.test`;
     const { data, error } = await admin.auth.admin.createUser({
       email,
@@ -336,9 +336,13 @@ async function assertFixtureCleanup() {
          as auth_users,
        (select count(*)::integer from public.users where email like 'task005-%@example.test')
          as public_users,
-       (select count(*)::integer from public.platform_admins)
+       (select count(*)::integer from public.platform_admins
+          where user_id = any($1::uuid[]))
          as platform_admins,
-       (select count(*)::integer from private.provisioning_operations)
+       (select count(*)::integer from private.provisioning_operations
+          where id = any($2::uuid[])
+             or actor_user_id = any($1::uuid[])
+             or auth_user_id = any($1::uuid[]))
          as provisioning_operations,
        (select count(*)::integer from public.professionals where document_number like 'TASK005-%')
          as professionals,
@@ -346,6 +350,7 @@ async function assertFixtureCleanup() {
          as centers,
        (select count(*)::integer from public.specialties where name like 'TASK-005 Specialty%')
          as specialties`,
+    [createdAuthUserIds, operationIds],
   );
   for (const [kind, count] of Object.entries(residue.rows[0])) {
     assertEqual(count, 0, `${kind} fixture cleanup`);
@@ -356,16 +361,8 @@ async function assertFixtureCleanup() {
 try {
   control = await connect("control");
   await cleanupStaleTask005Fixtures();
-  await createAuthFixtures();
+  await createAuthFixtures(["platform"]);
   const platform = fixtures.get("platform");
-  const adminA = fixtures.get("adminA");
-  const adminA2 = fixtures.get("adminA2");
-  const adminB = fixtures.get("adminB");
-  const reception = fixtures.get("reception");
-  const professional = fixtures.get("professional");
-  const inactive = fixtures.get("inactive");
-  const noMember = fixtures.get("noMember");
-  const existing = fixtures.get("existing");
 
   const bootstrapOperationA = randomUUID();
   const bootstrapOperationB = randomUUID();
@@ -381,10 +378,10 @@ try {
   await prepareAndBindOperation({
     operationId: bootstrapOperationB,
     operationType: "BOOTSTRAP_PLATFORM_ADMIN",
-    email: noMember.email,
-    firstName: "Second",
-    lastName: "Bootstrap",
-    authUserId: noMember.id,
+    email: platform.email,
+    firstName: "Platform",
+    lastName: "Admin",
+    authUserId: platform.id,
     authUserWasCreated: true,
   });
 
@@ -403,7 +400,7 @@ try {
   );
   const losingBootstrap = transactionB.query(
     "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
-    [bootstrapOperationB, noMember.id, "Second", "Bootstrap"],
+    [bootstrapOperationB, platform.id, "Platform", "Admin"],
   );
   void losingBootstrap.catch(() => {});
 
@@ -437,6 +434,16 @@ try {
     [bootstrapOperationA, platform.id, "Platform", "Admin"],
   );
   assertEqual(retriedBootstrap.rows[0].user_id, platform.id, "idempotent bootstrap retry");
+
+  await createAuthFixtures(fixtureNames.filter((name) => name !== "platform"));
+  const adminA = fixtures.get("adminA");
+  const adminA2 = fixtures.get("adminA2");
+  const adminB = fixtures.get("adminB");
+  const reception = fixtures.get("reception");
+  const professional = fixtures.get("professional");
+  const inactive = fixtures.get("inactive");
+  const noMember = fixtures.get("noMember");
+  const existing = fixtures.get("existing");
 
   const centerAOperation = randomUUID();
   await prepareAndBindOperation({

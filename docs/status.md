@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — Fase A, B1 y B2 completadas; B3 no iniciada
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2 y remediación de preflight completadas; B3 no iniciada
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
 
 ## Completado
 
@@ -65,12 +65,17 @@
   aprobada de Fase A.
 - TASK-005B2 obtuvo `TASK-005B2 REVIEW PASS`; ambos findings quedaron cerrados y B2 se cerró como
   checkpoint sin cambios de schema, migrations, RLS, grants, RPCs ni tipos generados.
+- La remediación del bootstrap agregó una RPC de preflight service-only con respuesta exacta,
+  revalidación final de `auth.users`, serialización con lock `SHARE`, y pruebas de
+  concurrencia/idempotencia sin ampliar grants de dominio.
+- La remediación obtuvo `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS`; BP-F1 y BP-F2 quedaron
+  cerrados. TASK-005 continúa activa y B3 no fue iniciada.
 
 ## Próximo
 
-TASK-005 permanece activa y TASK-005B3 no fue iniciada. El próximo paso posible es autorizar y
-ejecutar de forma controlada el bootstrap persistente del primer PLATFORM_ADMIN; continúa sujeto a
-autorización humana adicional explícita y todavía no fue ejecutado.
+TASK-005 permanece activa y TASK-005B3 no fue iniciada. El próximo paso posible es el retry
+controlado del bootstrap persistente del primer PLATFORM_ADMIN usando la operación preservada;
+continúa sujeto a una instrucción humana explícita y todavía no fue ejecutado.
 
 ## Estado operativo
 
@@ -78,12 +83,13 @@ autorización humana adicional explícita y todavía no fue ejecutado.
   `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
   working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
-  `TASK-005B2 COMPLETED`; B3 no iniciada. Brief, Plan, propuesta e implementation report permanecen
-  en `.harness/tasks/active/TASK-005/` porque la tarea completa sigue abierta.
+  `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3 no iniciada. Brief, Plan,
+  propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
+  tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
-- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las seis migrations de TASK-005 están
-  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (nueve versiones totales).
+- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las nueve migrations de TASK-005 están
+  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (doce versiones totales).
 - DB lint: cero resultados. Advisors de seguridad: sólo las siete advertencias esperadas por RPCs
   `SECURITY DEFINER` autenticadas, todas con validación interna y grants explícitos aprobados.
 - Suites de schema/concurrencia, catálogo/RLS/grants y Auth foundation: PASS; tipos regenerados desde
@@ -92,8 +98,10 @@ autorización humana adicional explícita y todavía no fue ejecutado.
   y no versionado. La configuración Auth Dashboard fue confirmada mediante comportamiento efectivo.
 - No se ejecutó el bootstrap persistente. El bootstrap, provisioning y compensación sí se validaron
   con fixtures temporales DEV y cleanup.
-- Cero fixtures persistentes, cero usuarios Auth temporales de TASK-005 y cero PLATFORM_ADMIN
-  persistentes. PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
+- Cero filas en `auth.users`, `public.users`, `platform_admins`, `centers` y `center_memberships`.
+  `private.provisioning_operations` conserva únicamente la operación real
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2`, `BOOTSTRAP_PLATFORM_ADMIN / PENDING`, sin IDs Auth/resultado
+  ni `completed_at`. PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
 
 ## Decisiones aprobadas de TASK-005
 

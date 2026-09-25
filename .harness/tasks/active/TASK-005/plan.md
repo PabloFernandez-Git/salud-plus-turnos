@@ -1,6 +1,6 @@
 # TASK-005 — Plan
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED`
 
 ## Estrategia
 
@@ -160,5 +160,7 @@ reescribir migrations aplicadas.
 - `TASK-005B2 READY_FOR_REVIEW` — completado.
 - `TASK-005B2 REVIEW PASS` — completado; ambos findings cerrados.
 - `TASK-005B2 COMPLETED` — completado como checkpoint.
+- `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS` — completado; BP-F1/BP-F2 cerrados.
+- `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` — completado como checkpoint.
 - TASK-005B3 — no iniciada.
 - `CLOSED` — no iniciado.
