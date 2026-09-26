@@ -315,26 +315,12 @@ async function cleanupAuth(userIds) {
   if (errors.length > 0) throw new AggregateError(errors, "Auth fixture cleanup failed.");
 }
 
-async function cleanupStaleTask005Fixtures() {
-  const staleUsers = await control.query(
-    `select id
-     from auth.users
-     where email like 'task005-%@example.test'`,
-  );
-  const staleUserIds = staleUsers.rows.map(({ id }) => id);
-  if (staleUserIds.length === 0) return;
-
-  await cleanupDatabase(staleUserIds);
-  await cleanupAuth(staleUserIds);
-  console.log(`Removed ${staleUserIds.length} stale TASK-005 Auth fixture(s) before the run.`);
-}
-
 async function assertFixtureCleanup() {
   const residue = await control.query(
     `select
-       (select count(*)::integer from auth.users where email like 'task005-%@example.test')
+       (select count(*)::integer from auth.users where id=any($1::uuid[]))
          as auth_users,
-       (select count(*)::integer from public.users where email like 'task005-%@example.test')
+       (select count(*)::integer from public.users where id=any($1::uuid[]))
          as public_users,
        (select count(*)::integer from public.platform_admins
           where user_id = any($1::uuid[]))
@@ -344,13 +330,13 @@ async function assertFixtureCleanup() {
              or actor_user_id = any($1::uuid[])
              or auth_user_id = any($1::uuid[]))
          as provisioning_operations,
-       (select count(*)::integer from public.professionals where document_number like 'TASK005-%')
+       (select count(*)::integer from public.professionals where id=any($3::uuid[]))
          as professionals,
-       (select count(*)::integer from public.centers where name like 'TASK-005 Center %')
+       (select count(*)::integer from public.centers where id=any($4::uuid[]))
          as centers,
-       (select count(*)::integer from public.specialties where name like 'TASK-005 Specialty%')
+       (select count(*)::integer from public.specialties where center_id=any($4::uuid[]))
          as specialties`,
-    [createdAuthUserIds, operationIds],
+    [createdAuthUserIds, operationIds, professionalIds, centerIds],
   );
   for (const [kind, count] of Object.entries(residue.rows[0])) {
     assertEqual(count, 0, `${kind} fixture cleanup`);
@@ -360,80 +346,111 @@ async function assertFixtureCleanup() {
 
 try {
   control = await connect("control");
-  await cleanupStaleTask005Fixtures();
+  const platformAlreadyInitialized = (
+    await control.query("select exists(select 1 from public.platform_admins) as initialized")
+  ).rows[0].initialized;
   await createAuthFixtures(["platform"]);
   const platform = fixtures.get("platform");
 
-  const bootstrapOperationA = randomUUID();
-  const bootstrapOperationB = randomUUID();
-  const bootstrapHashA = await prepareAndBindOperation({
-    operationId: bootstrapOperationA,
-    operationType: "BOOTSTRAP_PLATFORM_ADMIN",
-    email: platform.email,
-    firstName: "Platform",
-    lastName: "Admin",
-    authUserId: platform.id,
-    authUserWasCreated: true,
-  });
-  await prepareAndBindOperation({
-    operationId: bootstrapOperationB,
-    operationType: "BOOTSTRAP_PLATFORM_ADMIN",
-    email: platform.email,
-    firstName: "Platform",
-    lastName: "Admin",
-    authUserId: platform.id,
-    authUserWasCreated: true,
-  });
+  if (platformAlreadyInitialized) {
+    await control.query(
+      "insert into public.users (id,first_name,last_name,email) values ($1,'Platform','Admin',$2)",
+      [platform.id, platform.email],
+    );
+    await control.query("insert into public.platform_admins (user_id) values ($1)", [platform.id]);
+    const initializedBootstrapOperation = randomUUID();
+    await prepareAndBindOperation({
+      operationId: initializedBootstrapOperation,
+      operationType: "BOOTSTRAP_PLATFORM_ADMIN",
+      email: platform.email,
+      firstName: "Platform",
+      lastName: "Admin",
+      authUserId: platform.id,
+      authUserWasCreated: true,
+    });
+    await expectSqlState(
+      () =>
+        control.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
+          initializedBootstrapOperation,
+          platform.id,
+          "Platform",
+          "Admin",
+        ]),
+      "23514",
+      "bootstrap on initialized platform",
+    );
+  } else {
+    const bootstrapOperationA = randomUUID();
+    const bootstrapOperationB = randomUUID();
+    const bootstrapHashA = await prepareAndBindOperation({
+      operationId: bootstrapOperationA,
+      operationType: "BOOTSTRAP_PLATFORM_ADMIN",
+      email: platform.email,
+      firstName: "Platform",
+      lastName: "Admin",
+      authUserId: platform.id,
+      authUserWasCreated: true,
+    });
+    await prepareAndBindOperation({
+      operationId: bootstrapOperationB,
+      operationType: "BOOTSTRAP_PLATFORM_ADMIN",
+      email: platform.email,
+      firstName: "Platform",
+      lastName: "Admin",
+      authUserId: platform.id,
+      authUserWasCreated: true,
+    });
 
-  transactionA = await connect("bootstrap-a");
-  transactionB = await connect("bootstrap-b");
-  await transactionA.query("begin");
-  await transactionA.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
-    bootstrapOperationA,
-    platform.id,
-    "Platform",
-    "Admin",
-  ]);
-  await transactionB.query("begin");
-  const bootstrapBlockedPid = Number(
-    (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
-  );
-  const losingBootstrap = transactionB.query(
-    "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
-    [bootstrapOperationB, platform.id, "Platform", "Admin"],
-  );
-  void losingBootstrap.catch(() => {});
+    transactionA = await connect("bootstrap-a");
+    transactionB = await connect("bootstrap-b");
+    await transactionA.query("begin");
+    await transactionA.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
+      bootstrapOperationA,
+      platform.id,
+      "Platform",
+      "Admin",
+    ]);
+    await transactionB.query("begin");
+    const bootstrapBlockedPid = Number(
+      (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
+    );
+    const losingBootstrap = transactionB.query(
+      "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
+      [bootstrapOperationB, platform.id, "Platform", "Admin"],
+    );
+    void losingBootstrap.catch(() => {});
 
-  await observePendingAdvisoryLock(control, bootstrapBlockedPid, "Bootstrap concurrency barrier");
+    await observePendingAdvisoryLock(control, bootstrapBlockedPid, "Bootstrap concurrency barrier");
 
-  await transactionA.query("commit");
-  const losingBootstrapResult = await Promise.allSettled([losingBootstrap]);
-  if (
-    losingBootstrapResult[0].status !== "rejected" ||
-    losingBootstrapResult[0].reason?.code !== "23514"
-  ) {
-    throw new Error("Concurrent bootstrap did not leave exactly one PLATFORM_ADMIN.");
+    await transactionA.query("commit");
+    const losingBootstrapResult = await Promise.allSettled([losingBootstrap]);
+    if (
+      losingBootstrapResult[0].status !== "rejected" ||
+      losingBootstrapResult[0].reason?.code !== "23514"
+    ) {
+      throw new Error("Concurrent bootstrap did not leave exactly one PLATFORM_ADMIN.");
+    }
+    await transactionB.query("rollback");
+    await transactionA.end();
+    await transactionB.end();
+    transactionA = undefined;
+    transactionB = undefined;
+
+    const reconciledBootstrap = await control.query(
+      "select * from public.reconcile_auth_provisioning_operation($1,$2)",
+      [bootstrapOperationA, bootstrapHashA],
+    );
+    assertEqual(
+      reconciledBootstrap.rows[0].operation_status,
+      "SUCCEEDED",
+      "bootstrap response-loss reconciliation",
+    );
+    const retriedBootstrap = await control.query(
+      "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
+      [bootstrapOperationA, platform.id, "Platform", "Admin"],
+    );
+    assertEqual(retriedBootstrap.rows[0].user_id, platform.id, "idempotent bootstrap retry");
   }
-  await transactionB.query("rollback");
-  await transactionA.end();
-  await transactionB.end();
-  transactionA = undefined;
-  transactionB = undefined;
-
-  const reconciledBootstrap = await control.query(
-    "select * from public.reconcile_auth_provisioning_operation($1,$2)",
-    [bootstrapOperationA, bootstrapHashA],
-  );
-  assertEqual(
-    reconciledBootstrap.rows[0].operation_status,
-    "SUCCEEDED",
-    "bootstrap response-loss reconciliation",
-  );
-  const retriedBootstrap = await control.query(
-    "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
-    [bootstrapOperationA, platform.id, "Platform", "Admin"],
-  );
-  assertEqual(retriedBootstrap.rows[0].user_id, platform.id, "idempotent bootstrap retry");
 
   await createAuthFixtures(fixtureNames.filter((name) => name !== "platform"));
   const adminA = fixtures.get("adminA");
@@ -657,19 +674,20 @@ try {
   const platformSummary = await asUser(control, platform.id, (client) =>
     client.query("select * from public.platform_list_centers() order by name"),
   );
-  assertEqual(platformSummary.rows.length, 2, "platform center list");
+  const centerASummary = platformSummary.rows.find(({ name }) => name === "TASK-005 Center A");
+  if (!centerASummary) throw new Error("Temporary Center A is absent from the platform list.");
   assertEqual(
-    Number(platformSummary.rows[0].active_membership_count),
+    Number(centerASummary.active_membership_count),
     5,
     "platform active membership counter",
   );
   assertEqual(
-    Number(platformSummary.rows[0].active_professional_center_count),
+    Number(centerASummary.active_professional_center_count),
     1,
     "platform active ProfessionalCenter counter",
   );
   assertEqual(
-    Number(platformSummary.rows[0].active_specialty_count),
+    Number(centerASummary.active_specialty_count),
     1,
     "platform active Specialty counter",
   );

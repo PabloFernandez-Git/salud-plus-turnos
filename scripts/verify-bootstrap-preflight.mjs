@@ -471,148 +471,212 @@ try {
        (select count(*)::int from public.center_memberships) center_memberships,
        (select count(*)::int from private.provisioning_operations) provisioning_operations`,
   );
-  assert(
-    JSON.stringify(baseline.rows[0]) ===
-      JSON.stringify({
-        auth_users: 0,
-        public_users: 0,
-        platform_admins: 0,
-        centers: 0,
-        center_memberships: 0,
-        provisioning_operations: 1,
-      }),
-    "El estado DEV no coincide con el baseline vacío más la operación PENDING preservada.",
-  );
+  const initializedBaseline = {
+    auth_users: 1,
+    public_users: 1,
+    platform_admins: 1,
+    centers: 1,
+    center_memberships: 1,
+    provisioning_operations: 2,
+  };
+  const platformAlreadyInitialized =
+    JSON.stringify(baseline.rows[0]) === JSON.stringify(initializedBaseline);
 
-  for (const table of checkedTables) {
-    const { error } = await admin.from(table).select("*").limit(1);
-    assert(error?.code === "42501", `service_role obtuvo SELECT directo sobre ${table}.`);
-  }
+  if (platformAlreadyInitialized) {
+    for (const table of checkedTables) {
+      const { error } = await admin.from(table).select("*").limit(1);
+      assert(error?.code === "42501", `service_role obtuvo SELECT directo sobre ${table}.`);
+    }
+    await expectRoleDenied(database, "anon");
+    await expectRoleDenied(database, "authenticated");
 
-  await expectRoleDenied(database, "anon");
-  await expectRoleDenied(database, "authenticated");
+    const { data: preflight, error: preflightError } = await admin
+      .rpc("bootstrap_platform_preflight")
+      .single();
+    assert(!preflightError, "service_role no pudo ejecutar la RPC de preflight.");
+    assertPreflight(preflight, {
+      platform_is_empty: false,
+      auth_users_empty: false,
+      public_users_empty: false,
+      platform_admins_empty: false,
+      centers_empty: false,
+      center_memberships_empty: false,
+    });
 
-  const { data: preflight, error: preflightError } = await admin
-    .rpc("bootstrap_platform_preflight")
-    .single();
-  assert(!preflightError, "service_role no pudo ejecutar la RPC de preflight.");
-  assertPreflight(preflight);
+    const persistentBootstrap = await database.query(
+      `select operation_type,status,result_user_id,completed_at
+       from private.provisioning_operations where id=$1`,
+      [operationId],
+    );
+    assert(persistentBootstrap.rowCount === 1, "No existe la operación de bootstrap persistente.");
+    assert(
+      persistentBootstrap.rows[0].operation_type === "BOOTSTRAP_PLATFORM_ADMIN" &&
+        persistentBootstrap.rows[0].status === "SUCCEEDED" &&
+        persistentBootstrap.rows[0].result_user_id !== null &&
+        persistentBootstrap.rows[0].completed_at !== null,
+      "La operación de bootstrap persistente no conserva el estado SUCCEEDED esperado.",
+    );
 
-  const fixtureId = randomUUID();
-  const fixtureEmail = `task005-preflight-${fixtureId}@example.test`;
-  await assertFixtureMakesPlatformNonEmpty(
-    database,
-    (client) => insertAuthUser(client, fixtureId, fixtureEmail),
-    "auth_users_empty",
-  );
-  await assertFixtureMakesPlatformNonEmpty(
-    database,
-    async (client) => {
-      await insertAuthUser(client, fixtureId, fixtureEmail);
-      await insertPublicUser(client, fixtureId, fixtureEmail);
-    },
-    "public_users_empty",
-  );
-  await assertFixtureMakesPlatformNonEmpty(
-    database,
-    async (client) => {
-      await insertAuthUser(client, fixtureId, fixtureEmail);
-      await insertPublicUser(client, fixtureId, fixtureEmail);
-      await client.query("insert into public.platform_admins (user_id) values ($1)", [fixtureId]);
-    },
-    "platform_admins_empty",
-  );
-  await assertFixtureMakesPlatformNonEmpty(
-    database,
-    (client) =>
-      client.query("insert into public.centers (id, name) values ($1, $2)", [
-        fixtureId,
-        "TASK-005 Bootstrap preflight fixture",
-      ]),
-    "centers_empty",
-  );
-  await assertFixtureMakesPlatformNonEmpty(
-    database,
-    async (client) => {
-      await insertAuthUser(client, fixtureId, fixtureEmail);
-      await insertPublicUser(client, fixtureId, fixtureEmail);
-      await client.query("insert into public.centers (id, name) values ($1, $2)", [
-        fixtureId,
-        "TASK-005 Bootstrap preflight fixture",
-      ]);
-      await client.query(
-        `insert into public.center_memberships (center_id, user_id, role)
+    const finalBaseline = await database.query(
+      `select
+         (select count(*)::int from auth.users) auth_users,
+         (select count(*)::int from public.users) public_users,
+         (select count(*)::int from public.platform_admins) platform_admins,
+         (select count(*)::int from public.centers) centers,
+         (select count(*)::int from public.center_memberships) center_memberships,
+         (select count(*)::int from private.provisioning_operations) provisioning_operations`,
+    );
+    assert(
+      JSON.stringify(finalBaseline.rows[0]) === JSON.stringify(baseline.rows[0]),
+      "El preflight de plataforma inicializada mutó DEV.",
+    );
+    console.log(
+      "Bootstrap preflight DEV PASS: plataforma inicializada rechazada, grants service-only y baseline persistente intacto.",
+    );
+  } else {
+    assert(
+      JSON.stringify(baseline.rows[0]) ===
+        JSON.stringify({
+          auth_users: 0,
+          public_users: 0,
+          platform_admins: 0,
+          centers: 0,
+          center_memberships: 0,
+          provisioning_operations: 1,
+        }),
+      "El estado DEV no coincide con un baseline de bootstrap admitido.",
+    );
+
+    for (const table of checkedTables) {
+      const { error } = await admin.from(table).select("*").limit(1);
+      assert(error?.code === "42501", `service_role obtuvo SELECT directo sobre ${table}.`);
+    }
+
+    await expectRoleDenied(database, "anon");
+    await expectRoleDenied(database, "authenticated");
+
+    const { data: preflight, error: preflightError } = await admin
+      .rpc("bootstrap_platform_preflight")
+      .single();
+    assert(!preflightError, "service_role no pudo ejecutar la RPC de preflight.");
+    assertPreflight(preflight);
+
+    const fixtureId = randomUUID();
+    const fixtureEmail = `task005-preflight-${fixtureId}@example.test`;
+    await assertFixtureMakesPlatformNonEmpty(
+      database,
+      (client) => insertAuthUser(client, fixtureId, fixtureEmail),
+      "auth_users_empty",
+    );
+    await assertFixtureMakesPlatformNonEmpty(
+      database,
+      async (client) => {
+        await insertAuthUser(client, fixtureId, fixtureEmail);
+        await insertPublicUser(client, fixtureId, fixtureEmail);
+      },
+      "public_users_empty",
+    );
+    await assertFixtureMakesPlatformNonEmpty(
+      database,
+      async (client) => {
+        await insertAuthUser(client, fixtureId, fixtureEmail);
+        await insertPublicUser(client, fixtureId, fixtureEmail);
+        await client.query("insert into public.platform_admins (user_id) values ($1)", [fixtureId]);
+      },
+      "platform_admins_empty",
+    );
+    await assertFixtureMakesPlatformNonEmpty(
+      database,
+      (client) =>
+        client.query("insert into public.centers (id, name) values ($1, $2)", [
+          fixtureId,
+          "TASK-005 Bootstrap preflight fixture",
+        ]),
+      "centers_empty",
+    );
+    await assertFixtureMakesPlatformNonEmpty(
+      database,
+      async (client) => {
+        await insertAuthUser(client, fixtureId, fixtureEmail);
+        await insertPublicUser(client, fixtureId, fixtureEmail);
+        await client.query("insert into public.centers (id, name) values ($1, $2)", [
+          fixtureId,
+          "TASK-005 Bootstrap preflight fixture",
+        ]);
+        await client.query(
+          `insert into public.center_memberships (center_id, user_id, role)
          values ($1, $1, 'ADMIN')`,
-        [fixtureId],
-      );
-    },
-    "center_memberships_empty",
-  );
+          [fixtureId],
+        );
+      },
+      "center_memberships_empty",
+    );
 
-  await assertFinalBootstrapAuthRevalidation(database);
-  await assertAuthWritesWaitForBootstrapCommit(databaseConfig, database);
+    await assertFinalBootstrapAuthRevalidation(database);
+    await assertAuthWritesWaitForBootstrapCommit(databaseConfig, database);
 
-  const before = await database.query(
-    `select operation_type, status, auth_user_id, result_user_id, completed_at
+    const before = await database.query(
+      `select operation_type, status, auth_user_id, result_user_id, completed_at
      from private.provisioning_operations where id=$1`,
-    [operationId],
-  );
-  assert(before.rowCount === 1, "No existe la operación PENDING preservada.");
-  assert(
-    JSON.stringify(before.rows[0]) ===
-      JSON.stringify({
-        operation_type: "BOOTSTRAP_PLATFORM_ADMIN",
-        status: "PENDING",
-        auth_user_id: null,
-        result_user_id: null,
-        completed_at: null,
-      }),
-    "La operación preservada no conserva el estado PENDING esperado.",
-  );
+      [operationId],
+    );
+    assert(before.rowCount === 1, "No existe la operación PENDING preservada.");
+    assert(
+      JSON.stringify(before.rows[0]) ===
+        JSON.stringify({
+          operation_type: "BOOTSTRAP_PLATFORM_ADMIN",
+          status: "PENDING",
+          auth_user_id: null,
+          result_user_id: null,
+          completed_at: null,
+        }),
+      "La operación preservada no conserva el estado PENDING esperado.",
+    );
 
-  const { data: prepared, error: prepareError } = await admin
-    .rpc("prepare_platform_admin_bootstrap_operation", {
-      p_email: email,
-      p_first_name: firstName,
-      p_last_name: lastName,
-      p_operation_id: operationId,
-    })
-    .single();
-  assert(!prepareError, "El mismo operation ID no pudo reutilizar la intención original.");
-  assert(
-    prepared.operation_status === "PENDING" &&
-      prepared.auth_user_id === null &&
-      prepared.result_user_id === null,
-    "El retry idempotente no devolvió el estado PENDING original.",
-  );
+    const { data: prepared, error: prepareError } = await admin
+      .rpc("prepare_platform_admin_bootstrap_operation", {
+        p_email: email,
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_operation_id: operationId,
+      })
+      .single();
+    assert(!prepareError, "El mismo operation ID no pudo reutilizar la intención original.");
+    assert(
+      prepared.operation_status === "PENDING" &&
+        prepared.auth_user_id === null &&
+        prepared.result_user_id === null,
+      "El retry idempotente no devolvió el estado PENDING original.",
+    );
 
-  const after = await database.query(
-    `select operation_type, status, auth_user_id, result_user_id, completed_at
+    const after = await database.query(
+      `select operation_type, status, auth_user_id, result_user_id, completed_at
      from private.provisioning_operations where id=$1`,
-    [operationId],
-  );
-  assert(
-    JSON.stringify(after.rows[0]) === JSON.stringify(before.rows[0]),
-    "El retry mutó la operación.",
-  );
+      [operationId],
+    );
+    assert(
+      JSON.stringify(after.rows[0]) === JSON.stringify(before.rows[0]),
+      "El retry mutó la operación.",
+    );
 
-  const residue = await database.query(
-    `select
+    const residue = await database.query(
+      `select
        (select count(*)::int from auth.users) auth_users,
        (select count(*)::int from public.users) public_users,
        (select count(*)::int from public.platform_admins) platform_admins,
        (select count(*)::int from public.centers) centers,
        (select count(*)::int from public.center_memberships) center_memberships,
        (select count(*)::int from private.provisioning_operations) provisioning_operations`,
-  );
-  assert(
-    JSON.stringify(residue.rows[0]) === JSON.stringify(baseline.rows[0]),
-    "Quedaron fixtures persistentes.",
-  );
+    );
+    assert(
+      JSON.stringify(residue.rows[0]) === JSON.stringify(baseline.rows[0]),
+      "Quedaron fixtures persistentes.",
+    );
 
-  console.log(
-    "Bootstrap preflight DEV PASS: contrato exacto, grants mínimos, Auth B serializado hasta COMMIT, rollback/cleanup y operación PENDING reutilizable.",
-  );
+    console.log(
+      "Bootstrap preflight DEV PASS: contrato exacto, grants mínimos, Auth B serializado hasta COMMIT, rollback/cleanup y operación PENDING reutilizable.",
+    );
+  }
 } finally {
   await database?.query("rollback").catch(() => {});
   await database?.end().catch(() => {});

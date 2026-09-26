@@ -1002,3 +1002,197 @@ verifica al final.
   `auth_user_id`, `result_user_id` y `completed_at` nulos.
 - Ningún secreto fue versionado y `.env.local` permanece ignorado.
 - El bootstrap persistente no fue ejecutado ni reintentado en este checkpoint.
+
+## TASK-005B3A — DB, RPCs e invariantes
+
+**Estado:** `TASK-005B3A COMPLETED / REVIEW PASS`
+
+### Alcance implementado
+
+- Se creó y aplicó únicamente en DEV la migration incremental transaccional
+  `20260925120000_enforce_professional_membership_assignment.sql`; las doce migrations anteriores
+  permanecen inmutables.
+- El preflight aborta con SQLSTATE `23514` si encuentra más de una membership `PROFESSIONAL` activa
+  para el mismo `professional_center_id`; no elige ganadores ni corrige datos.
+- La autoridad concurrente final es el índice:
+
+  ```sql
+  create unique index center_memberships_active_professional_center_key
+    on public.center_memberships (professional_center_id)
+    where role = 'PROFESSIONAL'::public.membership_role and is_active;
+  ```
+
+  El índice no único histórico sobre `professional_center_id` se conserva y las asociaciones
+  `PROFESSIONAL` inactivas pueden coexistir.
+- `admin_provision_center_user` conserva firma, `SECURITY DEFINER`, `search_path=''`, operation ID,
+  fingerprint, reconciliación, compensación, identidad existente e idempotencia. Para
+  `PROFESSIONAL` exige ProfessionalCenter existente, activo, del mismo Center y sin otra membership
+  `PROFESSIONAL` activa antes del insert; el UNIQUE parcial sigue siendo la autoridad final.
+- `admin_set_center_membership` conserva firma y distingue la reducción pura que mantiene rol/PC y
+  deja la membership inactiva. Sólo esa transición/no-op admite un ProfessionalCenter ya inactivo.
+  Alta, reactivación, cambio hacia `PROFESSIONAL` y cambio de vínculo siguen exigiendo PC
+  existente, activo, same-center y libre.
+- Ambas RPCs toman el advisory lock común
+  `hashtextextended('salud-plus:center:' || center_id, 0)` antes de leer o mutar memberships. El
+  provisioning conserva además su lock de operation ID antes del lock de Center; la otra RPC no
+  toma locks de operación, por lo que no existe orden inverso. La postcondición transaccional de al
+  menos un ADMIN activo se conserva después de la mutación.
+
+### Seguridad, grants y RLS
+
+- No se agregaron tablas, policies, RPCs ni grants de tabla.
+- Permanecen exactamente seis policies `SELECT` y seis tablas con `SELECT` para `authenticated`;
+  no existe DML genérico para `authenticated` ni acceso de dominio para `anon`.
+- Ambas RPCs reafirman `REVOKE ALL` para `PUBLIC`, `anon` y `authenticated`, seguido de
+  `GRANT EXECUTE` sólo a `authenticated`; autorizan internamente mediante una membership ADMIN
+  activa del Center. PLATFORM_ADMIN por sí solo, RECEPTION, PROFESSIONAL, ADMIN inactivo y ADMIN de
+  otro Center fueron rechazados con `42501`.
+- La resolución exacta no devuelve roles ni memberships de otros Centers y un patrón wildcard no
+  enumera identidades.
+
+### Pruebas B3A y concurrencia
+
+`scripts/verify-b3a-db-invariants.mjs` captura el snapshot persistente antes de crear fixtures,
+genera UUIDs propios, registra todos los IDs y limpia exclusivamente esos IDs en `finally`. Cubre:
+
+- preflight de duplicados y definición exacta del UNIQUE parcial;
+- rechazo de una segunda asociación activa y coexistencia de dos asociaciones inactivas;
+- ProfessionalCenter cross-center, inactivo y ocupado;
+- desactivación PROFESSIONAL con PC inactivo, no-op inactivo y reactivación rechazada;
+- identidad existente, password/perfil preservados, fingerprint e idempotencia;
+- ADMIN autorizado y actores RECEPTION/PROFESSIONAL/PLATFORM_ADMIN-only/inactivo/cross-center
+  denegados en ambas rutas administrativas;
+- self-deactivation, self-demotion, desactivación por otro ADMIN y postcondición del último ADMIN;
+- auditoría versionada de grants/RLS y rechazo de DML directo.
+
+Las carreras no usan sleeps como barrera principal: observan en `pg_locks` que la segunda sesión
+espera el advisory lock del Center antes de confirmar la primera.
+
+- Provisioning de cuenta A contra `admin_set_center_membership` de cuenta B para el mismo PC:
+  una confirmó; la otra fue rechazada con `23505`; resultado final = 1 asociación activa.
+- Dos ADMIN degradándose concurrentemente: una degradación confirmó; la otra fue rechazada con
+  `23514`; resultado final = 1 ADMIN activo.
+
+### Baseline DEV y regresiones
+
+Antes y después de la suite B3A el snapshot fue idéntico:
+
+- 1 `auth.users`, 1 `public.users`, 1 `platform_admins`;
+- 1 Center activo `Centro Médico Salud Plus` y 1 membership ADMIN activa;
+- 2 `private.provisioning_operations`, ambas `SUCCEEDED`;
+- 0 Professionals, 0 ProfessionalCenters y 0 Specialties;
+- 0 duplicados profesionales activos.
+
+Las suites históricas que asumían una plataforma vacía se ajustaron para el baseline legítimamente
+inicializado: crean una PLATFORM_ADMIN temporal propia o validan el rechazo read-only del preflight,
+sin reutilizar ni modificar la identidad, Center u operaciones reales. El E2E B2 ahora verifica el
+Center persistente en vez del antiguo empty state. Sus cleanups se limitan a IDs/run IDs propios.
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` / health DEV | PASS. |
+| migrations local/DEV | PASS; 13/13 sincronizadas hasta `20260925120000`. |
+| `pnpm db:test:b3a-invariants:dev` | PASS; catálogo, seguridad, transiciones, ambas carreras y baseline idéntico. |
+| `pnpm db:test:schema:dev` | PASS; concurrencia real. |
+| `pnpm db:test:auth-foundation:dev` | PASS; último ADMIN, RLS y cleanup. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS sobre plataforma inicializada, read-only. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; response-loss/retry/compensación y cleanup. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS, 1/1. |
+| `pnpm auth:check:dev` | PASS. |
+| B1 / B2 E2E | PASS, 9/9 y 8/8; cleanup cero. |
+| DB lint `public,private` | PASS; cero resultados. |
+| Security Advisor `--fail-on error` | PASS; cero ERROR, siete WARN de RPCs `SECURITY DEFINER` intencionales y el WARN Auth conocido de leaked-password protection deshabilitada. |
+| `pnpm db:types` | PASS; sin drift. |
+| format / lint / typecheck / unit | PASS; 84 tests en 14 archivos. |
+| build + client-bundle secret guard | PASS en copia temporal con sentinelas para preservar `next-env.d.ts`. |
+| `git diff --check` | PASS. |
+
+PROD, B3B, UI B3, commit, push, PR y merge permanecieron fuera de alcance. `next-env.d.ts` conservó
+exactamente su diff preexistente y ajeno.
+
+## TASK-005B3A — remediation B3A-F1 del harness E2E B2
+
+### Causa y escenarios afectados
+
+El finding era una carrera exclusiva del harness. El submit normal de creación podía iniciar una
+Server Action y luego agotar el timeout de una assertion del navegador —el caso observado fue
+`crea Center + ADMIN nuevo...` esperando el status final— sin que ese timeout cancelara el trabajo
+server-side. El `afterEach` anterior sólo conocía los dos `route.fetch()` usados para simular
+response-loss; `afterAll` podía por lo tanto empezar cleanup mientras el submit normal seguía en
+vuelo y materializar después una operation `PENDING`.
+
+Los caminos capaces de iniciar provisioning quedaron identificados y cubiertos por la misma
+barrera: alta normal, altas con response-loss, retry/reconcile, alta con snapshot inválido y alta
+que reutiliza una identidad. No se cambió lógica de producto, migration, índice, RPC ni lock B3A.
+
+### Corrección
+
+- Cada submit de provisioning registra su `operationId` antes del click e intercepta el POST exacto
+  a `/platform`. Su `route.fetch()` queda representado por una Promise explícita hasta que la Server
+  Action termina, independientemente de que el test abandone sus assertions.
+- `afterEach`, `afterAll` y `cleanupFixtures` pasan por `awaitProvisioningQuiescence`: primero esperan
+  todos los trabajos registrados; después ejecutan `reconcile_auth_provisioning_operation` para los
+  UUID exactos que todavía estén `PENDING`, `AUTH_READY` o `COMPENSATION_REQUIRED`; recién entonces
+  habilitan cleanup.
+- La detección y verificación de fixtures dejó de usar `LIKE` por email/nombre. Los únicos UUIDs
+  añadidos al conjunto de cleanup provienen de los IDs creados directamente, de
+  `fixtureOperationIds`, de los resultados de esas operaciones o del
+  `app_metadata.provisioning_operation_id` exacto. El borrado y el probe final operan sólo con esos
+  UUIDs.
+- El teardown verifica cero Auth users, profiles, Centers, memberships, PLATFORM_ADMIN y operations
+  de la corrida, cero rutas registradas y cero sesiones PostgreSQL `task005b2-e2e%`. También compara
+  el baseline persistente completo contra el snapshot aprobado.
+
+### Prueba causal de timeout
+
+El test `cleanup espera una Server Action tardía después del timeout del cliente` toma el advisory
+lock de su `operationId`, dispara el submit y observa en `pg_locks` un waiter real de la Server
+Action. Un deferred declara entonces el timeout controlado del cliente. La misma barrera que usan
+los hooks de teardown informa y demuestra la secuencia:
+
+```text
+server_action still running
+cleanup_requested
+cleanup WAITING
+server_action finished / provisioning state reconciled
+cleanup executes after terminal provisioning state
+cleanup verification = zero
+```
+
+La aserción comprueba que la barrera no puede completarse mientras el advisory gate está retenido;
+no usa sleeps como mecanismo de sincronización. Si una operación queda en un estado recuperable, el
+harness usa la RPC de reconciliación existente antes del cleanup exacto.
+
+### Verificación de la remediation
+
+| Verificación | Resultado |
+| --- | --- |
+| B2 E2E completo, tres corridas consecutivas | PASS 9/9 en cada corrida; cleanup cero, baseline exacto y cero sesiones/rutas en cada una. |
+| Escenario causal aislado `--repeat-each=5` | PASS 5/5; secuencia WAITING observada cinco veces y cleanup cero. |
+| Listener local después de cada corrida/repetición | 0 listeners en `127.0.0.1:3000` / puerto 3000. |
+| `pnpm db:test:b3a-invariants:dev` | PASS; concurrencia determinística y baseline idéntico antes/después. |
+| `pnpm db:test:provisioning-reconciliation:dev` | PASS; cleanup cero. |
+| `pnpm db:test:provisioning-orchestration:dev` | PASS, 1/1. |
+| `pnpm db:test:auth-foundation:dev` | PASS; locks reales y cleanup cero. |
+| `pnpm test:e2e:auth-access:dev` | PASS, 9/9 y cleanup cero. |
+| format del repo + spec B2 / lint / typecheck | PASS. |
+| unit tests | PASS, 84/84 en 14 archivos. |
+| build / client-bundle secret guard | PASS en copia aislada para no tocar `next-env.d.ts`. |
+| health DEV / migrations local-DEV | PASS; 13/13 sincronizadas hasta `20260925120000`. |
+
+El baseline final continúa en 1 Auth User, 1 public User, 1 PLATFORM_ADMIN, 1 Center activo, 1
+membership ADMIN activa, 2 provisioning operations reales `SUCCEEDED`, y cero Professionals,
+ProfessionalCenters y Specialties. No se inició B3B ni UI; PROD, commit, push, PR y merge
+permanecieron fuera de alcance. Los findings históricos del Reviewer no fueron modificados.
+
+## Checkpoint formal — TASK-005B3A
+
+- Veredicto independiente: `TASK-005B3A REVIEW PASS`.
+- Finding `B3A-F1`: `CLOSED`.
+- Estado final de fase: `TASK-005B3A COMPLETED`.
+- TASK-005 permanece activa; B3B no fue iniciada.
+- Trece migrations local/DEV sincronizadas hasta `20260925120000`.
+- Baseline persistente DEV intacto: 1 Auth User, 1 public User, 1 PLATFORM_ADMIN, 1 Center activo,
+  1 membership ADMIN activa, 2 provisioning operations reales `SUCCEEDED`, 0 Professionals,
+  0 ProfessionalCenters y 0 Specialties.
+- PROD permaneció fuera de alcance y `next-env.d.ts` continúa como cambio preexistente separado.

@@ -27,6 +27,7 @@
     "db:types": "node scripts/generate-db-types.mjs",
     "db:test:schema:dev": "node scripts/verify-initial-schema.mjs",
     "db:test:auth-foundation:dev": "node scripts/verify-auth-foundation.mjs",
+    "db:test:b3a-invariants:dev": "node scripts/verify-b3a-db-invariants.mjs",
     "db:test:bootstrap-preflight:dev": "node scripts/verify-bootstrap-preflight.mjs",
     "db:test:provisioning-reconciliation:dev": "node scripts/verify-provisioning-reconciliation.mjs",
     "db:test:provisioning-orchestration:dev": "vitest run --config vitest.provisioning-integration.config.ts",

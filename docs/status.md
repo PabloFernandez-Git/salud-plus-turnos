@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2 y preflight completados; diseño B3 aprobado
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight y B3A completados
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED`
 
 ## Completado
 
@@ -78,12 +78,17 @@
   PROFESSIONAL activa por ProfessionalCenter, preservando asociaciones inactivas históricas cuando
   el modelo actual lo permite. B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`; TASK-005 continúa
   activa.
+- TASK-005B3A implementó en DEV el UNIQUE parcial de ProfessionalCenter activo exclusivo y ajustó
+  `admin_provision_center_user`/`admin_set_center_membership` con el lock común por Center,
+  validaciones state-aware y postcondición concurrente del último ADMIN. La migration 13, las
+  regresiones y el baseline persistente pasan.
+- TASK-005B3A obtuvo `TASK-005B3A REVIEW PASS`; el finding medio del harness B2 quedó cerrado tras
+  verificar la barrera determinística de cleanup, distinguir HTTP 200 de éxito funcional y
+  clasificar el fallo aislado B1 como flake preexistente del harness. B3B y UI B3 no se iniciaron.
 
 ## Próximo
 
-Iniciar TASK-005B3 como implementación en una instrucción posterior, siguiendo
-`.harness/tasks/active/TASK-005/b3-tenant-admin-design.md`. Antes de crear/aplicar la migration se
-debe revalidar branch, diff, las doce migrations sincronizadas y el baseline persistente DEV.
+Esperar una instrucción posterior antes de iniciar B3B o UI B3.
 
 ## Estado operativo
 
@@ -92,17 +97,18 @@ debe revalidar branch, diff, las doce migrations sincronizadas y el baseline per
   working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
-  `DESIGN APPROVED FOR IMPLEMENTATION`. Brief, Plan,
+  `TASK-005B3A COMPLETED`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
-- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las nueve migrations de TASK-005 están
-  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (doce versiones totales).
-- DB lint: cero resultados. Advisors de seguridad: sólo las siete advertencias esperadas por RPCs
-  `SECURITY DEFINER` autenticadas, todas con validación interna y grants explícitos aprobados.
-- Suites de schema/concurrencia, catálogo/RLS/grants y Auth foundation: PASS; tipos regenerados desde
-  DEV.
+- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las diez migrations de TASK-005 están
+  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (trece versiones totales).
+- DB lint: cero resultados. Advisors de seguridad: siete advertencias esperadas por RPCs
+  `SECURITY DEFINER` autenticadas más el warning Auth conocido de leaked-password protection; cero
+  ERROR y sin nueva superficie pública.
+- Suites B3A, schema/concurrencia, catálogo/RLS/grants y Auth foundation: PASS; tipos regenerados
+  desde DEV sin drift.
 - La existencia de `SUPABASE_SECRET_KEY` moderna se verificó sin exponerla; `.env.local` está ignorado
   y no versionado. La configuración Auth Dashboard fue confirmada mediante comportamiento efectivo.
 - Baseline DEV persistente auditado read-only: 1 `auth.users`, 1 `public.users`, 1
@@ -130,7 +136,7 @@ debe revalidar branch, diff, las doce migrations sincronizadas y el baseline per
 - Todo Center activo conserva al menos un ADMIN activo con enforcement concurrentemente seguro.
 - Recovery DEV con SMTP de desarrollo y redirects explícitos; custom SMTP obligatorio antes de PROD.
 - B3-D1 aprobada: un ProfessionalCenter admite como máximo una membership PROFESSIONAL activa. La
-  autoridad será un UNIQUE parcial, reforzado por RPCs y el lock común del Center. No se modelan
+  autoridad es un UNIQUE parcial, reforzado por RPCs y el lock común del Center. No se modelan
   cuentas compartidas/delegadas ni quedan decisiones humanas abiertas en B3.
 
 ## Decisiones postergadas

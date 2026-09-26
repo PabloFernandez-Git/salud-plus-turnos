@@ -122,27 +122,40 @@ test("la orquestación real reconcilia response-loss, rollback y compensación",
     await control.connect();
     await control.query("set role postgres");
 
+    const platformAlreadyInitialized = (
+      await control.query("select exists(select 1 from public.platform_admins) as initialized")
+    ).rows[0].initialized;
     const platform = await createAuth(email("platform"), password);
-    const bootstrapOperation = randomUUID();
-    operationIds.push(bootstrapOperation);
-    const preparedBootstrap = await serviceRpc("prepare_platform_admin_bootstrap_operation", {
-      p_email: platform.email,
-      p_first_name: "Platform",
-      p_last_name: "Orchestration",
-      p_operation_id: bootstrapOperation,
-    });
-    await serviceRpc("bind_auth_provisioning_operation", {
-      p_auth_user_id: platform.id,
-      p_auth_user_was_created: true,
-      p_operation_id: bootstrapOperation,
-      p_payload_hash: preparedBootstrap.payload_hash,
-    });
-    await serviceRpc("bootstrap_platform_admin", {
-      p_auth_user_id: platform.id,
-      p_first_name: "Platform",
-      p_last_name: "Orchestration",
-      p_operation_id: bootstrapOperation,
-    });
+    if (platformAlreadyInitialized) {
+      await control.query(
+        "insert into public.users (id,first_name,last_name,email) values ($1,'Platform','Orchestration',$2)",
+        [platform.id, platform.email],
+      );
+      await control.query("insert into public.platform_admins (user_id) values ($1)", [
+        platform.id,
+      ]);
+    } else {
+      const bootstrapOperation = randomUUID();
+      operationIds.push(bootstrapOperation);
+      const preparedBootstrap = await serviceRpc("prepare_platform_admin_bootstrap_operation", {
+        p_email: platform.email,
+        p_first_name: "Platform",
+        p_last_name: "Orchestration",
+        p_operation_id: bootstrapOperation,
+      });
+      await serviceRpc("bind_auth_provisioning_operation", {
+        p_auth_user_id: platform.id,
+        p_auth_user_was_created: true,
+        p_operation_id: bootstrapOperation,
+        p_payload_hash: preparedBootstrap.payload_hash,
+      });
+      await serviceRpc("bootstrap_platform_admin", {
+        p_auth_user_id: platform.id,
+        p_first_name: "Platform",
+        p_last_name: "Orchestration",
+        p_operation_id: bootstrapOperation,
+      });
+    }
     platformClient = await authenticatedClient(platform.email, password);
 
     const centerOperation = randomUUID();

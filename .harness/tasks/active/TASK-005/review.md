@@ -2,11 +2,13 @@
 
 **Rol:** Reviewer / Verifier independiente + Database/RLS Reviewer + Security Reviewer
 
-**Fecha:** 2026-09-22; re-reviews de Fase A y reviews B1/B2 2026-09-23; re-review focalizado B2 2026-09-24
+**Fecha:** 2026-09-22; re-reviews de Fase A y reviews B1/B2 2026-09-23; re-review focalizado B2 2026-09-24; review B3A 2026-09-25
 
 **Branch verificada:** `task/005-auth-users-center-access`
 
 **Base:** `main` / `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d`
+
+**Baseline B3A:** `447b8a86ed092bee3e79c4b7e7f4a408b7fe2287`
 
 **Destino remoto verificado:** Supabase DEV `ehllxymqyzrofydrvtzo`, `sa-east-1`,
 `ACTIVE_HEALTHY`, linkeado. La CLI sólo mostró este proyecto DEV. PROD permaneció fuera de alcance.
@@ -17,8 +19,241 @@
 
 **Resultado B2:** `TASK-005B2 REVIEW PASS`
 
-**Alcance del veredicto:** Fase A, B1 y B2 están aprobadas. TASK-005 completa no se cierra ni se
-archiva; B3 no comenzó.
+**Resultado B3A:** `TASK-005B3A REVIEW PASS`
+
+**Finding B3A-F1:** `CLOSED`
+
+**Alcance del veredicto:** Fase A, B1 y B2 permanecen aprobadas. B3A queda aprobada después del
+re-review focalizado de B3A-F1. Este review no inicia B3B, B3C, B3D ni UI y no cierra ni archiva
+TASK-005.
+
+## Re-review final — TASK-005B3A B3A-F1 — 2026-09-25
+
+### Veredicto
+
+`TASK-005B3A REVIEW PASS`
+
+El finding medio de cleanup queda cerrado. Se conserva la evidencia previa: tres corridas completas
+B2 en 9/9, baseline limpio después de cada una, Server Action bloqueada observada en `pg_locks`,
+cleanup en `WAITING`, cero residuos y regresiones B3A principales en PASS. El re-review se limitó al
+`200` sin operation del escenario focalizado y al fallo aislado B1.
+
+### Causa del HTTP 200 sin `provisioning_operation`
+
+- Una Server Action de Next responde HTTP 200 también cuando su valor funcional es `{status:
+  "error"}`. `performCreatePlatformCenterAction` puede retornar antes de llamar a
+  `createCenterWithFirstAdmin`: autorización, validación Zod y segunda resolución autoritativa de
+  identidad ocurren antes de `prepare_platform_center_provisioning_operation`.
+- El probe determinístico envió una contraseña de 9 caracteres bajo el mismo advisory gate. El POST
+  terminó en HTTP 200 con el resultado funcional “La contraseña debe tener al menos 10 caracteres”,
+  `pg_locks` mostró 0 waiters, no se creó la operation y el teardown confirmó cleanup cero y
+  baseline exacto. Ésta es una terminación legítima pre-provisioning; forzar una operation sería
+  incorrecto.
+- Por lo tanto, la repetición histórica 2 PASS / 1 FAIL tenía una expectativa incorrecta: trataba
+  `route.fetch() = 200` como “provisioning confirmado”. La ausencia de operation prueba que esa
+  request no cruzó el prepare de provisioning. El body de aquella ejecución no fue preservado, de
+  modo que no es posible atribuir retrospectivamente cuál de las salidas pre-provisioning fue sin
+  inventar evidencia; sí queda determinada la causa de la aparente contradicción y reproducida la
+  misma firma 200/sin-operation de forma causal.
+
+### Barrera y ownership del cleanup
+
+- El POST queda registrado antes del click y su Promise permanece tracked hasta que `route.fetch()`
+  y la entrega al browser terminan. El teardown espera todas las requests iniciadas, incluso si una
+  assertion del test ya agotó su timeout.
+- Después de la quiescencia HTTP, el harness consulta exclusivamente los `fixtureOperationIds` de la
+  corrida. Si el submit inició provisioning, reconcilia únicamente estados recuperables y luego
+  limpia por sus UUIDs; si terminó antes del prepare, la consulta devuelve cero filas y no inventa
+  una operation.
+- Tres nuevas corridas válidas del escenario focalizado pasaron 3/3. En cada una se observó waiter
+  real → cleanup `WAITING` → respuesta funcional de éxito → operation `SUCCEEDED` → cleanup cero.
+  Una corrida válida adicional confirmó que el UUID presente en el POST era el mismo `operationId`
+  usado por el gate y terminó también en PASS. No hay evidencia de operation ID ajeno, Promise
+  huérfana, cleanup prematuro, `PENDING` residual ni carrera de instrumentación restante.
+
+### Fallo B1 de contraseña
+
+- El caso aislado fue repetido tres veces: 1 PASS, 1 fallo en `input.validity.valid` y 1 timeout de
+  navegación/login. Todos los teardowns informaron cero Auth users, perfiles y Centers residuales.
+- El fallo de `validity` es el flake preexistente ya documentado, no una regresión B3A. El test lee
+  `validity.valid` después del submit sobre inputs no controlados; cuando la Action responde, el
+  formulario puede resetear el valor. Un campo vacío sin `required` vuelve a ser válido para la API
+  de constraint validation aunque el servidor haya rechazado correctamente los 9 caracteres. La
+  aserción depende así del momento del rerender.
+- La validación de producto sigue siendo server-side con mínimo 10 y los tests unitarios focalizados
+  de Auth/platform pasaron 13/13. No existe diff B1 ni de producto asociado a la remediación. La
+  clasificación es **problema/flake conocido del harness preexistente**, con un timeout de entorno
+  separado; no contaminación, regresión de esta remediación ni regresión de producto.
+
+### Estado final
+
+- Auditoría read-only `--baseline-only`: 1 Auth User, 1 public User, 1 PLATFORM_ADMIN, 1 Center
+  activo, 1 membership ADMIN activa, 2 provisioning operations `SUCCEEDED`, 0 Professionals, 0
+  ProfessionalCenters, 0 Specialties y 0 duplicados profesionales activos, idéntico antes/después.
+- Migrations: 13 locales / 13 DEV sincronizadas hasta `20260925120000`.
+- La instrumentación temporal del Reviewer fue retirada. No se modificaron producto, migration,
+  RPCs, RLS, grants, locks ni invariantes. `next-env.d.ts` conserva intacto su diff preexistente.
+- PROD, B3B, UI B3, commit, push, PR y merge permanecieron fuera de alcance.
+
+## Review independiente — TASK-005B3A DB, RPCs e invariantes — 2026-09-25
+
+### Veredicto
+
+`TASK-005B3A CHANGES_REQUESTED`
+
+La implementación DB de B3A coincide con el diseño aprobado y pasó las pruebas funcionales,
+concurrentes y de seguridad. Queda un finding de severidad media en el cleanup del E2E B2 adaptado
+al baseline persistente: ante una Server Action lenta, la suite puede finalizar y limpiar antes de
+que la request termine, dejando una provisioning operation temporal en DEV.
+
+### B3A-F1 — MEDIA — cleanup E2E no espera la Server Action normal en vuelo
+
+**Evidencia**
+
+- La primera ejecución de `pnpm test:e2e:platform-admin:dev` agotó el timeout de 5 segundos esperando
+  el estado “Centro creado con su primer administrador”; el snapshot mostraba el botón
+  `Guardando…` deshabilitado, por lo que la Server Action seguía en vuelo.
+- `afterEach` sólo espera `inFlightResponseLossRoutes`; no registra ni espera la request normal del
+  submit. `afterAll` ejecutó cleanup mientras esa operación todavía podía materializarse.
+- El cleanup informó residuo en `private.provisioning_operations`. El probe read-only posterior
+  identificó exactamente `3c81e925-ecf6-4fcf-8e67-28556719edef`, tipo
+  `PLATFORM_CREATE_CENTER`, estado `PENDING`, sin Auth/result User/Center/membership y con actor de la
+  fixture B2 ya eliminada.
+- No había una conexión de test activa en PostgreSQL cuando se inspeccionó el residuo. La fila fue
+  eliminada después únicamente por ese UUID y sólo tras verificar tipo, estado y resultados nulos;
+  el baseline final volvió a las dos operaciones persistentes `SUCCEEDED` aprobadas.
+- Una segunda ejecución completa pasó (`test-results/.last-run.json`: `passed`, sin tests fallidos),
+  lo que confirma flakiness/race de cleanup y no un defecto funcional determinista de las RPC B3A.
+
+**Impacto**
+
+- Una regresión fallida o lenta puede contaminar DEV y romper la garantía explícita de que los tests
+  limpian sólo y completamente sus propios UUIDs.
+- El pre-cleanup posterior descubre fixtures por Auth email/Center name; si Auth/Center ya fueron
+  borrados pero la operation apareció tarde, no recupera esa operation huérfana por su UUID.
+- El resultado funcional puede pasar al reintentar, pero la suite no es fail-safe ni preserva el
+  baseline en todos sus caminos de error.
+
+**Corrección requerida**
+
+1. Registrar y esperar también la request normal de la Server Action de creación antes de iniciar
+   cleanup, incluido el camino de timeout/fallo de assertion.
+2. Hacer que el cleanup final reconcilie y elimine por los `fixtureOperationIds` exactos después de
+   que las requests de la suite hayan quedado quiescentes; no usar cleanup global por prefijo.
+3. Agregar una prueba determinística de submit lento/fallido que demuestre cero Auth, perfiles,
+   Centers, memberships, PLATFORM_ADMIN y provisioning operations residuales.
+
+### Diff y alcance B3A
+
+- Branch y HEAD: `task/005-auth-users-center-access` en
+  `447b8a86ed092bee3e79c4b7e7f4a408b7fe2287`; la implementación está sin commit sobre ese baseline.
+- El diff B3A contiene una migration nueva, una suite DB/concurrencia nueva, ajustes de suites para
+  el baseline DEV inicializado, el script de package correspondiente y documentación de
+  implementación/status.
+- Las doce migrations históricas no tienen diff. La migration 13 es el único archivo nuevo bajo
+  `supabase/migrations/`.
+- No hay cambios en `src/`: no se implementaron UI de usuarios, B3B/B3C/B3D, pacientes, agenda,
+  turnos, disponibilidades, especialidades ni un módulo funcional de profesionales.
+- `next-env.d.ts` conserva exactamente su diff preexistente (`.next/dev/types/...`) y queda fuera de
+  B3A. No fue modificado ni revertido durante el review.
+
+### Migration e índice UNIQUE parcial
+
+**Resultado:** PASS.
+
+- `20260925120000_enforce_professional_membership_assignment.sql` es incremental, contiene un único
+  `begin`/`commit` y no modifica migrations históricas.
+- El preflight agrupa memberships `PROFESSIONAL` activas por `professional_center_id`, aborta con
+  `23514` ante duplicados y no corrige ni elige ganadores.
+- No crea tablas, policies ni funciones adicionales, no amplía grants de tabla y no usa SQL
+  dinámico. Reemplaza únicamente las dos RPCs aprobadas con la misma firma/retorno.
+- Ambas funciones conservan `SECURITY DEFINER`, `SET search_path = ''`, referencias calificadas,
+  revoke explícito a `PUBLIC`/`anon`/`authenticated` y grant final sólo a `authenticated`.
+- El catálogo remoto contiene exactamente el índice UNIQUE parcial aprobado sobre
+  `professional_center_id WHERE role='PROFESSIONAL' AND is_active`.
+- Semántica verificada: el predicado excluye roles no PROFESSIONAL e inactivas; el CHECK existente
+  impide un PC nulo para PROFESSIONAL; filas históricas inactivas pueden coexistir; reactivar o
+  cambiar vínculo vuelve a entrar al predicado. El UNIQUE es la autoridad concurrente final aunque
+  un precheck RPC se vuelva stale.
+- `migration list --linked` confirmó 13 versiones locales y 13 remotas sincronizadas hasta
+  `20260925120000`.
+
+### RPCs, identidad e invariantes
+
+**Resultado:** PASS.
+
+- `admin_provision_center_user` conserva operation lock → Center lock, fingerprint, estados de
+  reconciliación, resultado idempotente, compensación y perfil existente insert-only. No actualiza
+  Auth, email, password, nombre/apellido ni memberships ajenas.
+- Para `PROFESSIONAL` exige PC no nulo, existente, activo, same-center y sin otra membership activa;
+  el insert queda además protegido por el UNIQUE parcial.
+- `admin_set_center_membership` bloquea el Center antes de leer/mutar. Alta, reactivación, cambio de
+  rol a PROFESSIONAL y cambio de PC exigen PC activo/same-center/libre.
+- La excepción state-aware es estrecha: sólo mismo rol PROFESSIONAL, mismo PC y estado final
+  inactivo. Permite desactivar/no-op aunque el PC esté inactivo, pero no permite reactivar,
+  reasignar, cambiar rol, usar PC cross-center ni crear una segunda asociación activa.
+- La postcondición del último ADMIN se ejecuta después del UPDATE dentro de la misma transacción.
+  Self-deactivation, self-demotion, degradación por otro ADMIN y la carrera de dos ADMIN dejaron
+  siempre al menos uno activo.
+- Las dos RPCs usan exactamente
+  `hashtextextended('salud-plus:center:' || p_center_id::text, 0)`. Provisioning toma primero el lock
+  de operation ID y después el del Center; no se encontró ruta inversa ni ciclo evidente. Los locks
+  son `pg_advisory_xact_lock` y duran hasta COMMIT/ROLLBACK.
+- Las carreras observaron en `pg_locks` a la segunda sesión esperando el advisory lock: mismo PC
+  terminó con un ganador y un `23505`; dos demociones ADMIN terminaron con un ganador y un `23514`.
+
+### Seguridad y autorización
+
+**Resultado:** PASS.
+
+- Las RPCs reautorizan internamente mediante `private.has_active_center_role(..., ADMIN[])`; no
+  dependen de Next.js.
+- ADMIN activo del Center fue permitido. ADMIN inactivo, RECEPTION, PROFESSIONAL,
+  PLATFORM_ADMIN-only y ADMIN de otro Center fueron rechazados con `42501`.
+- PLATFORM_ADMIN por sí solo no satisface autoridad tenant ni cuenta para el último ADMIN.
+- La resolución por email exacto no expone rol/membership cross-center y un wildcard no enumera.
+- El test SQL de catálogo confirmó las seis policies aprobadas, SELECT de `authenticated` sólo en
+  las seis tablas aprobadas, cero DML genérico nuevo y cero acceso de dominio para `anon`.
+- ACL efectivo de ambas RPCs: `PUBLIC=false`, `anon=false`, `authenticated=true`.
+- DB lint: cero resultados. Security Advisor: cero ERROR; siete WARN esperados por las RPCs
+  `SECURITY DEFINER` autenticadas y el WARN Auth conocido de leaked-password protection.
+
+### Tests, regresiones y estado DEV
+
+| Verificación | Resultado |
+| --- | --- |
+| `pnpm bootstrap` / `pnpm supabase:check:dev` | PASS contra DEV `ehllxymqyzrofydrvtzo`. |
+| migrations local/DEV | PASS, 13/13. |
+| `pnpm db:test:b3a-invariants:dev` | PASS; transición, ACL, identidad, locks y dos carreras determinísticas. |
+| `pnpm db:test:schema:dev` | PASS; concurrencia real y `23P01`. |
+| `pnpm db:test:auth-foundation:dev` | PASS. |
+| `pnpm db:test:bootstrap-preflight:dev` | PASS read-only sobre plataforma inicializada. |
+| reconciliación / orquestación provisioning | PASS. |
+| `pnpm auth:check:dev` | PASS con cleanup. |
+| B1 E2E | PASS, 9/9. |
+| B2 E2E | FLAKY: primera corrida falló y dejó operation; rerun completo PASS. B3A-F1 abierto. |
+| DB lint / Security Advisor | PASS, cero lint y cero advisor ERROR. |
+| `pnpm db:types` | PASS, sin drift. |
+| format / lint / typecheck / unit | PASS; 84/84 tests. |
+| build + client-bundle secret guard | PASS en copia temporal aislada con centinelas. |
+| `git diff --check` | PASS. |
+
+El snapshot final DEV reconfirmó exactamente 1 Auth User, 1 public User, 1 PLATFORM_ADMIN, 1 Center
+activo, 1 membership ADMIN activa, 2 provisioning operations `SUCCEEDED`, 0 Professionals, 0
+ProfessionalCenters y 0 Specialties. No se modificó el Center persistente ni PROD.
+
+El build aislado dejó fuera del repo exactamente tres binarios nativos bloqueados por Windows
+(`next-swc`, `tailwindcss-oxide`, `lightningcss`). El resto de la copia, incluido `.env.local`, fue
+retirado. No hay proceso ni listener cuyo executable/command line apunte a ese temporal. El único
+listener observado en `:3000` es un `next dev` del repo iniciado a las 12:18, anterior a las corridas
+del review y sin relación con la copia temporal.
+
+### Estado B3A
+
+`TASK-005B3A CHANGES_REQUESTED`
+
+Este review aprueba únicamente los aspectos DB/RPC/invariantes ya marcados PASS; B3A no cruza el
+gate mientras B3A-F1 siga abierto. No inicia B3B ni autoriza UI, PROD, commit, push, PR o merge.
 
 ## Re-review final — remediación bootstrap preflight — 2026-09-24
 

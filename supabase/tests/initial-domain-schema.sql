@@ -511,12 +511,14 @@ begin
       center_id,
       user_id,
       role,
-      professional_center_id
+      professional_center_id,
+      is_active
     ) values (
       '00000000-0000-0000-0000-000000000102',
       '00000000-0000-0000-0000-000000000203',
       'PROFESSIONAL',
-      '00000000-0000-0000-0000-000000000401'
+      '00000000-0000-0000-0000-000000000401',
+      false
     );
     raise exception 'A cross-center Professional membership was accepted';
   exception when foreign_key_violation then null;

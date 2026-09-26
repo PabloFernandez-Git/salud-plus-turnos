@@ -32,21 +32,25 @@ const existingPassword = `Existing-${runId}-password`;
 const newAdminPassword = `New-admin-${runId}-password`;
 const responseLossAdminPassword = `Response-loss-${runId}-password`;
 const invalidSnapshotAdminPassword = `Invalid-snapshot-${runId}-password`;
+const delayedActionAdminPassword = `Delayed-action-${runId}-password`;
 const platformEmail = `${prefix}-platform@example.test`;
 const existingEmail = `${prefix}-existing@example.test`;
 const newAdminEmail = `${prefix}-new-admin@example.test`;
 const responseLossAdminEmail = `${prefix}-response-loss-admin@example.test`;
 const invalidSnapshotAdminEmail = `${prefix}-invalid-snapshot-admin@example.test`;
+const delayedActionAdminEmail = `${prefix}-delayed-action-admin@example.test`;
 const newCenterName = `TASK-005B2 ${runId} Centro nuevo`;
 const responseLossCenterName = `TASK-005B2 ${runId} Centro response loss`;
 const invalidSnapshotCenterName = `TASK-005B2 ${runId} Centro snapshot invalido`;
 const previousCenterName = `TASK-005B2 ${runId} Centro previo`;
 const reusedCenterName = `TASK-005B2 ${runId} Centro reutilizado`;
+const delayedActionCenterName = `TASK-005B2 ${runId} Centro accion tardia`;
 const fixtureUserIds = new Set();
 const fixtureCenterIds = new Set();
 const fixtureOperationIds = new Set();
-const inFlightResponseLossRoutes = new Set();
+const trackedProvisioningActions = new Set();
 let database;
+let databaseConfig;
 let platformUser;
 let existingUser;
 let newAdminUserId;
@@ -102,41 +106,114 @@ function createDeferred() {
   return { promise, resolve: resolvePromise, reject: rejectPromise };
 }
 
-function createResponseLossInterceptor(body) {
-  let intercepted = false;
-  const browserResponseDelivered = createDeferred();
-  void browserResponseDelivered.promise.catch(() => {});
+async function dispatchTrackedProvisioningAction(
+  page,
+  operationId,
+  trigger,
+  { responseLossBody } = {},
+) {
+  const started = createDeferred();
+  const finished = createDeferred();
+  void finished.promise.catch(() => {});
+  const action = {
+    operationId,
+    page,
+    handler: null,
+    started: started.promise,
+    finished: finished.promise,
+    requestStarted: false,
+    settled: false,
+  };
 
   const handler = async (route) => {
-    if (intercepted || route.request().method() !== "POST") {
+    if (action.requestStarted || route.request().method() !== "POST") {
       await route.continue();
       return;
     }
 
-    intercepted = true;
-    const routeWork = (async () => {
+    action.requestStarted = true;
+    started.resolve();
+    try {
       const upstream = await route.fetch();
       expect(upstream.status()).toBe(200);
-      await route.fulfill({ status: 503, contentType: "text/plain", body });
-    })();
-    inFlightResponseLossRoutes.add(routeWork);
-
-    try {
-      await routeWork;
-      browserResponseDelivered.resolve();
+      if (responseLossBody) {
+        await route.fulfill({
+          status: 503,
+          contentType: "text/plain",
+          body: responseLossBody,
+        });
+      } else {
+        await route.fulfill({ response: upstream });
+      }
+      finished.resolve();
     } catch (error) {
-      browserResponseDelivered.reject(error);
+      finished.reject(error);
       throw error;
     } finally {
-      inFlightResponseLossRoutes.delete(routeWork);
+      action.settled = true;
     }
   };
 
-  return {
-    browserResponseDelivered: browserResponseDelivered.promise,
-    handler,
-    wasIntercepted: () => intercepted,
-  };
+  action.handler = handler;
+  fixtureOperationIds.add(operationId);
+  trackedProvisioningActions.add(action);
+  await page.route("**/platform", handler);
+  try {
+    await trigger();
+    await action.started;
+  } catch (error) {
+    if (!action.requestStarted) {
+      action.settled = true;
+      finished.resolve();
+    }
+    throw error;
+  }
+  return action;
+}
+
+async function removeSettledProvisioningRoutes() {
+  const settled = [...trackedProvisioningActions].filter((action) => action.settled);
+  for (const action of settled) {
+    if (!action.page.isClosed()) {
+      await action.page.unroute("**/platform", action.handler).catch(() => {});
+    }
+    trackedProvisioningActions.delete(action);
+  }
+}
+
+async function reconcileOwnedProvisioningOperations() {
+  const operationIds = [...fixtureOperationIds];
+  if (operationIds.length === 0) return;
+  const operations = await database.query(
+    `select id,status,payload_hash
+       from private.provisioning_operations
+      where id=any($1::uuid[])`,
+    [operationIds],
+  );
+  for (const operation of operations.rows) {
+    if (["PENDING", "AUTH_READY", "COMPENSATION_REQUIRED"].includes(operation.status)) {
+      await database.query("select * from public.reconcile_auth_provisioning_operation($1,$2)", [
+        operation.id,
+        operation.payload_hash,
+      ]);
+    }
+  }
+}
+
+async function awaitProvisioningQuiescence(reason, { onWaiting } = {}) {
+  console.log(`TASK-005B2 cleanup_requested: ${reason}`);
+  const inFlight = [...trackedProvisioningActions].filter(
+    (action) => action.requestStarted && !action.settled,
+  );
+  if (inFlight.length > 0) {
+    console.log(
+      `TASK-005B2 cleanup WAITING: ${inFlight.map(({ operationId }) => operationId).join(",")}`,
+    );
+    onWaiting?.();
+    await Promise.allSettled(inFlight.map(({ finished }) => finished));
+  }
+  await reconcileOwnedProvisioningOperations();
+  console.log("TASK-005B2 server_action finished / provisioning state reconciled.");
 }
 
 async function createAuthUser(email, password) {
@@ -151,15 +228,28 @@ async function createAuthUser(email, password) {
   return data.user;
 }
 
-async function currentFixtureIds() {
-  const users = await database.query(
-    "select id from auth.users where email like 'task005b2-%@example.test'",
-  );
-  const centers = await database.query(
-    "select id from public.centers where name like 'TASK-005B2 %'",
-  );
-  for (const { id } of users.rows) fixtureUserIds.add(id);
-  for (const { id } of centers.rows) fixtureCenterIds.add(id);
+async function collectOwnedFixtureIds() {
+  const operationIds = [...fixtureOperationIds];
+  if (operationIds.length > 0) {
+    const operations = await database.query(
+      `select auth_user_id,result_user_id,result_center_id
+         from private.provisioning_operations
+        where id=any($1::uuid[])`,
+      [operationIds],
+    );
+    for (const operation of operations.rows) {
+      if (operation.auth_user_id) fixtureUserIds.add(operation.auth_user_id);
+      if (operation.result_user_id) fixtureUserIds.add(operation.result_user_id);
+      if (operation.result_center_id) fixtureCenterIds.add(operation.result_center_id);
+    }
+    const operationAuthUsers = await database.query(
+      `select id
+         from auth.users
+        where raw_app_meta_data->>'provisioning_operation_id'=any($1::text[])`,
+      [operationIds],
+    );
+    for (const { id } of operationAuthUsers.rows) fixtureUserIds.add(id);
+  }
   return { userIds: [...fixtureUserIds], centerIds: [...fixtureCenterIds] };
 }
 
@@ -212,15 +302,6 @@ async function cleanupAuth(userIds) {
   if (errors.length > 0) throw new AggregateError(errors, "Falló el cleanup Auth E2E.");
 }
 
-async function cleanupStaleFixtures() {
-  const { userIds, centerIds } = await currentFixtureIds();
-  if (userIds.length === 0 && centerIds.length === 0) return;
-  await cleanupDatabase(userIds, centerIds);
-  await cleanupAuth(userIds);
-  fixtureUserIds.clear();
-  fixtureCenterIds.clear();
-}
-
 async function createFixtures() {
   platformUser = await createAuthUser(platformEmail, platformPassword);
   existingUser = await createAuthUser(existingEmail, existingPassword);
@@ -238,7 +319,8 @@ async function cleanupFixtures() {
   const cleanupErrors = [];
   let ids = { userIds: [...fixtureUserIds], centerIds: [...fixtureCenterIds] };
   try {
-    ids = await currentFixtureIds();
+    await awaitProvisioningQuiescence("cleanupFixtures");
+    ids = await collectOwnedFixtureIds();
   } catch (error) {
     cleanupErrors.push(error);
   }
@@ -255,9 +337,9 @@ async function cleanupFixtures() {
   try {
     const residue = await database.query(
       `select
-         (select count(*)::integer from auth.users where email like 'task005b2-%@example.test') as auth_users,
-         (select count(*)::integer from public.users where email like 'task005b2-%@example.test') as profiles,
-         (select count(*)::integer from public.centers where name like 'TASK-005B2 %') as centers,
+         (select count(*)::integer from auth.users where id=any($1::uuid[])) as auth_users,
+         (select count(*)::integer from public.users where id=any($1::uuid[])) as profiles,
+         (select count(*)::integer from public.centers where id=any($2::uuid[])) as centers,
          (select count(*)::integer from public.center_memberships
             where user_id = any($1::uuid[]) or center_id = any($2::uuid[])) as memberships,
          (select count(*)::integer from public.platform_admins
@@ -280,6 +362,47 @@ async function cleanupFixtures() {
   }
   console.log(
     "TASK-005B2 E2E cleanup verified: zero Auth, profile, Center, membership, PLATFORM_ADMIN and provisioning-operation residues.",
+  );
+}
+
+async function verifyPersistentBaselineAndHarnessQuiescence() {
+  expect(trackedProvisioningActions.size).toBe(0);
+  const baseline = await database.query(
+    `select
+       (select count(*)::integer from auth.users) as auth_users,
+       (select count(*)::integer from public.users) as profiles,
+       (select count(*)::integer from public.platform_admins) as platform_admins,
+       (select count(*)::integer from public.centers) as centers,
+       (select count(*)::integer from public.centers
+          where name='Centro Médico Salud Plus' and is_active) as expected_active_center,
+       (select count(*)::integer from public.center_memberships
+          where role='ADMIN' and is_active) as active_admin_memberships,
+       (select count(*)::integer from private.provisioning_operations) as provisioning_operations,
+       (select count(*)::integer from private.provisioning_operations
+          where status='SUCCEEDED') as succeeded_operations,
+       (select count(*)::integer from public.professionals) as professionals,
+       (select count(*)::integer from public.professional_centers) as professional_centers,
+       (select count(*)::integer from public.specialties) as specialties,
+       (select count(*)::integer from pg_catalog.pg_stat_activity
+          where application_name like 'task005b2-e2e%'
+            and pid<>pg_catalog.pg_backend_pid()) as residual_harness_sessions`,
+  );
+  expect(baseline.rows[0]).toEqual({
+    auth_users: 1,
+    profiles: 1,
+    platform_admins: 1,
+    centers: 1,
+    expected_active_center: 1,
+    active_admin_memberships: 1,
+    provisioning_operations: 2,
+    succeeded_operations: 2,
+    professionals: 0,
+    professional_centers: 0,
+    specialties: 0,
+    residual_harness_sessions: 0,
+  });
+  console.log(
+    "TASK-005B2 DEV baseline verified and harness quiescent: zero tracked routes and DB sessions.",
   );
 }
 
@@ -315,30 +438,37 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
   test.describe.configure({ timeout: 120_000 });
 
   test.beforeAll(async () => {
-    database = new Client({ ...temporaryDatabaseConfig(), application_name: "task005b2-e2e" });
+    databaseConfig = temporaryDatabaseConfig();
+    database = new Client({ ...databaseConfig, application_name: "task005b2-e2e" });
     await database.connect();
     await database.query("set role postgres");
-    await cleanupStaleFixtures();
     await createFixtures();
   });
 
   test.afterAll(async () => {
+    if (!database) return;
     try {
+      await awaitProvisioningQuiescence("afterAll");
       await cleanupFixtures();
+      await removeSettledProvisioningRoutes();
+      await verifyPersistentBaselineAndHarnessQuiescence();
     } finally {
       await database?.end();
     }
   });
 
   test.afterEach(async () => {
-    await Promise.allSettled([...inFlightResponseLossRoutes]);
+    await awaitProvisioningQuiescence("afterEach");
+    await removeSettledProvisioningRoutes();
   });
 
-  test("PLATFORM_ADMIN accede al estado vacío protegido", async ({ page }) => {
+  test("PLATFORM_ADMIN accede al estado persistente protegido", async ({ page }) => {
     await login(page, platformEmail, platformPassword);
     await expect(page).toHaveURL(/\/platform$/);
-    await expect(page.getByRole("heading", { name: "Centros", exact: true })).toBeVisible();
-    await expect(page.getByText("Todavía no hay centros creados.")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Centros", exact: true, level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText("Centro Médico Salud Plus", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Crear centro" }).last()).toBeVisible();
   });
 
@@ -361,7 +491,9 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
     await page.locator('input[name="adminLastName"]').fill("Nuevo");
     await page.locator('input[name="adminInitialPassword"]').fill(newAdminPassword);
     expect(await page.locator('input[name="operationId"]').inputValue()).toBe(firstOperationId);
-    await page.getByRole("button", { name: "Crear centro", exact: true }).last().click();
+    await dispatchTrackedProvisioningAction(page, firstOperationId, () =>
+      page.getByRole("button", { name: "Crear centro", exact: true }).last().click(),
+    );
 
     await expect(page.getByRole("status")).toContainText(
       "Centro creado con su primer administrador.",
@@ -424,14 +556,13 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
     await page.locator('input[name="adminLastName"]').fill("Perdida");
     await page.locator('input[name="adminInitialPassword"]').fill(responseLossAdminPassword);
 
-    const responseLoss = createResponseLossInterceptor(
-      "Simulated response loss after upstream commit.",
+    const responseLoss = await dispatchTrackedProvisioningAction(
+      page,
+      operationId,
+      () => page.getByRole("button", { name: "Crear centro", exact: true }).last().click(),
+      { responseLossBody: "Simulated response loss after upstream commit." },
     );
-    await page.route("**/platform", responseLoss.handler);
-    await page.getByRole("button", { name: "Crear centro", exact: true }).last().click();
-
-    await expect.poll(responseLoss.wasIntercepted).toBe(true);
-    await responseLoss.browserResponseDelivered;
+    await responseLoss.finished;
 
     await expect
       .poll(async () => {
@@ -444,7 +575,7 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
         return result.rows[0].centers;
       })
       .toBe(1);
-    await page.unroute("**/platform", responseLoss.handler);
+    await removeSettledProvisioningRoutes();
 
     const beforeRefresh = await browserPersistenceSnapshot(page);
     expect(JSON.stringify(beforeRefresh)).toContain(operationId);
@@ -467,7 +598,9 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
     expect(durableState).not.toContain(responseLossAdminPassword);
     expect(browserConsole.join("\n")).not.toContain(responseLossAdminPassword);
 
-    await page.getByRole("button", { name: "Reintentar / verificar" }).click();
+    await dispatchTrackedProvisioningAction(page, operationId, () =>
+      page.getByRole("button", { name: "Reintentar / verificar" }).click(),
+    );
     await expect(page.getByRole("status")).toContainText(
       "La operación quedó confirmada al reintentar, sin duplicar el centro.",
     );
@@ -524,14 +657,13 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
     await page.locator('input[name="adminLastName"]').fill("Invalido");
     await page.locator('input[name="adminInitialPassword"]').fill(invalidSnapshotAdminPassword);
 
-    const responseLoss = createResponseLossInterceptor(
-      "Simulated response loss before snapshot corruption.",
+    const responseLoss = await dispatchTrackedProvisioningAction(
+      page,
+      operationId,
+      () => page.getByRole("button", { name: "Crear centro", exact: true }).last().click(),
+      { responseLossBody: "Simulated response loss before snapshot corruption." },
     );
-    await page.route("**/platform", responseLoss.handler);
-    await page.getByRole("button", { name: "Crear centro", exact: true }).last().click();
-
-    await expect.poll(responseLoss.wasIntercepted).toBe(true);
-    await responseLoss.browserResponseDelivered;
+    await responseLoss.finished;
 
     await expect
       .poll(async () => {
@@ -544,7 +676,7 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
         return committed.rows[0].centers;
       })
       .toBe(1);
-    await page.unroute("**/platform", responseLoss.handler);
+    await removeSettledProvisioningRoutes();
 
     const committed = await database.query(
       `select c.id,
@@ -726,7 +858,9 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
       phone: "+54 11 6000 7000",
       email: `${prefix}-reused-center@example.test`,
     });
-    await page.getByRole("button", { name: "Crear centro", exact: true }).last().click();
+    await dispatchTrackedProvisioningAction(page, operationId, () =>
+      page.getByRole("button", { name: "Crear centro", exact: true }).last().click(),
+    );
 
     const row = page.getByRole("row", { name: new RegExp(reusedCenterName) });
     await expect(row).toBeVisible();
@@ -773,5 +907,103 @@ test.describe.serial("TASK-005B2 Platform Admin", () => {
     ]);
     expect(reusedCenters.rowCount).toBe(1);
     fixtureCenterIds.add(reusedCenters.rows[0].id);
+  });
+
+  test("cleanup espera una Server Action tardía después del timeout del cliente", async ({
+    page,
+  }) => {
+    await login(page, platformEmail, platformPassword);
+    const operationId = await page.locator('input[name="operationId"]').inputValue();
+    await resolveAdminEmail(page, delayedActionAdminEmail);
+    await expect(page.getByText("Identidad nueva:", { exact: false })).toBeVisible();
+    await fillCenter(page, {
+      name: delayedActionCenterName,
+      address: "Calle Acción Tardía 987",
+      phone: "+54 11 8200 9200",
+      email: `${prefix}-delayed-action-center@example.test`,
+    });
+    await page.locator('input[name="adminFirstName"]').fill("Acción");
+    await page.locator('input[name="adminLastName"]').fill("Tardía");
+    await page.locator('input[name="adminInitialPassword"]').fill(delayedActionAdminPassword);
+
+    const gate = new Client({
+      ...databaseConfig,
+      application_name: "task005b2-e2e-controlled-timeout-gate",
+    });
+    let gateTransactionOpen = false;
+    try {
+      await gate.connect();
+      await gate.query("set role postgres");
+      await gate.query("begin");
+      gateTransactionOpen = true;
+      const gateState = await gate.query(
+        `select pg_backend_pid() as pid,
+                pg_catalog.pg_advisory_xact_lock(
+                  pg_catalog.hashtextextended('salud-plus:provisioning:' || $1::text, 0)
+                )`,
+        [operationId],
+      );
+      const gatePid = gateState.rows[0].pid;
+
+      const action = await dispatchTrackedProvisioningAction(page, operationId, () =>
+        page.getByRole("button", { name: "Crear centro", exact: true }).last().click(),
+      );
+      await action.started;
+      await expect
+        .poll(async () => {
+          const waiting = await database.query(
+            `select count(*)::integer as waiters
+               from pg_catalog.pg_locks held
+               join pg_catalog.pg_locks waiting
+                 on waiting.locktype=held.locktype
+                and waiting.database is not distinct from held.database
+                and waiting.classid is not distinct from held.classid
+                and waiting.objid is not distinct from held.objid
+                and waiting.objsubid is not distinct from held.objsubid
+              where held.pid=$1
+                and held.locktype='advisory'
+                and held.granted
+                and not waiting.granted`,
+            [gatePid],
+          );
+          return waiting.rows[0].waiters;
+        })
+        .toBe(1);
+      console.log(`TASK-005B2 server_action still running: ${operationId}`);
+
+      const clientTimeout = createDeferred();
+      const clientOutcome = Promise.race([
+        action.finished.then(() => "server_action_finished"),
+        clientTimeout.promise,
+      ]);
+      clientTimeout.resolve("client_timeout");
+      expect(await clientOutcome).toBe("client_timeout");
+
+      const cleanupWaiting = createDeferred();
+      let barrierFinished = false;
+      const barrier = awaitProvisioningQuiescence("controlled client timeout", {
+        onWaiting: cleanupWaiting.resolve,
+      }).then(() => {
+        barrierFinished = true;
+      });
+      await cleanupWaiting.promise;
+      expect(barrierFinished).toBe(false);
+
+      await gate.query("commit");
+      gateTransactionOpen = false;
+      await barrier;
+      expect(barrierFinished).toBe(true);
+
+      const completed = await database.query(
+        "select status from private.provisioning_operations where id=$1",
+        [operationId],
+      );
+      expect(completed.rows).toEqual([{ status: "SUCCEEDED" }]);
+      console.log("TASK-005B2 cleanup executes after terminal provisioning state.");
+      await cleanupFixtures();
+    } finally {
+      if (gateTransactionOpen) await gate.query("rollback").catch(() => {});
+      await gate.end().catch(() => {});
+    }
   });
 });

@@ -203,6 +203,7 @@ async function createAuth(name) {
 
 async function cleanup() {
   if (control) {
+    await control.query("rollback").catch(() => {});
     const discovered = await control.query(
       `select distinct result_center_id as id
        from private.provisioning_operations
@@ -247,16 +248,17 @@ async function cleanup() {
 }
 
 async function assertCleanup() {
+  const userIds = [...authUsers.values()].map(({ id }) => id);
   const result = await control.query(
     `select
-       (select count(*)::int from auth.users where email like 'task005-remediation-%@example.test') auth_users,
-       (select count(*)::int from public.users where email like 'task005-remediation-%@example.test') public_users,
-       (select count(*)::int from public.centers where name like 'TASK-005 Remediation%') centers,
+       (select count(*)::int from auth.users where id=any($2::uuid[])) auth_users,
+       (select count(*)::int from public.users where id=any($2::uuid[])) public_users,
+       (select count(*)::int from public.centers where id=any($3::uuid[])) centers,
        (select count(*)::int from private.provisioning_operations
           where id=any($1::uuid[])) operations,
        (select count(*)::int from public.platform_admins
           where user_id=any($2::uuid[])) platform_admins`,
-    [operationIds, [...authUsers.values()].map(({ id }) => id)],
+    [operationIds, userIds, centerIds],
   );
   for (const [kind, count] of Object.entries(result.rows[0])) {
     assertEqual(count, 0, `${kind} cleanup`);
@@ -265,49 +267,60 @@ async function assertCleanup() {
 
 try {
   control = await connect("control");
+  const platformAlreadyInitialized = (
+    await control.query("select exists(select 1 from public.platform_admins) as initialized")
+  ).rows[0].initialized;
   const platform = await createAuth("platform");
 
-  const bootstrapOperation = randomUUID();
-  operationIds.push(bootstrapOperation);
-  const { payload_hash: bootstrapHash } = await prepareAndBind({
-    operationId: bootstrapOperation,
-    operationType: "BOOTSTRAP_PLATFORM_ADMIN",
-    email: platform.email,
-    firstName: "Platform",
-    lastName: "Remediation",
-    authUserId: platform.id,
-    authUserWasCreated: true,
-  });
-  await expectSqlState(
-    () =>
-      control.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
-        bootstrapOperation,
-        platform.id,
-        "Changed",
-        "Remediation",
-      ]),
-    "23514",
-    "bootstrap changed arguments",
-  );
-  await control.query("begin");
-  await control.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
-    bootstrapOperation,
-    platform.id,
-    "Platform",
-    "Remediation",
-  ]);
-  await control.query("commit");
-  const bootstrapAfterLostResponse = await reconcile(bootstrapOperation, bootstrapHash);
-  assertEqual(
-    bootstrapAfterLostResponse.operation_status,
-    "SUCCEEDED",
-    "bootstrap commit reconciliation",
-  );
-  const bootstrapRetry = await control.query(
-    "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
-    [bootstrapOperation, platform.id, "Platform", "Remediation"],
-  );
-  assertEqual(bootstrapRetry.rows[0].user_id, platform.id, "bootstrap idempotent retry");
+  if (platformAlreadyInitialized) {
+    await control.query(
+      "insert into public.users (id,first_name,last_name,email) values ($1,'Platform','Remediation',$2)",
+      [platform.id, platform.email],
+    );
+    await control.query("insert into public.platform_admins (user_id) values ($1)", [platform.id]);
+  } else {
+    const bootstrapOperation = randomUUID();
+    operationIds.push(bootstrapOperation);
+    const { payload_hash: bootstrapHash } = await prepareAndBind({
+      operationId: bootstrapOperation,
+      operationType: "BOOTSTRAP_PLATFORM_ADMIN",
+      email: platform.email,
+      firstName: "Platform",
+      lastName: "Remediation",
+      authUserId: platform.id,
+      authUserWasCreated: true,
+    });
+    await expectSqlState(
+      () =>
+        control.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
+          bootstrapOperation,
+          platform.id,
+          "Changed",
+          "Remediation",
+        ]),
+      "23514",
+      "bootstrap changed arguments",
+    );
+    await control.query("begin");
+    await control.query("select * from public.bootstrap_platform_admin($1,$2,$3,$4)", [
+      bootstrapOperation,
+      platform.id,
+      "Platform",
+      "Remediation",
+    ]);
+    await control.query("commit");
+    const bootstrapAfterLostResponse = await reconcile(bootstrapOperation, bootstrapHash);
+    assertEqual(
+      bootstrapAfterLostResponse.operation_status,
+      "SUCCEEDED",
+      "bootstrap commit reconciliation",
+    );
+    const bootstrapRetry = await control.query(
+      "select * from public.bootstrap_platform_admin($1,$2,$3,$4)",
+      [bootstrapOperation, platform.id, "Platform", "Remediation"],
+    );
+    assertEqual(bootstrapRetry.rows[0].user_id, platform.id, "bootstrap idempotent retry");
+  }
 
   const firstAdmin = await createAuth("first-admin");
   const rollbackUser = await createAuth("rollback");
