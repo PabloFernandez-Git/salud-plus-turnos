@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
+import { CenterAdminNavigation } from "@/modules/access/components/center-admin-navigation";
 import { LogoutButton } from "@/modules/access/components/logout-button";
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
 
@@ -47,6 +48,9 @@ export default async function CenterPage({ params }: { params: Promise<{ centerI
             El acceso está listo. La agenda y los demás módulos se incorporarán en las próximas
             etapas.
           </p>
+          <div className="mt-5">
+            <CenterAdminNavigation centerId={context.center.id} role={context.membership.role} />
+          </div>
         </section>
       </section>
     </main>

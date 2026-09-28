@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight y B3A completados
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight, B3A y B3B completados
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS`
 
 ## Completado
 
@@ -84,11 +84,18 @@
   regresiones y el baseline persistente pasan.
 - TASK-005B3A obtuvo `TASK-005B3A REVIEW PASS`; el finding medio del harness B2 quedó cerrado tras
   verificar la barrera determinística de cleanup, distinguir HTTP 200 de éxito funcional y
-  clasificar el fallo aislado B1 como flake preexistente del harness. B3B y UI B3 no se iniciaron.
+  clasificar el fallo aislado B1 como flake preexistente del harness. En ese checkpoint B3B y UI B3
+  todavía no se habían iniciado.
+- TASK-005B3B implementó el listado tenant read-only `/centers/[centerId]/users`, protegido por
+  ADMIN activo del Center, con tabla de identidad/rol/estado/asociación Professional y navegación
+  tenant mínima. Reutiliza SELECT + RLS/grants existentes, sin migrations, RPCs, DML ni ampliación de
+  permisos. Unit/component, E2E B3B y regresiones B1/B2/B3A pasan con baseline DEV intacto.
+- TASK-005B3B obtuvo `TASK-005B3B REVIEW PASS` y se cerró formalmente como checkpoint sin iniciar
+  B3C/B3D ni cerrar TASK-005.
 
 ## Próximo
 
-Esperar una instrucción posterior antes de iniciar B3B o UI B3.
+Esperar una instrucción posterior antes de iniciar B3C. B3D permanece sin iniciar.
 
 ## Estado operativo
 
@@ -97,7 +104,7 @@ Esperar una instrucción posterior antes de iniciar B3B o UI B3.
   working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
-  `TASK-005B3A COMPLETED`. Brief, Plan,
+  `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
@@ -115,6 +122,9 @@ Esperar una instrucción posterior antes de iniciar B3B o UI B3.
   `platform_admins`, 1 Center activo, 1 membership ADMIN activa, 0 Professional, 0
   ProfessionalCenter y 0 Specialty. El User posee, de forma independiente, PLATFORM_ADMIN global y
   ADMIN tenant.
+- B3B no cambió DB: trece migrations locales/DEV siguen sincronizadas. Su E2E usa UUIDs propios y
+  cleanup exacto por IDs, sin `LIKE` ni prefijos amplios, y reconfirmó el baseline persistente
+  idéntico antes/después.
 - Center persistente: `Centro Médico Salud Plus`
   (`76dcbe41-38be-475d-a590-f4ae6619c1e8`, `America/Argentina/Buenos_Aires`).
 - `private.provisioning_operations` conserva dos operaciones reales `SUCCEEDED`: bootstrap

@@ -38,6 +38,12 @@ Un mismo usuario puede tener diferentes roles en distintos centros.
 
 Solo Administrator gestiona usuarios del centro.
 
+El listado inicial read-only vive en `/centers/[centerId]/users`: muestra exclusivamente las
+memberships visibles del Center autorizado, identidad proyectada, rol, estado y la asociación
+Professional segura cuando existe. La ruta y su query requieren `ADMIN` tenant activo; ocultar el
+enlace es sólo una ayuda de UX. Alta, cambio de rol, activación/desactivación y edición del vínculo
+profesional se implementan en checkpoints posteriores de B3.
+
 El administrador crea directamente al usuario con:
 - nombre;
 - apellido;

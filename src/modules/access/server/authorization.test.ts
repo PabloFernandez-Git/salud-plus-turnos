@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import type { Database } from "@/lib/supabase/database.types";
 
-import { AuthorizationError, requireCenterMembership, requirePlatformAdmin } from "./authorization";
+import {
+  AuthorizationError,
+  requireCenterMembership,
+  requirePlatformAdmin,
+  requireRole,
+} from "./authorization";
 
 type Row = Record<string, unknown>;
 
@@ -161,5 +166,73 @@ describe("requirePlatformAdmin", () => {
     await expect(
       requirePlatformAdmin(fakeClient({ centers: [], memberships: [] })),
     ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "PLATFORM_FORBIDDEN" });
+  });
+});
+
+describe("requireRole for Center user administration", () => {
+  it("allows an active ADMIN of the requested Center", async () => {
+    await expect(
+      requireRole(
+        "center-a",
+        ["ADMIN"],
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [{ ...activeMembershipA, role: "ADMIN" }],
+        }),
+      ),
+    ).resolves.toMatchObject({ membership: { role: "ADMIN" } });
+  });
+
+  it.each(["RECEPTION", "PROFESSIONAL"] as const)("denies an active %s", async (role) => {
+    await expect(
+      requireRole(
+        "center-a",
+        ["ADMIN"],
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [{ ...activeMembershipA, role }],
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "ROLE_FORBIDDEN" });
+  });
+
+  it("denies an inactive ADMIN membership", async () => {
+    await expect(
+      requireRole(
+        "center-a",
+        ["ADMIN"],
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [{ ...activeMembershipA, role: "ADMIN", is_active: false }],
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
+  });
+
+  it("denies an ADMIN of a different Center", async () => {
+    await expect(
+      requireRole(
+        "center-a",
+        ["ADMIN"],
+        fakeClient({
+          centers: [activeCenterA, activeCenterB],
+          memberships: [{ ...activeMembershipA, center_id: "center-b", role: "ADMIN" }],
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
+  });
+
+  it("denies a PLATFORM_ADMIN without a tenant ADMIN membership", async () => {
+    await expect(
+      requireRole(
+        "center-a",
+        ["ADMIN"],
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [],
+          platformAdmins: [{ user_id: "user-a" }],
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
   });
 });
