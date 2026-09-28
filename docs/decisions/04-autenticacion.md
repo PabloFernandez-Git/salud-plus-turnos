@@ -33,6 +33,30 @@ El usuario no estará obligado a cambiar la contraseña temporal en su primer in
 
 Podrá cambiarla posteriormente cuando lo desee.
 
+No existe signup público en el MVP. Los usuarios creados administrativamente quedan con email
+confirmado por una decisión aplicada exclusivamente server-side y pueden iniciar sesión de
+inmediato.
+
+La contraseña inicial tiene un mínimo de 10 caracteres tanto en validación server-side como en la
+configuración de Supabase Auth. No se imponen reglas obligatorias de mayúsculas, minúsculas, números
+o símbolos ni un máximo artificialmente bajo.
+
+Si el email ya corresponde a una cuenta, se reutilizan `auth.users` y `public.users` y sólo se crea
+la nueva membership. No se cambian automáticamente contraseña, email, nombre/apellido ni otras
+memberships.
+
+### Recuperación
+
+TASK-005 incluye recuperación de contraseña. DEV utilizará inicialmente el SMTP de desarrollo de
+Supabase, con Site URL y redirect allowlist explícitos. Custom SMTP no es requisito de TASK-005,
+pero será obligatorio antes de PROD.
+
+### Email de aplicación
+
+`auth.users.email` es la fuente de verdad. `public.users.email` será una proyección lowercase,
+`NOT NULL` y única, consultable bajo RLS. No se crea un trigger sobre `auth.users` y el cambio de
+email queda fuera de TASK-005.
+
 ### Separación entre autenticación y dominio
 
 Supabase Auth será responsable de:
@@ -55,6 +79,11 @@ La aplicación seguirá siendo responsable de:
 Las operaciones administrativas de creación de usuarios no deberán exponer credenciales privilegiadas en el navegador.
 
 Las operaciones que requieran privilegios administrativos deberán ejecutarse del lado servidor.
+
+Se utilizará únicamente `SUPABASE_SECRET_KEY` moderna en un cliente `supabase-js` administrativo
+separado y `server-only`, con `persistSession`, `autoRefreshToken` y `detectSessionInUrl` desactivados.
+No se incorporará la key legacy `service_role` ni se utilizará la secret key para acceso normal a
+datos del producto.
 
 ### Fuera del MVP
 

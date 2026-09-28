@@ -40,19 +40,22 @@ begin
   if exists (
     select 1
     from pg_catalog.pg_policies
-    where schemaname = 'public' and tablename = any(domain_tables)
+    where schemaname = 'public'
+      and tablename = any(domain_tables)
+      and cmd <> 'SELECT'
   ) then
-    raise exception 'TASK-004 must not create permissive RLS policies';
+    raise exception 'No domain table may have a write RLS policy at this stage';
   end if;
 
   if exists (
     select 1
     from unnest(domain_tables) as table_name
-    cross join unnest(array['anon', 'authenticated']) as role_name
-    where has_any_column_privilege(role_name, format('public.%I', table_name), 'SELECT,INSERT,UPDATE,REFERENCES')
-      or has_table_privilege(role_name, format('public.%I', table_name), 'DELETE,TRUNCATE,TRIGGER')
+    where has_any_column_privilege('anon', format('public.%I', table_name), 'SELECT,INSERT,UPDATE,REFERENCES')
+      or has_table_privilege('anon', format('public.%I', table_name), 'DELETE,TRUNCATE,TRIGGER')
+      or has_any_column_privilege('authenticated', format('public.%I', table_name), 'INSERT,UPDATE,REFERENCES')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'DELETE,TRUNCATE,TRIGGER')
   ) then
-    raise exception 'anon/authenticated unexpectedly has a domain-table privilege';
+    raise exception 'anon/authenticated unexpectedly has a domain write privilege';
   end if;
 
   if (
@@ -158,17 +161,32 @@ values
   ('00000000-0000-0000-0000-000000000101', 'Centro Uno'),
   ('00000000-0000-0000-0000-000000000102', 'Centro Dos');
 
-insert into auth.users (id)
+insert into auth.users (id, email)
 values
-  ('00000000-0000-0000-0000-000000000201'),
-  ('00000000-0000-0000-0000-000000000202'),
-  ('00000000-0000-0000-0000-000000000203');
+  ('00000000-0000-0000-0000-000000000201', 'task004-admin@example.test'),
+  ('00000000-0000-0000-0000-000000000202', 'task004-professional@example.test'),
+  ('00000000-0000-0000-0000-000000000203', 'task004-test@example.test');
 
-insert into public.users (id, first_name, last_name)
+insert into public.users (id, first_name, last_name, email)
 values
-  ('00000000-0000-0000-0000-000000000201', 'Admin', 'Uno'),
-  ('00000000-0000-0000-0000-000000000202', 'Profesional', 'Uno'),
-  ('00000000-0000-0000-0000-000000000203', 'Prueba', 'Uno');
+  (
+    '00000000-0000-0000-0000-000000000201',
+    'Admin',
+    'Uno',
+    'task004-admin@example.test'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000202',
+    'Profesional',
+    'Uno',
+    'task004-professional@example.test'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000203',
+    'Prueba',
+    'Uno',
+    'task004-test@example.test'
+  );
 
 insert into public.professionals (
   id,
@@ -493,12 +511,14 @@ begin
       center_id,
       user_id,
       role,
-      professional_center_id
+      professional_center_id,
+      is_active
     ) values (
       '00000000-0000-0000-0000-000000000102',
       '00000000-0000-0000-0000-000000000203',
       'PROFESSIONAL',
-      '00000000-0000-0000-0000-000000000401'
+      '00000000-0000-0000-0000-000000000401',
+      false
     );
     raise exception 'A cross-center Professional membership was accepted';
   exception when foreign_key_violation then null;

@@ -21,12 +21,17 @@ function listFiles(path) {
   );
 }
 
-for (const path of sourceRoots.flatMap(listFiles)) {
+const executableSourcePattern = /\.(?:[cm]?[jt]sx?)$/;
+
+for (const path of sourceRoots
+  .flatMap(listFiles)
+  .filter((path) => executableSourcePattern.test(path))) {
   const source = readFileSync(path, "utf8");
   const protectedName = protectedNames.find((name) => source.includes(name));
-  if (protectedName) {
+  const isExplicitServerOnlyModule = /^import ["']server-only["'];/m.test(source);
+  if (protectedName && !isExplicitServerOnlyModule) {
     throw new Error(
-      `Frontera de secretos inválida: ${protectedName} aparece en ${relative(process.cwd(), path)}.`,
+      `Frontera de secretos inválida: ${protectedName} aparece fuera de un módulo server-only en ${relative(process.cwd(), path)}.`,
     );
   }
 }

@@ -31,3 +31,8 @@ normalizado y conserva el original. `Person` y `Professional` son entidades sepa
 La duración habitual es un default operativo y no obliga a que todos los turnos tengan esa duración.
 
 Desactivar en un centro no afecta otros centros y preserva historia.
+
+En el MVP, un `ProfessionalCenter` representa la actividad propia de como máximo una cuenta con
+membership `PROFESSIONAL` activa. Puede conservar asociaciones inactivas históricas, pero no se usa
+para modelar cuentas compartidas, asistentes o delegados. Ese caso futuro requerirá una relación y
+permisos explícitos diferentes.

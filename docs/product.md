@@ -1,6 +1,6 @@
 # Salud Plus — Gestión de Turnos
 
-**Versión:** 0.3
+**Versión:** 0.4
 
 ## 1. Visión del producto
 
@@ -40,6 +40,15 @@ Roles del MVP:
 **Recepción → administra la agenda.**
 
 **Profesional → consulta y atiende.**
+
+La administración global de la plataforma se representa mediante `PLATFORM_ADMIN`, separada de los
+roles anteriores. No es un rol de centro, no pertenece a `CenterMembership` y no concede acceso
+operativo automático a ningún centro.
+
+El PLATFORM_ADMIN utiliza una pantalla interna `/platform` para crear, listar, activar y desactivar
+centros y provisionar el primer Administrador de cada centro. Puede consultar únicamente datos
+administrativos básicos y contadores agregados; no accede por ese rol a pacientes, turnos, agenda,
+notas ni disponibilidad.
 
 ## 4. Usuario y Profesional son conceptos diferentes
 
@@ -129,8 +138,9 @@ Estados:
 
 ```text
 USUARIO
+   ├── ADMINISTRADOR_DE_PLATAFORMA (opcional, global)
    │
-   └── ACCESO_AL_CENTRO
+   └── ACCESO_AL_CENTRO (opcional, por centro)
           ├── CENTRO
           └── ROL
 
@@ -230,6 +240,9 @@ Cada centro puede configurar:
 - email;
 - dirección;
 - logo.
+
+La creación y activación/desactivación global del centro corresponde al PLATFORM_ADMIN. Un centro
+inactivo conserva sus datos y memberships, pero no admite operación tenant hasta ser reactivado.
 
 ## 15. Preparación para una futura historia clínica
 

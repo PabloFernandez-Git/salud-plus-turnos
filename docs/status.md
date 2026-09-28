@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Preparación de Auth, usuarios y acceso a centros
-**Tarea activa:** ninguna; la próxima tarea todavía requiere Task Brief
+**Fase:** Auth, plataforma y acceso a centros — Integration Review aprobado; TASK-005 lista para PR
+**Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `READY_FOR_NEXT_TASK`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS` · `TASK-005B3D COMPLETED / REVIEW PASS` · `TASK-005 INTEGRATION REVIEW PASS` · `TASK-005 READY FOR PR`
 
 ## Completado
 
@@ -36,30 +36,163 @@
   regeneración de tipos desde DEV pasaron; no quedaron datos de prueba persistentes.
 - Las tres migrations de TASK-004 están aplicadas y sincronizadas con Supabase DEV; los tipos
   TypeScript generados reflejan las once tablas, enums, relaciones y nulabilidad del schema real.
-- RLS está habilitada en las once tablas sin policies permisivas y sin grants de tabla para `anon` o
-  `authenticated`. El resultado actual es default-deny; Auth y las policies funcionales todavía no
-  están implementadas.
+- TASK-004 dejó inicialmente RLS default-deny en las once tablas, sin policies permisivas ni grants
+  de dominio; TASK-005 Fase A abrió después sólo las seis lecturas aprobadas para `authenticated`.
 - TASK-004 obtuvo Review PASS independiente de Database/RLS y Security y fue cerrada y archivada.
+- TASK-005 completó y obtuvo aprobación humana de su diseño de Auth, secret key moderna, email
+  proyectado, autorización tenant, PLATFORM_ADMIN global, `/platform`, bootstrap excepcional, RLS,
+  grants, RPCs y pruebas.
+- TASK-005 Fase A aplicó exclusivamente en Supabase DEV seis migrations incrementales con email
+  proyectado, `platform_admins`, helpers anti-recursión, seis policies SELECT, grants mínimos y RPCs
+  estrechas. DB lint y la suite transaccional de catálogo/RLS/grants pasan.
+- La infraestructura local incluye cliente Admin `server-only`, refresh SSR, guards de autorización,
+  orquestación con compensación, tooling one-shot y suites para Auth/RLS/concurrencia.
+- La configuración Auth DEV efectiva fue verificada: signup público OFF, contraseña mínima 10 sin
+  composición, Site URL `http://localhost:3000` y redirects de callback/recovery exactos.
+- La suite Auth/RLS foundation pasó con concurrencia real y cleanup verificado: cero fixtures de
+  dominio, cero usuarios Auth temporales y ningún PLATFORM_ADMIN persistente.
+- La remediación de review agregó idempotencia por `operation_id`, reconciliación antes de compensar
+  y pruebas reales de response-loss/retry/concurrencia sin ampliar RLS tenant.
+- TASK-005A obtuvo `TASK-005A REVIEW PASS`; ambos findings quedaron cerrados y la Fase A se cerró
+  formalmente como checkpoint sin cerrar ni archivar TASK-005.
+- TASK-005B1 implementó login/logout, recovery/callback/update password, resolución 0/1/N de
+  memberships activas en Centers activos, selector, shell tenant protegido y placeholder temporal
+  de PLATFORM_ADMIN. Las pruebas unitarias y 9 E2E DEV pasan con cleanup cero.
+- TASK-005B1 obtuvo `TASK-005B1 REVIEW PASS` y se cerró formalmente como checkpoint sin cambios de
+  schema, migrations, RLS, grants ni RPCs, y sin cerrar ni archivar TASK-005.
+- TASK-005B2 implementó `/platform` funcional para listar Centers con contadores agregados, crear
+  Center + primer ADMIN y activar/desactivar Centers, reutilizando exclusivamente la foundation
+  aprobada de Fase A.
+- TASK-005B2 obtuvo `TASK-005B2 REVIEW PASS`; ambos findings quedaron cerrados y B2 se cerró como
+  checkpoint sin cambios de schema, migrations, RLS, grants, RPCs ni tipos generados.
+- La remediación del bootstrap agregó una RPC de preflight service-only con respuesta exacta,
+  revalidación final de `auth.users`, serialización con lock `SHARE`, y pruebas de
+  concurrencia/idempotencia sin ampliar grants de dominio.
+- La remediación obtuvo `BOOTSTRAP PREFLIGHT REMEDIATION REVIEW PASS`; BP-F1 y BP-F2 quedaron
+  cerrados.
+- El bootstrap persistente del primer PLATFORM_ADMIN se ejecutó después de su autorización humana.
+  El smoke manual real confirmó login, `/platform`, creación de `Centro Médico Salud Plus`
+  reutilizando la identidad existente como primer ADMIN, acceso tenant, refresh, logout y redirect
+  directo al único Center activo al volver a iniciar sesión.
+- TASK-005B3 completó ANALYZE + PLAN y design review. B3-D1 fue aprobada con máximo una membership
+  PROFESSIONAL activa por ProfessionalCenter, preservando asociaciones inactivas históricas cuando
+  el modelo actual lo permite. B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`; TASK-005 continúa
+  activa.
+- TASK-005B3A implementó en DEV el UNIQUE parcial de ProfessionalCenter activo exclusivo y ajustó
+  `admin_provision_center_user`/`admin_set_center_membership` con el lock común por Center,
+  validaciones state-aware y postcondición concurrente del último ADMIN. La migration 13, las
+  regresiones y el baseline persistente pasan.
+- TASK-005B3A obtuvo `TASK-005B3A REVIEW PASS`; el finding medio del harness B2 quedó cerrado tras
+  verificar la barrera determinística de cleanup, distinguir HTTP 200 de éxito funcional y
+  clasificar el fallo aislado B1 como flake preexistente del harness. En ese checkpoint B3B y UI B3
+  todavía no se habían iniciado.
+- TASK-005B3B implementó el listado tenant read-only `/centers/[centerId]/users`, protegido por
+  ADMIN activo del Center, con tabla de identidad/rol/estado/asociación Professional y navegación
+  tenant mínima. Reutiliza SELECT + RLS/grants existentes, sin migrations, RPCs, DML ni ampliación de
+  permisos. Unit/component, E2E B3B y regresiones B1/B2/B3A pasan con baseline DEV intacto.
+- TASK-005B3B obtuvo `TASK-005B3B REVIEW PASS` y se cerró formalmente como checkpoint sin iniciar
+  B3C/B3D ni cerrar TASK-005.
+- TASK-005B3C implementó el alta tenant staged por email exacto, reutilización segura de identidad,
+  creación de identidad nueva mediante el provisioning reconciliable existente y membership inicial
+  `ADMIN`, `RECEPTION` o `PROFESSIONAL`. Conserva un `operation_id` recuperable sin persistir el
+  password, bloquea Professional sin ProfessionalCenter elegible y no edita/reactiva memberships.
+  No requirió migrations, schema, RLS, grants ni RPCs nuevas. El finding B3C-R1 quedó corregido:
+  cada intento limpia el
+  password del FormData, DOM y estado React al finalizar, preservando sólo la intención no secreta
+  y el mismo operation ID para reconciliación.
+- TASK-005B3C obtuvo `TASK-005B3C REVIEW PASS`; B3C-R1 quedó `CLOSED` y B3C se cerró formalmente
+  como checkpoint sin iniciar B3D ni cerrar TASK-005.
+- TASK-005B3D implementó administración de memberships existentes en
+  `/centers/[centerId]/users`: cambio entre ADMIN/RECEPTION/PROFESSIONAL, activación/desactivación
+  lógica y selección/reasignación de ProfessionalCenter, con confirmación explícita y refresh desde
+  servidor. Reutiliza `admin_set_center_membership`, reautoriza ADMIN tenant, verifica pertenencia al
+  Center y detecta snapshots stale sin reemplazar la autoridad concurrente de DB.
+- B3D preserva último ADMIN y self-admin, distingue desactivación pura PROFESSIONAL con vínculo
+  inactivo de reactivación/cambio, y no modifica identidad global, otros Centers ni PLATFORM_ADMIN.
+  Unit/component 168/168 y E2E B3D 6/6 pasan; B3C/B3B/B3A/Auth/provisioning/schema/B1/B2 y cleanup
+  permanecen en PASS con baseline DEV idéntico y 14 migrations sincronizadas.
+- TASK-005B3D obtuvo `TASK-005B3D REVIEW PASS`; B3D-R1 quedó `CLOSED` y B3D se cerró formalmente
+  como checkpoint. TASK-005 permanece activa y no se inició ninguna subfase adicional.
+- El smoke manual B3B pasó: listado ADMIN y navegación Center ↔ Users verificados.
+- El smoke manual B3C pasó: nueva identidad RECEPTION, login real, `/users` denegado para RECEPTION,
+  `/platform` denegado/redirigido, duplicate membership detectada y PROFESSIONAL bloqueado sin
+  ProfessionalCenter; cleanup exacto y baseline restaurado.
+- El smoke manual B3D pasó: protección visible del último ADMIN, PROFESSIONAL bloqueado sin
+  ProfessionalCenter, transiciones RECEPTION → ADMIN y ADMIN → RECEPTION, Active → Inactive e
+  Inactive → Active, `/users` denegado para RECEPTION y permitido para ADMIN; cleanup exacto y
+  baseline restaurado.
+- El re-review integral independiente cerró `IR-1`, `IR-2` e `IR-3`: lifecycle del password B2,
+  cleanup exacto B1 y evidencia manual quedaron verificados sin regresiones nuevas. TASK-005 sigue
+  activa, quedó `READY FOR PR` y el PR todavía no fue abierto.
 
 ## Próximo
 
-Definir un Task Brief independiente para Auth, usuarios y acceso a centros sobre el schema ya
-creado. La etapa deberá coordinar Supabase Auth con `public.users` y `center_memberships`, diseñar la
-autorización server-side y agregar policies RLS funcionales sin debilitar el aislamiento
-multi-centro. No corresponde implementar ese alcance como parte del cierre de TASK-004.
+Abrir el PR de TASK-005 en una instancia posterior. No iniciar otra subfase ni cerrar/archivar
+TASK-005 todavía.
 
 ## Estado operativo
 
-- Branch: `task/004-initial-postgres-schema`.
-- TASK-004: `CLOSED`; artefactos archivados en `.harness/tasks/archive/TASK-004/`.
-- Supabase DEV: schema inicial aplicado; tres migrations sincronizadas; tipos regenerados; cero
-  fixtures persistentes al cierre.
-- Seguridad actual: RLS default-deny en las once tablas, cero policies funcionales y cero helpers
-  `SECURITY DEFINER` propios.
-- Próximo gate: aprobar objetivo, criterios, riesgos e impacto del Task Brief de Auth, usuarios y
-  acceso a centros antes de implementar.
-- PROD no fue utilizado. Continúan fuera de alcance durante este cierre: Auth funcional, policies
-  permisivas, seeds, UI, cambios en PROD, commit, push y PR.
+- Branch: `task/005-auth-users-center-access`, creada desde `main` en
+  `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
+  working tree limpio.
+- TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
+  `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
+  `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`; B3C:
+  `COMPLETED / REVIEW PASS`; B3D: `COMPLETED / REVIEW PASS`; B3D-R1: `CLOSED`. Brief, Plan,
+  propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
+  tarea completa sigue abierta.
+- Integration Review: `PASS`; `IR-1 = CLOSED`, `IR-2 = CLOSED`, `IR-3 = CLOSED`; TASK-005 está
+  `READY FOR PR`. No existe PR abierto.
+- El Reviewer verificó que B2 limpia password de estado/DOM/FormData en todos los resultados y
+  conserva el mismo operation ID; B1 usa ownership/cleanup exclusivo por UUID y baseline
+  fail-closed; la evidencia manual B3B/B3C/B3D quedó persistida en el Harness.
+- Branch: `task/005-auth-users-center-access`.
+- `pnpm bootstrap` y health check DEV: PASS.
+- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las once migrations de TASK-005 están
+  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (catorce versiones totales).
+- DB lint: cero resultados. Advisors de seguridad: siete advertencias esperadas por RPCs
+  `SECURITY DEFINER` autenticadas más el warning Auth conocido de leaked-password protection; cero
+  ERROR y sin nueva superficie pública.
+- Suites B3A, schema/concurrencia, catálogo/RLS/grants y Auth foundation: PASS; tipos regenerados
+  desde DEV sin drift.
+- La existencia de `SUPABASE_SECRET_KEY` moderna se verificó sin exponerla; `.env.local` está ignorado
+  y no versionado. La configuración Auth Dashboard fue confirmada mediante comportamiento efectivo.
+- Baseline DEV persistente auditado read-only: 1 `auth.users`, 1 `public.users`, 1
+  `platform_admins`, 1 Center activo, 1 membership ADMIN activa, 0 Professional, 0
+  ProfessionalCenter y 0 Specialty. El User posee, de forma independiente, PLATFORM_ADMIN global y
+  ADMIN tenant.
+- B3C no cambió DB en su checkpoint; el estado actual conserva catorce migrations locales/DEV
+  sincronizadas. Su E2E usa UUIDs propios y
+  cleanup exacto por IDs, sin `LIKE` ni prefijos amplios, y reconfirmó el baseline persistente
+  idéntico antes/después. B3B/B3A/Auth/provisioning/B1/B2 permanecen en PASS.
+- B3D-R1 requirió la migration incremental `20260928120000_make_membership_stale_check_atomic.sql`:
+  la única firma de `admin_set_center_membership` recibe expected role/estado/PC y compara el snapshot
+  bajo advisory lock + row lock antes de mutar. La firma legacy quedó eliminada. El harness DB probó
+  la carrera stale real, además de último ADMIN y PC único; E2E usa UUIDs propios, cleanup exacto y no
+  muta el usuario persistente.
+- Center persistente: `Centro Médico Salud Plus`
+  (`76dcbe41-38be-475d-a590-f4ae6619c1e8`, `America/Argentina/Buenos_Aires`).
+- `private.provisioning_operations` conserva dos operaciones reales `SUCCEEDED`: bootstrap
+  `352a309e-f137-488e-b6e7-4b53e2cdb7b2` y creación de Center
+  `964ec4bf-eeba-4f4f-914a-d2a8ca101934`. Esta última reutilizó la identidad; no creó otra.
+- Cero Auth users con namespaces temporales conocidos de TASK-005. Los datos anteriores son
+  persistentes de desarrollo y no deben borrarse ni entrar en cleanup de tests.
+- PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
+
+## Decisiones aprobadas de TASK-005
+
+- `SUPABASE_SECRET_KEY` moderna, server-only y limitada a Auth Admin/compensación/bootstrap.
+- `public.users.email` como proyección lowercase, no nula y única; cambio de email fuera de alcance.
+- Centro activo por `/centers/[centerId]/...`, sin preferencia persistida.
+- `platform_admins` global separado de `membership_role` y sin bypass tenant.
+- Bootstrap one-shot únicamente para el primer PLATFORM_ADMIN.
+- `/platform` como mecanismo funcional para crear/activar/desactivar Centers y primer ADMIN.
+- RPCs administrativas estrechas, seis policies SELECT y grants mínimos.
+- Todo Center activo conserva al menos un ADMIN activo con enforcement concurrentemente seguro.
+- Recovery DEV con SMTP de desarrollo y redirects explícitos; custom SMTP obligatorio antes de PROD.
+- B3-D1 aprobada: un ProfessionalCenter admite como máximo una membership PROFESSIONAL activa. La
+  autoridad es un UNIQUE parcial, reforzado por RPCs y el lock común del Center. No se modelan
+  cuentas compartidas/delegadas ni quedan decisiones humanas abiertas en B3.
 
 ## Decisiones postergadas
 
@@ -67,3 +200,12 @@ multi-centro. No corresponde implementar ese alcance como parte del cierre de TA
 - Rate limiting concreto antes de producción pública.
 - Playwright completo en CI cuando E2E tenga entorno aislado.
 - Sentry si el producto llega a necesitarlo.
+
+## Pendientes pre-PROD
+
+- Custom SMTP para recuperación/email.
+- Rate limiting definitivo para exposición pública.
+- Leaked-password protection de Auth.
+
+Estos puntos continúan separados de los findings DEV del Integration Review y no se clasifican como
+defectos de la remediación IR-1/IR-2/IR-3.
