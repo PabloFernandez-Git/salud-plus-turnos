@@ -10,6 +10,7 @@ import {
   performProvisionCenterUserAction,
   performResolveCenterIdentityAction,
 } from "../server/center-user-actions";
+import { performUpdateCenterMembershipAction } from "../server/center-membership-actions";
 
 export async function resolveCenterIdentityAction(
   centerId: string,
@@ -23,6 +24,12 @@ export async function provisionCenterUserAction(
   formData: FormData,
 ): Promise<CenterUserActionState> {
   return performProvisionCenterUserAction(previousState, formData, {
+    revalidateUsers: (centerId) => revalidatePath(`/centers/${centerId}/users`),
+  });
+}
+
+export async function updateCenterMembershipAction(formData: FormData) {
+  return performUpdateCenterMembershipAction(formData, {
     revalidateUsers: (centerId) => revalidatePath(`/centers/${centerId}/users`),
   });
 }

@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight, B3A, B3B y B3C completados
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight y B3A/B3B/B3C/B3D completados
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS` · `TASK-005B3D COMPLETED / REVIEW PASS`
 
 ## Completado
 
@@ -102,10 +102,22 @@
   y el mismo operation ID para reconciliación.
 - TASK-005B3C obtuvo `TASK-005B3C REVIEW PASS`; B3C-R1 quedó `CLOSED` y B3C se cerró formalmente
   como checkpoint sin iniciar B3D ni cerrar TASK-005.
+- TASK-005B3D implementó administración de memberships existentes en
+  `/centers/[centerId]/users`: cambio entre ADMIN/RECEPTION/PROFESSIONAL, activación/desactivación
+  lógica y selección/reasignación de ProfessionalCenter, con confirmación explícita y refresh desde
+  servidor. Reutiliza `admin_set_center_membership`, reautoriza ADMIN tenant, verifica pertenencia al
+  Center y detecta snapshots stale sin reemplazar la autoridad concurrente de DB.
+- B3D preserva último ADMIN y self-admin, distingue desactivación pura PROFESSIONAL con vínculo
+  inactivo de reactivación/cambio, y no modifica identidad global, otros Centers ni PLATFORM_ADMIN.
+  Unit/component 168/168 y E2E B3D 6/6 pasan; B3C/B3B/B3A/Auth/provisioning/schema/B1/B2 y cleanup
+  permanecen en PASS con baseline DEV idéntico y 14 migrations sincronizadas.
+- TASK-005B3D obtuvo `TASK-005B3D REVIEW PASS`; B3D-R1 quedó `CLOSED` y B3D se cerró formalmente
+  como checkpoint. TASK-005 permanece activa y no se inició ninguna subfase adicional.
 
 ## Próximo
 
-Esperar una instrucción posterior antes de iniciar B3D.
+Realizar en una instancia posterior el smoke manual B3D y la revisión integral de TASK-005. No
+iniciar otra subfase ni cerrar/archivar TASK-005 todavía.
 
 ## Estado operativo
 
@@ -115,13 +127,13 @@ Esperar una instrucción posterior antes de iniciar B3D.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
   `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`; B3C:
-  `COMPLETED / REVIEW PASS`. Brief, Plan,
+  `COMPLETED / REVIEW PASS`; B3D: `COMPLETED / REVIEW PASS`; B3D-R1: `CLOSED`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
-- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las diez migrations de TASK-005 están
-  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (trece versiones totales).
+- Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las once migrations de TASK-005 están
+  sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (catorce versiones totales).
 - DB lint: cero resultados. Advisors de seguridad: siete advertencias esperadas por RPCs
   `SECURITY DEFINER` autenticadas más el warning Auth conocido de leaked-password protection; cero
   ERROR y sin nueva superficie pública.
@@ -136,6 +148,11 @@ Esperar una instrucción posterior antes de iniciar B3D.
 - B3C no cambió DB: trece migrations locales/DEV siguen sincronizadas. Su E2E usa UUIDs propios y
   cleanup exacto por IDs, sin `LIKE` ni prefijos amplios, y reconfirmó el baseline persistente
   idéntico antes/después. B3B/B3A/Auth/provisioning/B1/B2 permanecen en PASS.
+- B3D-R1 requirió la migration incremental `20260928120000_make_membership_stale_check_atomic.sql`:
+  la única firma de `admin_set_center_membership` recibe expected role/estado/PC y compara el snapshot
+  bajo advisory lock + row lock antes de mutar. La firma legacy quedó eliminada. El harness DB probó
+  la carrera stale real, además de último ADMIN y PC único; E2E usa UUIDs propios, cleanup exacto y no
+  muta el usuario persistente.
 - Center persistente: `Centro Médico Salud Plus`
   (`76dcbe41-38be-475d-a590-f4ae6619c1e8`, `America/Argentina/Buenos_Aires`).
 - `private.provisioning_operations` conserva dos operaciones reales `SUCCEEDED`: bootstrap

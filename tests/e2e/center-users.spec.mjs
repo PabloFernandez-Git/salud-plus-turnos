@@ -388,8 +388,7 @@ test.describe.serial("TASK-005B3B Center users read-only UI", () => {
     ).toBeVisible();
     await expect(professionalRow.getByText("Paula Médica")).toBeVisible();
     await expect(professionalRow.getByText("Matrícula: MP 1234")).toBeVisible();
-    await expect(professionalRow.getByText("Sólo lectura")).toBeVisible();
-    await expect(professionalRow.getByRole("button")).toHaveCount(0);
+    await expect(professionalRow.getByRole("button", { name: "Administrar" })).toBeVisible();
 
     await expect(page.getByText(users.get("cross-center").email)).toHaveCount(0);
     await expect(page.getByText(`TASK-005B3B ${runId} Centro B`)).toHaveCount(0);

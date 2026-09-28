@@ -1,5 +1,13 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("../actions/center-user-actions", () => ({
+  updateCenterMembershipAction: vi.fn(),
+}));
 
 import type { CenterUserListItem } from "../server/center-users";
 import { CenterAdminNavigation } from "./center-admin-navigation";
@@ -26,6 +34,7 @@ const users: CenterUserListItem[] = [
     role: "PROFESSIONAL",
     isActive: false,
     professional: {
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
       firstName: "Paula",
       lastName: "Médica",
       licenseNumber: "MP 1234",
@@ -55,6 +64,7 @@ describe("Center user navigation", () => {
         centerId={centerId}
         centerName="Centro Norte"
         loadFailed={false}
+        manageableProfessionalCenters={[]}
         professionalCenters={[]}
         users={users}
       />,
@@ -75,6 +85,7 @@ describe("CenterUsersScreen", () => {
         centerId={centerId}
         centerName="Centro Norte"
         loadFailed={false}
+        manageableProfessionalCenters={[]}
         professionalCenters={[]}
         users={users}
       />,
@@ -95,8 +106,7 @@ describe("CenterUsersScreen", () => {
     expect(within(professionalRow).getByText("Paula Médica")).toBeVisible();
     expect(within(professionalRow).getByText("Matrícula: MP 1234")).toBeVisible();
     expect(within(professionalRow).getByText("Vínculo inactivo")).toBeVisible();
-    expect(within(professionalRow).getByText("Sólo lectura")).toBeVisible();
-    expect(within(professionalRow).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(professionalRow).getByRole("button", { name: "Administrar" })).toBeVisible();
   });
 
   it("renders an explicit empty state", () => {
@@ -106,6 +116,7 @@ describe("CenterUsersScreen", () => {
         centerId={centerId}
         centerName="Centro vacío"
         loadFailed={false}
+        manageableProfessionalCenters={[]}
         professionalCenters={[]}
         users={[]}
       />,
@@ -121,6 +132,7 @@ describe("CenterUsersScreen", () => {
         centerId={centerId}
         centerName="Centro Norte"
         loadFailed
+        manageableProfessionalCenters={[]}
         professionalCenters={[]}
         users={[]}
       />,

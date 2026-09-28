@@ -53,8 +53,32 @@ cambia de rol.
 El alta inicial admite Administrator, Reception y Professional. Professional sólo queda disponible
 cuando existe un `ProfessionalCenter` del mismo Center, activo y libre; el servidor y las
 invariantes B3A siguen siendo autoridad ante carreras o selecciones manipuladas. Cambio posterior
-de rol, activación/desactivación y edición o reasignación del vínculo profesional permanecen fuera
-de este flujo y corresponden a B3D.
+de rol, activación/desactivación y edición o reasignación del vínculo profesional se resuelven en
+una acción **Administrar** separada sobre la membership existente.
+
+La administración de una membership muestra únicamente identidad global de solo lectura y el rol,
+estado y vínculo profesional del Center actual. Cada submit incluye el snapshot visible para detectar
+estado stale como ayuda de UX, pero vuelve a autorizar al actor, ata `membership_id` al `center_id` de
+la ruta y delega la mutación final a `admin_set_center_membership`. La respuesta usa el estado
+persistido retornado por la RPC y luego revalida el listado; no existe actualización optimista.
+
+El precheck server-side del snapshot es sólo feedback rápido. La autoridad stale es atómica dentro
+de `admin_set_center_membership`: luego del advisory lock del Center y del `SELECT ... FOR UPDATE` de
+la membership, la RPC compara `role`, `is_active` y `professional_center_id` esperados con semántica
+null-safe. Si difieren, aborta sin mutar con `STALE_MEMBERSHIP_STATE`; la UI indica que el acceso
+cambió y exige recargar/reintentar. La firma anterior sin expected state no existe, por lo que ningún
+caller productivo puede omitir el compare-and-swap.
+
+Cambiar rol, reactivar o desactivar requiere una confirmación explícita que identifica al usuario y
+la acción. Un ADMIN puede administrarse a sí mismo si sobrevive otro ADMIN activo. Si una
+self-demotion conserva acceso tenant, la respuesta navega al inicio del Center; si la membership se
+desactiva, navega al selector, sin intentar una lectura ADMIN posterior al commit.
+
+Para `PROFESSIONAL`, el selector ofrece sólo ProfessionalCenters activos del mismo Center que estén
+libres o ya pertenezcan a la misma membership. Cross-center, inactivos y ocupados por otra membership
+activa no son opciones y la RPC/índice parcial siguen siendo autoridad contra manipulación o carrera.
+Una desactivación pura conserva rol/vínculo y puede completarse aunque el ProfessionalCenter haya
+quedado inactivo; reactivar, cambiar hacia `PROFESSIONAL` o cambiar el vínculo vuelve a validar todo.
 
 El administrador crea directamente al usuario con:
 - nombre;

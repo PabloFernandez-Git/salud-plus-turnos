@@ -355,13 +355,23 @@ async function provision(
 }
 
 async function setMembership(client, actor, centerId, membershipId, role, pcId, isActive) {
+  const current = await client.query(
+    `select role, professional_center_id, is_active
+     from public.center_memberships where id=$1`,
+    [membershipId],
+  );
+  assertEqual(current.rows.length, 1, `membership ${membershipId} expected-state lookup`);
+  const expected = current.rows[0];
   return asUser(client, actor.id, (database) =>
-    database.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5)", [
+    database.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)", [
       centerId,
       membershipId,
       role,
       pcId,
       isActive,
+      expected.role,
+      expected.professional_center_id,
+      expected.is_active,
     ]),
   );
 }
@@ -389,8 +399,12 @@ async function verifyCatalog() {
 
   const functions = [
     "public.admin_provision_center_user(uuid,uuid,uuid,text,text,public.membership_role,uuid)",
-    "public.admin_set_center_membership(uuid,uuid,public.membership_role,uuid,boolean)",
+    "public.admin_set_center_membership(uuid,uuid,public.membership_role,uuid,boolean,public.membership_role,uuid,boolean)",
   ];
+  const legacyFunction = await control.query("select pg_catalog.to_regprocedure($1) as procedure", [
+    "public.admin_set_center_membership(uuid,uuid,public.membership_role,uuid,boolean)",
+  ]);
+  assertEqual(legacyFunction.rows[0].procedure, null, "legacy stale-bypass RPC signature");
   for (const signature of functions) {
     const security = await control.query(
       `select prosecdef, proconfig, pg_catalog.pg_get_functiondef(oid) as definition
@@ -998,6 +1012,70 @@ try {
       "ProfessionalCenter change disguised as deactivation",
     );
 
+    await control.query("update public.professional_centers set is_active=true where id=$1", [
+      pcIds.transition,
+    ]);
+    await setMembership(
+      control,
+      adminA1,
+      centerA,
+      membershipIds.setCandidate,
+      "RECEPTION",
+      null,
+      true,
+    );
+    transactionA = await connect("stale-winner");
+    transactionB = await connect("stale-loser");
+    await beginAsUser(transactionA, adminA1.id);
+    await transactionA.query(
+      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+      [
+        centerA,
+        membershipIds.setCandidate,
+        "PROFESSIONAL",
+        pcIds.transition,
+        false,
+        "RECEPTION",
+        null,
+        true,
+      ],
+    );
+    await beginAsUser(transactionB, adminA2.id);
+    const staleBlockedPid = Number(
+      (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
+    );
+    const staleOverwrite = transactionB.query(
+      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+      [centerA, membershipIds.setCandidate, "ADMIN", null, true, "RECEPTION", null, true],
+    );
+    void staleOverwrite.catch(() => {});
+    await observePendingCenterLock(control, staleBlockedPid, "atomic stale comparison");
+    await transactionA.query("commit");
+    const staleResult = await Promise.allSettled([staleOverwrite]);
+    assert(
+      staleResult[0].status === "rejected" &&
+        staleResult[0].reason?.code === "P0001" &&
+        staleResult[0].reason?.message === "STALE_MEMBERSHIP_STATE",
+      "Blocked stale overwrite did not fail with the stable stale contract.",
+    );
+    await transactionB.query("rollback");
+    await transactionA.end();
+    await transactionB.end();
+    transactionA = undefined;
+    transactionB = undefined;
+    const staleFinal = await control.query(
+      `select role, professional_center_id, is_active
+       from public.center_memberships where id=$1`,
+      [membershipIds.setCandidate],
+    );
+    assertEqual(staleFinal.rows[0].role, "PROFESSIONAL", "atomic stale final role");
+    assertEqual(
+      staleFinal.rows[0].professional_center_id,
+      pcIds.transition,
+      "atomic stale final ProfessionalCenter",
+    );
+    assertEqual(staleFinal.rows[0].is_active, false, "atomic stale final active state");
+
     const raceOperation = await prepareAndBindTenantOperation({
       actor: adminA1,
       centerId: centerA,
@@ -1027,8 +1105,17 @@ try {
       (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
     );
     const losingProfessionalAssignment = transactionB.query(
-      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5)",
-      [centerA, firstProvision.rows[0].membership_id, "PROFESSIONAL", pcIds.race, true],
+      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+      [
+        centerA,
+        firstProvision.rows[0].membership_id,
+        "PROFESSIONAL",
+        pcIds.race,
+        true,
+        "RECEPTION",
+        null,
+        true,
+      ],
     );
     void losingProfessionalAssignment.catch(() => {});
     await observePendingCenterLock(
@@ -1074,20 +1161,17 @@ try {
     transactionA = await connect("admin-race-a");
     transactionB = await connect("admin-race-b");
     await beginAsUser(transactionA, adminA1.id);
-    await transactionA.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5)", [
-      centerA,
-      membershipIds.adminA1,
-      "RECEPTION",
-      null,
-      true,
-    ]);
+    await transactionA.query(
+      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+      [centerA, membershipIds.adminA1, "RECEPTION", null, true, "ADMIN", null, true],
+    );
     await beginAsUser(transactionB, adminA2.id);
     const adminBlockedPid = Number(
       (await transactionB.query("select pg_catalog.pg_backend_pid() as pid")).rows[0].pid,
     );
     const losingAdminChange = transactionB.query(
-      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5)",
-      [centerA, membershipIds.adminA2, "RECEPTION", null, true],
+      "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+      [centerA, membershipIds.adminA2, "RECEPTION", null, true, "ADMIN", null, true],
     );
     void losingAdminChange.catch(() => {});
     await observePendingCenterLock(control, adminBlockedPid, "last ADMIN concurrency");

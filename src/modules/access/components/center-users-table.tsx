@@ -1,4 +1,6 @@
 import type { CenterUserListItem } from "../server/center-users";
+import type { ManageableProfessionalCenter } from "../server/center-users";
+import { ManageCenterMembershipPanel } from "./manage-center-membership-panel";
 
 const roleLabels: Record<CenterUserListItem["role"], string> = {
   ADMIN: "Administrador",
@@ -24,7 +26,15 @@ function ProfessionalAssociation({ user }: { user: CenterUserListItem }) {
   );
 }
 
-export function CenterUsersTable({ users }: { users: CenterUserListItem[] }) {
+export function CenterUsersTable({
+  centerId,
+  professionalCenters,
+  users,
+}: {
+  centerId: string;
+  professionalCenters: ManageableProfessionalCenter[];
+  users: CenterUserListItem[];
+}) {
   if (users.length === 0) {
     return (
       <section className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
@@ -35,6 +45,8 @@ export function CenterUsersTable({ users }: { users: CenterUserListItem[] }) {
       </section>
     );
   }
+
+  const activeAdminCount = users.filter((user) => user.role === "ADMIN" && user.isActive).length;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -72,7 +84,14 @@ export function CenterUsersTable({ users }: { users: CenterUserListItem[] }) {
               <td className="px-4 py-4">
                 <ProfessionalAssociation user={user} />
               </td>
-              <td className="px-4 py-4 text-slate-500">Sólo lectura</td>
+              <td className="px-4 py-4">
+                <ManageCenterMembershipPanel
+                  activeAdminCount={activeAdminCount}
+                  centerId={centerId}
+                  professionalCenters={professionalCenters}
+                  user={user}
+                />
+              </td>
             </tr>
           ))}
         </tbody>

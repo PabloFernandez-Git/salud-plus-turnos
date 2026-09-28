@@ -15,3 +15,16 @@ export type CenterUserIdentityActionState = CenterUserActionState & {
   membershipExists?: boolean;
   membershipIsActive?: boolean;
 };
+
+export type CenterMembershipActionState = {
+  fieldErrors?: Record<string, string[]>;
+  membership?: {
+    id: string;
+    isActive: boolean;
+    professionalCenterId: string | null;
+    role: "ADMIN" | "RECEPTION" | "PROFESSIONAL";
+  };
+  message?: string;
+  navigation?: string;
+  status: "error" | "success";
+};

@@ -553,6 +553,9 @@ export type Database = {
       admin_set_center_membership: {
         Args: {
           p_center_id: string;
+          p_expected_is_active: boolean;
+          p_expected_professional_center_id: string;
+          p_expected_role: Database["public"]["Enums"]["membership_role"];
           p_is_active: boolean;
           p_membership_id: string;
           p_professional_center_id: string;

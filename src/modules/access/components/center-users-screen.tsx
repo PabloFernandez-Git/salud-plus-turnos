@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import type { AvailableProfessionalCenter, CenterUserListItem } from "../server/center-users";
+import type {
+  AvailableProfessionalCenter,
+  CenterUserListItem,
+  ManageableProfessionalCenter,
+} from "../server/center-users";
 import { AddCenterUserPanel } from "./add-center-user-panel";
 import { CenterUsersTable } from "./center-users-table";
 
@@ -9,6 +13,7 @@ export function CenterUsersScreen({
   centerId,
   centerName,
   loadFailed,
+  manageableProfessionalCenters,
   professionalCenters,
   users,
 }: {
@@ -16,6 +21,7 @@ export function CenterUsersScreen({
   centerId: string;
   centerName: string;
   loadFailed: boolean;
+  manageableProfessionalCenters: ManageableProfessionalCenter[];
   professionalCenters: AvailableProfessionalCenter[];
   users: CenterUserListItem[];
 }) {
@@ -66,7 +72,11 @@ export function CenterUsersScreen({
                   El listado incluye accesos activos e inactivos visibles para este ADMIN.
                 </p>
               </div>
-              <CenterUsersTable users={users} />
+              <CenterUsersTable
+                centerId={centerId}
+                professionalCenters={manageableProfessionalCenters}
+                users={users}
+              />
             </section>
           </>
         )}

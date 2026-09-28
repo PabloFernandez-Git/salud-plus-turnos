@@ -597,12 +597,15 @@ try {
   const inactiveMembership = (await provision(inactive, "RECEPTION")).rows[0].membership_id;
   await provision(existing, "RECEPTION", null, "Changed");
   await asUser(control, adminA.id, (client) =>
-    client.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5)", [
+    client.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)", [
       centerA,
       inactiveMembership,
       "RECEPTION",
       null,
       false,
+      "RECEPTION",
+      null,
+      true,
     ]),
   );
 
@@ -714,10 +717,13 @@ try {
   await expectSqlState(
     () =>
       asUser(control, adminB.id, (client) =>
-        client.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5)", [
+        client.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)", [
           centerB,
           adminBMembership.rows[0].id,
           "RECEPTION",
+          null,
+          true,
+          "ADMIN",
           null,
           true,
         ]),
@@ -767,13 +773,10 @@ try {
   await transactionA.query("begin");
   await transactionA.query("set local role authenticated");
   await transactionA.query("select set_config('request.jwt.claim.sub',$1,true)", [adminA.id]);
-  await transactionA.query("select * from public.admin_set_center_membership($1,$2,$3,$4,$5)", [
-    centerA,
-    membershipByUser.get(adminA.id),
-    "RECEPTION",
-    null,
-    true,
-  ]);
+  await transactionA.query(
+    "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+    [centerA, membershipByUser.get(adminA.id), "RECEPTION", null, true, "ADMIN", null, true],
+  );
 
   await transactionB.query("begin");
   const centerBlockedPid = Number(
@@ -782,8 +785,8 @@ try {
   await transactionB.query("set local role authenticated");
   await transactionB.query("select set_config('request.jwt.claim.sub',$1,true)", [adminA2.id]);
   const secondChange = transactionB.query(
-    "select * from public.admin_set_center_membership($1,$2,$3,$4,$5)",
-    [centerA, membershipByUser.get(adminA2.id), "RECEPTION", null, true],
+    "select * from public.admin_set_center_membership($1,$2,$3,$4,$5,$6,$7,$8)",
+    [centerA, membershipByUser.get(adminA2.id), "RECEPTION", null, true, "ADMIN", null, true],
   );
   void secondChange.catch(() => {});
 

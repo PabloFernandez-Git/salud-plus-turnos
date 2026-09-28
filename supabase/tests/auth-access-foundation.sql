@@ -50,7 +50,7 @@ declare
     'public.platform_create_center_with_admin(uuid,text,text,text,text,text,uuid,text,text)'::regprocedure,
     'public.platform_set_center_active(uuid,boolean)'::regprocedure,
     'public.admin_provision_center_user(uuid,uuid,uuid,text,text,public.membership_role,uuid)'::regprocedure,
-    'public.admin_set_center_membership(uuid,uuid,public.membership_role,uuid,boolean)'::regprocedure,
+    'public.admin_set_center_membership(uuid,uuid,public.membership_role,uuid,boolean,public.membership_role,uuid,boolean)'::regprocedure,
     'public.bootstrap_platform_admin(uuid,uuid,text,text)'::regprocedure
   ];
 begin

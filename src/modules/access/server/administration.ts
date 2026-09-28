@@ -21,6 +21,9 @@ const membershipUpdateSchema = z
   .object({
     centerId: z.uuid(),
     membershipId: z.uuid(),
+    expectedRole: z.enum(["ADMIN", "RECEPTION", "PROFESSIONAL"]),
+    expectedProfessionalCenterId: z.uuid().nullable(),
+    expectedIsActive: z.boolean(),
     role: z.enum(["ADMIN", "RECEPTION", "PROFESSIONAL"]),
     professionalCenterId: z.uuid().nullable(),
     isActive: z.boolean(),
@@ -35,6 +38,16 @@ const membershipUpdateSchema = z
       });
     }
   });
+
+export class CenterMembershipMutationError extends Error {
+  readonly code: "NOT_FOUND" | "STALE";
+
+  constructor(code: "NOT_FOUND" | "STALE") {
+    super(code);
+    this.name = "CenterMembershipMutationError";
+    this.code = code;
+  }
+}
 
 export async function listPlatformCenters(client?: ServerClient) {
   const supabase = client ?? (await createSupabaseServerClient());
@@ -77,16 +90,43 @@ export async function setCenterMembership(
 ) {
   const parsed = membershipUpdateSchema.parse(input);
   const supabase = client ?? (await createSupabaseServerClient());
-  await requireRole(parsed.centerId, ["ADMIN"], supabase);
+  const context = await requireRole(parsed.centerId, ["ADMIN"], supabase);
+  const { data: target, error: targetError } = await supabase
+    .from("center_memberships")
+    .select("id, user_id, role, professional_center_id, is_active")
+    .eq("id", parsed.membershipId)
+    .eq("center_id", parsed.centerId)
+    .maybeSingle();
+
+  if (targetError) throw targetError;
+  if (!target) throw new CenterMembershipMutationError("NOT_FOUND");
+  if (
+    target.role !== parsed.expectedRole ||
+    target.professional_center_id !== parsed.expectedProfessionalCenterId ||
+    target.is_active !== parsed.expectedIsActive
+  ) {
+    throw new CenterMembershipMutationError("STALE");
+  }
+
   const { data, error } = await supabase
     .rpc("admin_set_center_membership", {
       p_center_id: parsed.centerId,
+      p_expected_is_active: parsed.expectedIsActive,
+      p_expected_professional_center_id: parsed.expectedProfessionalCenterId as string,
+      p_expected_role: parsed.expectedRole,
       p_is_active: parsed.isActive,
       p_membership_id: parsed.membershipId,
       p_professional_center_id: parsed.professionalCenterId as string,
       p_role: parsed.role,
     })
     .single();
+  if (error?.code === "P0001" && error.message === "STALE_MEMBERSHIP_STATE") {
+    throw new CenterMembershipMutationError("STALE");
+  }
   if (error) throw error;
-  return data;
+  return {
+    actorUserId: context.user.id,
+    membership: data,
+    targetUserId: target.user_id,
+  };
 }

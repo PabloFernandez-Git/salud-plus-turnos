@@ -7,6 +7,7 @@ import { AuthorizationError } from "./authorization";
 import {
   listAvailableProfessionalCenters,
   listCenterUsers,
+  listManageableProfessionalCenters,
   resolveCenterIdentityByEmail,
 } from "./center-users";
 
@@ -183,6 +184,7 @@ describe("listCenterUsers", () => {
           role: "PROFESSIONAL",
           isActive: true,
           professional: {
+            id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
             firstName: "Paula",
             lastName: "Médica",
             licenseNumber: "MP 1234",
@@ -294,5 +296,42 @@ describe("listAvailableProfessionalCenters", () => {
     await expect(
       listAvailableProfessionalCenters(centerA.id, fakeClient({ tables: baseTables() })),
     ).resolves.toEqual([]);
+  });
+});
+
+describe("listManageableProfessionalCenters", () => {
+  it("marks active same-Center associations with the occupying membership", async () => {
+    const tables = baseTables();
+    tables.professional_centers.push({
+      id: "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      center_id: centerA.id,
+      professional_id: "11111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      license_number: "MP 9876",
+      is_active: true,
+    });
+    tables.professionals.push({
+      id: "11111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      first_name: "Zoe",
+      last_name: "Disponible",
+    });
+
+    await expect(
+      listManageableProfessionalCenters(centerA.id, fakeClient({ tables })),
+    ).resolves.toEqual([
+      {
+        id: "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        firstName: "Zoe",
+        lastName: "Disponible",
+        licenseNumber: "MP 9876",
+        occupiedMembershipId: null,
+      },
+      {
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        firstName: "Paula",
+        lastName: "Médica",
+        licenseNumber: "MP 1234",
+        occupiedMembershipId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      },
+    ]);
   });
 });

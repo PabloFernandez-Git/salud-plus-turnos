@@ -21,6 +21,7 @@ export type CenterUserListItem = {
   role: MembershipRole;
   isActive: boolean;
   professional: {
+    id: string;
     firstName: string;
     lastName: string;
     licenseNumber: string | null;
@@ -43,6 +44,10 @@ export type AvailableProfessionalCenter = {
   firstName: string;
   lastName: string;
   licenseNumber: string | null;
+};
+
+export type ManageableProfessionalCenter = AvailableProfessionalCenter & {
+  occupiedMembershipId: string | null;
 };
 
 const centerIdSchema = z.uuid();
@@ -133,6 +138,69 @@ export async function listAvailableProfessionalCenters(centerId: string, client?
         firstName: professional.first_name,
         lastName: professional.last_name,
         licenseNumber: professionalCenter.license_number,
+      };
+    })
+    .sort((left, right) =>
+      `${left.lastName} ${left.firstName}`.localeCompare(
+        `${right.lastName} ${right.firstName}`,
+        "es",
+      ),
+    );
+}
+
+export async function listManageableProfessionalCenters(centerId: string, client?: ServerClient) {
+  const parsedCenterId = centerIdSchema.parse(centerId);
+  const supabase = client ?? (await createSupabaseServerClient());
+
+  await requireRole(parsedCenterId, ["ADMIN"], supabase);
+
+  const { data: professionalCenters, error: professionalCentersError } = await supabase
+    .from("professional_centers")
+    .select("id, center_id, professional_id, license_number")
+    .eq("center_id", parsedCenterId)
+    .eq("is_active", true);
+
+  if (professionalCentersError) throw professionalCentersError;
+  if (!professionalCenters || professionalCenters.length === 0) return [];
+
+  const professionalCenterIds = professionalCenters.map((item) => item.id);
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("center_memberships")
+    .select("id, professional_center_id")
+    .eq("center_id", parsedCenterId)
+    .eq("role", "PROFESSIONAL")
+    .eq("is_active", true)
+    .in("professional_center_id", professionalCenterIds);
+  if (membershipsError) throw membershipsError;
+
+  const membershipByProfessionalCenter = new Map(
+    (memberships ?? []).flatMap((membership) =>
+      membership.professional_center_id
+        ? [[membership.professional_center_id, membership.id] as const]
+        : [],
+    ),
+  );
+  const professionalIds = [...new Set(professionalCenters.map((item) => item.professional_id))];
+  const { data: professionals, error: professionalsError } = await supabase
+    .from("professionals")
+    .select("id, first_name, last_name")
+    .in("id", professionalIds);
+  if (professionalsError) throw professionalsError;
+
+  const professionalsById = new Map(
+    (professionals ?? []).map((professional) => [professional.id, professional]),
+  );
+
+  return professionalCenters
+    .map<ManageableProfessionalCenter>((professionalCenter) => {
+      const professional =
+        professionalsById.get(professionalCenter.professional_id) ?? relationNotVisible();
+      return {
+        id: professionalCenter.id,
+        firstName: professional.first_name,
+        lastName: professional.last_name,
+        licenseNumber: professionalCenter.license_number,
+        occupiedMembershipId: membershipByProfessionalCenter.get(professionalCenter.id) ?? null,
       };
     })
     .sort((left, right) =>
@@ -251,6 +319,7 @@ export async function listCenterUsers(centerId: string, client?: ServerClient) {
         role: membership.role,
         isActive: membership.is_active,
         professional: {
+          id: professionalCenter.id,
           firstName: professional.first_name,
           lastName: professional.last_name,
           licenseNumber: professionalCenter.license_number,
