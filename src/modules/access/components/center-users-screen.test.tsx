@@ -51,9 +51,11 @@ describe("Center user navigation", () => {
   it("shows Usuarios → Center navigation", () => {
     render(
       <CenterUsersScreen
+        actorUserId="99999999-9999-4999-8999-999999999999"
         centerId={centerId}
         centerName="Centro Norte"
         loadFailed={false}
+        professionalCenters={[]}
         users={users}
       />,
     );
@@ -69,9 +71,11 @@ describe("CenterUsersScreen", () => {
   it("renders identity, human role, membership state and Professional association", () => {
     render(
       <CenterUsersScreen
+        actorUserId="99999999-9999-4999-8999-999999999999"
         centerId={centerId}
         centerName="Centro Norte"
         loadFailed={false}
+        professionalCenters={[]}
         users={users}
       />,
     );
@@ -98,9 +102,11 @@ describe("CenterUsersScreen", () => {
   it("renders an explicit empty state", () => {
     render(
       <CenterUsersScreen
+        actorUserId="99999999-9999-4999-8999-999999999999"
         centerId={centerId}
         centerName="Centro vacío"
         loadFailed={false}
+        professionalCenters={[]}
         users={[]}
       />,
     );
@@ -110,7 +116,14 @@ describe("CenterUsersScreen", () => {
 
   it("renders a safe load error without a table", () => {
     render(
-      <CenterUsersScreen centerId={centerId} centerName="Centro Norte" loadFailed users={[]} />,
+      <CenterUsersScreen
+        actorUserId="99999999-9999-4999-8999-999999999999"
+        centerId={centerId}
+        centerName="Centro Norte"
+        loadFailed
+        professionalCenters={[]}
+        users={[]}
+      />,
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar los usuarios");

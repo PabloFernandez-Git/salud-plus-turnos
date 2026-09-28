@@ -4,15 +4,21 @@ import { describe, expect, it } from "vitest";
 import type { Database } from "@/lib/supabase/database.types";
 
 import { AuthorizationError } from "./authorization";
-import { listCenterUsers } from "./center-users";
+import {
+  listAvailableProfessionalCenters,
+  listCenterUsers,
+  resolveCenterIdentityByEmail,
+} from "./center-users";
 
 type Row = Record<string, unknown>;
 
 function fakeClient({
   actorId = "user-admin",
+  rpcRows = {},
   tables,
 }: {
   actorId?: string;
+  rpcRows?: Record<string, Row>;
   tables: Record<string, Row[]>;
 }) {
   return {
@@ -49,6 +55,11 @@ function fakeClient({
         ) => Promise.resolve({ data: rows(), error: null }).then(resolve, reject),
       };
       return builder;
+    },
+    rpc(functionName: string) {
+      return {
+        single: async () => ({ data: rpcRows[functionName] ?? null, error: null }),
+      };
     },
   } as unknown as SupabaseClient<Database>;
 }
@@ -189,5 +200,99 @@ describe("listCenterUsers", () => {
     await expect(listCenterUsers(centerA.id, fakeClient({ tables }))).rejects.toMatchObject<
       Partial<AuthorizationError>
     >({ code: "ROLE_FORBIDDEN" });
+  });
+});
+
+describe("resolveCenterIdentityByEmail", () => {
+  it("normalizes an exact email and returns only the approved identity contract", async () => {
+    const resolution = {
+      identity_exists: true,
+      user_id: "user-reception",
+      email: "recepcion@example.test",
+      first_name: "Rita",
+      last_name: "Recepción",
+      center_membership_exists: true,
+      center_membership_is_active: false,
+    };
+    const client = fakeClient({
+      tables: baseTables(),
+      rpcRows: { admin_resolve_user_by_email: resolution },
+    });
+
+    await expect(
+      resolveCenterIdentityByEmail(centerA.id, "  RECEPCION@EXAMPLE.TEST ", client),
+    ).resolves.toEqual(resolution);
+  });
+
+  it("denies resolution to a non-ADMIN", async () => {
+    const tables = baseTables();
+    tables.center_memberships = [{ ...admin, role: "PROFESSIONAL" }];
+
+    await expect(
+      resolveCenterIdentityByEmail(centerA.id, "known@example.test", fakeClient({ tables })),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "ROLE_FORBIDDEN" });
+  });
+});
+
+describe("listAvailableProfessionalCenters", () => {
+  it("returns only active and unoccupied ProfessionalCenters from the authorized Center", async () => {
+    const tables = baseTables();
+    tables.professional_centers.push(
+      {
+        id: "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        center_id: centerA.id,
+        professional_id: "11111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        license_number: "MP 9876",
+        is_active: true,
+      },
+      {
+        id: "22222222-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        center_id: centerA.id,
+        professional_id: "22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        license_number: "MP inactive",
+        is_active: false,
+      },
+      {
+        id: "33333333-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        center_id: centerB.id,
+        professional_id: "33333333-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        license_number: "MP other",
+        is_active: true,
+      },
+    );
+    tables.professionals.push(
+      {
+        id: "11111111-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        first_name: "Zoe",
+        last_name: "Disponible",
+      },
+      {
+        id: "22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        first_name: "Inés",
+        last_name: "Inactiva",
+      },
+      {
+        id: "33333333-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        first_name: "Cora",
+        last_name: "Otro centro",
+      },
+    );
+
+    await expect(
+      listAvailableProfessionalCenters(centerA.id, fakeClient({ tables })),
+    ).resolves.toEqual([
+      {
+        id: "11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        firstName: "Zoe",
+        lastName: "Disponible",
+        licenseNumber: "MP 9876",
+      },
+    ]);
+  });
+
+  it("returns an empty list when the Center has no eligible ProfessionalCenter", async () => {
+    await expect(
+      listAvailableProfessionalCenters(centerA.id, fakeClient({ tables: baseTables() })),
+    ).resolves.toEqual([]);
   });
 });

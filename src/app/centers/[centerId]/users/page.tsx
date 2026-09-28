@@ -4,7 +4,12 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CenterUsersScreen } from "@/modules/access/components/center-users-screen";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
-import { listCenterUsers, type CenterUserListItem } from "@/modules/access/server/center-users";
+import {
+  listAvailableProfessionalCenters,
+  listCenterUsers,
+  type AvailableProfessionalCenter,
+  type CenterUserListItem,
+} from "@/modules/access/server/center-users";
 
 const centerIdSchema = z.uuid();
 
@@ -31,10 +36,14 @@ export default async function CenterUsersPage({
   }
 
   let users: CenterUserListItem[] = [];
+  let professionalCenters: AvailableProfessionalCenter[] = [];
   let loadFailed = false;
 
   try {
-    users = await listCenterUsers(parsedCenterId.data, supabase);
+    [users, professionalCenters] = await Promise.all([
+      listCenterUsers(parsedCenterId.data, supabase),
+      listAvailableProfessionalCenters(parsedCenterId.data, supabase),
+    ]);
   } catch (error) {
     if (error instanceof AuthorizationError) {
       if (error.code === "UNAUTHENTICATED") redirect("/login");
@@ -46,9 +55,11 @@ export default async function CenterUsersPage({
 
   return (
     <CenterUsersScreen
+      actorUserId={context.user.id}
       centerId={context.center.id}
       centerName={context.center.name}
       loadFailed={loadFailed}
+      professionalCenters={professionalCenters}
       users={users}
     />
   );

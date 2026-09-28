@@ -38,11 +38,23 @@ Un mismo usuario puede tener diferentes roles en distintos centros.
 
 Solo Administrator gestiona usuarios del centro.
 
-El listado inicial read-only vive en `/centers/[centerId]/users`: muestra exclusivamente las
-memberships visibles del Center autorizado, identidad proyectada, rol, estado y la asociación
-Professional segura cuando existe. La ruta y su query requieren `ADMIN` tenant activo; ocultar el
-enlace es sólo una ayuda de UX. Alta, cambio de rol, activación/desactivación y edición del vínculo
-profesional se implementan en checkpoints posteriores de B3.
+El listado vive en `/centers/[centerId]/users`: muestra exclusivamente las memberships visibles del
+Center autorizado, identidad proyectada, rol, estado y la asociación Professional segura cuando
+existe. La ruta, sus queries y sus mutaciones requieren `ADMIN` tenant activo; ocultar el enlace es
+sólo una ayuda de UX.
+
+Desde esa pantalla, **Agregar usuario** resuelve el email exacto en servidor. Si la identidad ya
+existe, se reutiliza sin cambiar email, password, nombre, apellido ni accesos de otros Centers. Si
+no existe, se solicitan nombre, apellido y password inicial de al menos 10 caracteres y se usa el
+provisioning Auth confirmado → `public.users` → `center_memberships` ya aprobado. Una membership
+existente en el mismo Center se informa como estado terminal: no se duplica, reactiva, edita ni
+cambia de rol.
+
+El alta inicial admite Administrator, Reception y Professional. Professional sólo queda disponible
+cuando existe un `ProfessionalCenter` del mismo Center, activo y libre; el servidor y las
+invariantes B3A siguen siendo autoridad ante carreras o selecciones manipuladas. Cambio posterior
+de rol, activación/desactivación y edición o reasignación del vínculo profesional permanecen fuera
+de este flujo y corresponden a B3D.
 
 El administrador crea directamente al usuario con:
 - nombre;
@@ -94,6 +106,11 @@ Center + primer ADMIN, provisioning tenant y bootstrap reciben un `operation_id`
 intención se fija mediante un hash server-side que excluye la contraseña y rechaza reutilización con
 otro payload. `private.provisioning_operations` no tiene grants directos para `anon` ni
 `authenticated`; las lecturas/escrituras de lifecycle pasan por RPCs service-only estrechas.
+
+El alta tenant conserva en `sessionStorage` únicamente una intención no secreta acotada por actor y
+Center para recuperar el mismo `operation_id` tras refresh o pérdida de respuesta. El snapshot se
+valida fail-closed y nunca contiene password. El password existe sólo en memoria durante el submit
+y, en un retry que todavía lo requiera para crear Auth, debe ingresarse nuevamente.
 
 La RPC de negocio toma un advisory lock por operación. Si confirma, guarda `SUCCEEDED` y los IDs de
 resultado en la misma transacción; un retry devuelve esos mismos IDs. Si el caller pierde la

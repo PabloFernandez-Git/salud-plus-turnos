@@ -1,17 +1,22 @@
 import Link from "next/link";
 
-import type { CenterUserListItem } from "../server/center-users";
+import type { AvailableProfessionalCenter, CenterUserListItem } from "../server/center-users";
+import { AddCenterUserPanel } from "./add-center-user-panel";
 import { CenterUsersTable } from "./center-users-table";
 
 export function CenterUsersScreen({
+  actorUserId,
   centerId,
   centerName,
   loadFailed,
+  professionalCenters,
   users,
 }: {
+  actorUserId: string;
   centerId: string;
   centerName: string;
   loadFailed: boolean;
+  professionalCenters: AvailableProfessionalCenter[];
   users: CenterUserListItem[];
 }) {
   return (
@@ -24,8 +29,8 @@ export function CenterUsersScreen({
               <h1 className="text-3xl font-bold tracking-tight text-slate-950">Usuarios</h1>
               <p className="text-lg font-medium text-slate-800">{centerName}</p>
               <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                Consultá las cuentas, roles y accesos asociados a este centro. Esta pantalla es de
-                sólo lectura.
+                Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas
+                memberships sin modificar identidades existentes.
               </p>
             </div>
             <Link
@@ -45,17 +50,25 @@ export function CenterUsersScreen({
             No pudimos cargar los usuarios del centro. Actualizá la página para volver a intentarlo.
           </section>
         ) : (
-          <section className="space-y-3" aria-labelledby="center-users-heading">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-950" id="center-users-heading">
-                Usuarios del centro
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                El listado incluye accesos activos e inactivos visibles para este ADMIN.
-              </p>
-            </div>
-            <CenterUsersTable users={users} />
-          </section>
+          <>
+            <AddCenterUserPanel
+              actorUserId={actorUserId}
+              centerId={centerId}
+              professionalCenters={professionalCenters}
+            />
+
+            <section className="space-y-3" aria-labelledby="center-users-heading">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-950" id="center-users-heading">
+                  Usuarios del centro
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  El listado incluye accesos activos e inactivos visibles para este ADMIN.
+                </p>
+              </div>
+              <CenterUsersTable users={users} />
+            </section>
+          </>
         )}
       </div>
     </main>

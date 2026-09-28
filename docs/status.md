@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight, B3A y B3B completados
+**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight, B3A, B3B y B3C completados
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS`
 
 ## Completado
 
@@ -92,10 +92,20 @@
   permisos. Unit/component, E2E B3B y regresiones B1/B2/B3A pasan con baseline DEV intacto.
 - TASK-005B3B obtuvo `TASK-005B3B REVIEW PASS` y se cerró formalmente como checkpoint sin iniciar
   B3C/B3D ni cerrar TASK-005.
+- TASK-005B3C implementó el alta tenant staged por email exacto, reutilización segura de identidad,
+  creación de identidad nueva mediante el provisioning reconciliable existente y membership inicial
+  `ADMIN`, `RECEPTION` o `PROFESSIONAL`. Conserva un `operation_id` recuperable sin persistir el
+  password, bloquea Professional sin ProfessionalCenter elegible y no edita/reactiva memberships.
+  No requirió migrations, schema, RLS, grants ni RPCs nuevas. El finding B3C-R1 quedó corregido:
+  cada intento limpia el
+  password del FormData, DOM y estado React al finalizar, preservando sólo la intención no secreta
+  y el mismo operation ID para reconciliación.
+- TASK-005B3C obtuvo `TASK-005B3C REVIEW PASS`; B3C-R1 quedó `CLOSED` y B3C se cerró formalmente
+  como checkpoint sin iniciar B3D ni cerrar TASK-005.
 
 ## Próximo
 
-Esperar una instrucción posterior antes de iniciar B3C. B3D permanece sin iniciar.
+Esperar una instrucción posterior antes de iniciar B3D.
 
 ## Estado operativo
 
@@ -104,7 +114,8 @@ Esperar una instrucción posterior antes de iniciar B3C. B3D permanece sin inici
   working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
-  `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`. Brief, Plan,
+  `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`; B3C:
+  `COMPLETED / REVIEW PASS`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
 - Branch: `task/005-auth-users-center-access`.
@@ -122,9 +133,9 @@ Esperar una instrucción posterior antes de iniciar B3C. B3D permanece sin inici
   `platform_admins`, 1 Center activo, 1 membership ADMIN activa, 0 Professional, 0
   ProfessionalCenter y 0 Specialty. El User posee, de forma independiente, PLATFORM_ADMIN global y
   ADMIN tenant.
-- B3B no cambió DB: trece migrations locales/DEV siguen sincronizadas. Su E2E usa UUIDs propios y
+- B3C no cambió DB: trece migrations locales/DEV siguen sincronizadas. Su E2E usa UUIDs propios y
   cleanup exacto por IDs, sin `LIKE` ni prefijos amplios, y reconfirmó el baseline persistente
-  idéntico antes/después.
+  idéntico antes/después. B3B/B3A/Auth/provisioning/B1/B2 permanecen en PASS.
 - Center persistente: `Centro Médico Salud Plus`
   (`76dcbe41-38be-475d-a590-f4ae6619c1e8`, `America/Argentina/Buenos_Aires`).
 - `private.provisioning_operations` conserva dos operaciones reales `SUCCEEDED`: bootstrap

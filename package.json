@@ -22,6 +22,7 @@
     "test:e2e:auth-access:dev": "playwright test tests/e2e/auth-access.spec.mjs --workers=1",
     "test:e2e:platform-admin:dev": "playwright test tests/e2e/platform-admin.spec.mjs --workers=1",
     "test:e2e:center-users:dev": "playwright test tests/e2e/center-users.spec.mjs --workers=1",
+    "test:e2e:center-user-provisioning:dev": "playwright test tests/e2e/center-user-provisioning.spec.mjs --workers=1",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "verify": "pnpm check && pnpm build",
     "bootstrap": "node scripts/bootstrap.mjs",
