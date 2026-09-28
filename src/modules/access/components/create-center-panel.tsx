@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
 import {
@@ -89,7 +89,8 @@ function CenterDetailsForm({
   onPersistPendingIntent: (payload: PlatformCenterIntentPayload) => boolean;
   operationId: string;
 }) {
-  const [state, formAction] = useActionState(createPlatformCenterAction, initialCreateState);
+  const submitLatched = useRef(false);
+  const passwordInput = useRef<HTMLInputElement>(null);
   const [values, setValues] = useState(() => ({
     centerName: initialValues?.centerName ?? "",
     centerAddress: initialValues?.centerAddress ?? "",
@@ -100,6 +101,28 @@ function CenterDetailsForm({
     adminLastName: initialValues?.adminLastName ?? "",
     adminInitialPassword: "",
   }));
+  const createCenterWithLatch = useCallback(
+    async (previousState: PlatformActionState, formData: FormData) => {
+      try {
+        return await createPlatformCenterAction(previousState, formData);
+      } catch {
+        return {
+          status: "error" as const,
+          retryMode: "same-operation" as const,
+          message: "No pudimos confirmar el resultado. Reintentá esta misma operación.",
+        };
+      } finally {
+        formData.delete("adminInitialPassword");
+        if (passwordInput.current) passwordInput.current.value = "";
+        setValues((current) =>
+          current.adminInitialPassword === "" ? current : { ...current, adminInitialPassword: "" },
+        );
+        submitLatched.current = false;
+      }
+    },
+    [],
+  );
+  const [state, formAction] = useActionState(createCenterWithLatch, initialCreateState);
   const lockedPayload = useRef<PlatformCenterIntentPayload | null>(initialValues ?? null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const locksIntent = isRecoveredIntent || state.retryMode === "same-operation";
@@ -116,6 +139,11 @@ function CenterDetailsForm({
   }
 
   function persistIntentBeforeSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (submitLatched.current) {
+      event.preventDefault();
+      return;
+    }
+
     const payload =
       lockedPayload.current ??
       ({
@@ -139,6 +167,7 @@ function CenterDetailsForm({
     }
 
     lockedPayload.current = payload;
+    submitLatched.current = true;
     setStorageError(null);
   }
 
@@ -329,6 +358,7 @@ function CenterDetailsForm({
                 minLength={10}
                 name="adminInitialPassword"
                 onChange={(event) => updateValue("adminInitialPassword", event.target.value)}
+                ref={passwordInput}
                 required={!locksIntent || Boolean(state.fieldErrors?.adminInitialPassword)}
                 type="password"
                 value={values.adminInitialPassword}

@@ -1196,3 +1196,22 @@ permanecieron fuera de alcance. Los findings históricos del Reviewer no fueron 
   1 membership ADMIN activa, 2 provisioning operations reales `SUCCEEDED`, 0 Professionals,
   0 ProfessionalCenters y 0 Specialties.
 - PROD permaneció fuera de alcance y `next-env.d.ts` continúa como cambio preexistente separado.
+
+## TASK-005 — remediación del Integration Review — 2026-09-28
+
+**Estado:** `TASK-005 INTEGRATION REVIEW CHANGES_REQUESTED`; IR-1/IR-2/IR-3 implementados y
+verificados, pendientes de re-review independiente.
+
+La remediación quedó documentada por separado en `integration-review-remediation.md`, sin modificar
+la evidencia histórica del Reviewer ni autocerrar findings. En síntesis:
+
+- B2 limpia `adminInitialPassword` de estado React, DOM y `FormData` en `finally`, preserva la
+  intención no secreta y el mismo operation ID para reconciliación/retry;
+- B1 eliminó todo discovery/cleanup por `LIKE` o prefijo y registra/borra/prueba sólo UUIDs exactos
+  propios, con baseline fail-closed antes e igualdad completa después;
+- `docs/status.md` y el artefacto de remediación conservan la evidencia manual PASS de B3B/B3C/B3D.
+
+La verificación final pasó: unit/component 172/172, B1 9/9, B2 9/9, B3C 9/9, reconciliación,
+orquestación, Auth/RLS/grants, build aislado, guard de secretos, formato, lint, typecheck y
+`git diff --check`. DEV terminó en el baseline aprobado y con 14/14 migrations sincronizadas. No se
+inició otra subfase; TASK-005 sigue activa, PR no abierto y PROD fuera de alcance.

@@ -28,9 +28,22 @@ const poolerUrlFile = resolve("supabase/.temp/pooler-url");
 const runId = randomUUID().replaceAll("-", "").slice(0, 12);
 const originalPassword = `E2e-${runId}-password`;
 const updatedPassword = `Nueva-${runId}-password`;
+const expectedCenterId = "76dcbe41-38be-475d-a590-f4ae6619c1e8";
+const expectedOperationIds = [
+  "352a309e-f137-488e-b6e7-4b53e2cdb7b2",
+  "964ec4bf-eeba-4f4f-914a-d2a8ca101934",
+];
 const users = new Map();
-const centerIds = [];
+const fixtureAuthUserIds = new Set();
+const fixturePublicUserIds = new Set();
+const fixtureCenterIds = new Set();
+const fixtureMembershipIds = new Set();
+const fixturePlatformAdminUserIds = new Set();
+const centerIds = [randomUUID(), randomUUID(), randomUUID()];
+const membershipIds = Array.from({ length: 5 }, () => randomUUID());
 let database;
+let databaseConnected = false;
+let baselineBefore;
 
 function temporaryDatabaseConfig() {
   const stdout = execFileSync(
@@ -72,6 +85,106 @@ function assertNoError(error, context) {
   if (error) throw new Error(context, { cause: error });
 }
 
+function assertEqual(actual, expected, description) {
+  if (actual !== expected) {
+    throw new Error(`${description}: expected ${expected}, received ${actual}.`);
+  }
+}
+
+async function persistentSnapshot() {
+  const result = await database.query(
+    `select pg_catalog.jsonb_build_object(
+       'counts', pg_catalog.jsonb_build_object(
+         'auth_users', (select count(*)::int from auth.users),
+         'public_users', (select count(*)::int from public.users),
+         'platform_admins', (select count(*)::int from public.platform_admins),
+         'centers', (select count(*)::int from public.centers),
+         'active_centers', (select count(*)::int from public.centers where is_active),
+         'memberships', (select count(*)::int from public.center_memberships),
+         'active_admin_memberships', (
+           select count(*)::int from public.center_memberships where role='ADMIN' and is_active
+         ),
+         'operations', (select count(*)::int from private.provisioning_operations),
+         'succeeded_operations', (
+           select count(*)::int from private.provisioning_operations where status='SUCCEEDED'
+         ),
+         'professionals', (select count(*)::int from public.professionals),
+         'professional_centers', (select count(*)::int from public.professional_centers),
+         'specialties', (select count(*)::int from public.specialties)
+       ),
+       'auth_users', coalesce((
+         select pg_catalog.jsonb_agg(
+           pg_catalog.jsonb_build_object(
+             'id', id,
+             'email', email,
+             'encrypted_password', encrypted_password,
+             'raw_user_meta_data', raw_user_meta_data
+           ) order by id
+         ) from auth.users
+       ), '[]'::jsonb),
+       'public_users', coalesce((
+         select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(app_user) order by app_user.id)
+         from public.users app_user
+       ), '[]'::jsonb),
+       'platform_admins', coalesce((
+         select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(platform_admin) order by platform_admin.user_id)
+         from public.platform_admins platform_admin
+       ), '[]'::jsonb),
+       'centers', coalesce((
+         select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(center_record) order by center_record.id)
+         from public.centers center_record
+       ), '[]'::jsonb),
+       'memberships', coalesce((
+         select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(membership) order by membership.id)
+         from public.center_memberships membership
+       ), '[]'::jsonb),
+       'operations', coalesce((
+         select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(operation) order by operation.id)
+         from private.provisioning_operations operation
+       ), '[]'::jsonb)
+     ) as snapshot`,
+  );
+  return result.rows[0].snapshot;
+}
+
+function assertApprovedBaseline(snapshot, description) {
+  const expectedCounts = {
+    auth_users: 1,
+    public_users: 1,
+    platform_admins: 1,
+    centers: 1,
+    active_centers: 1,
+    memberships: 1,
+    active_admin_memberships: 1,
+    operations: 2,
+    succeeded_operations: 2,
+    professionals: 0,
+    professional_centers: 0,
+    specialties: 0,
+  };
+  for (const [kind, expected] of Object.entries(expectedCounts)) {
+    assertEqual(snapshot.counts[kind], expected, `${description} ${kind}`);
+  }
+  assertEqual(snapshot.centers[0]?.id, expectedCenterId, `${description} Center id`);
+  assertEqual(snapshot.centers[0]?.name, "Centro Médico Salud Plus", `${description} Center name`);
+  assertEqual(snapshot.centers[0]?.is_active, true, `${description} Center status`);
+  assertEqual(snapshot.memberships[0]?.role, "ADMIN", `${description} membership role`);
+  assertEqual(snapshot.memberships[0]?.is_active, true, `${description} membership status`);
+  assertEqual(
+    JSON.stringify(
+      snapshot.operations
+        .map(({ id, status }) => ({ id, status }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    ),
+    JSON.stringify(
+      expectedOperationIds
+        .map((id) => ({ id, status: "SUCCEEDED" }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    ),
+    `${description} provisioning operations`,
+  );
+}
+
 async function createUser(name) {
   const email = `task005b1-${runId}-${name}@example.test`;
   const { data, error } = await admin.auth.admin.createUser({
@@ -81,30 +194,32 @@ async function createUser(name) {
   });
   assertNoError(error, "No se pudo crear un Auth user E2E temporal.");
   if (!data.user) throw new Error("Auth no devolvió el usuario E2E creado.");
+  fixtureAuthUserIds.add(data.user.id);
   users.set(name, { email, id: data.user.id });
 }
 
-async function cleanupDatabase(userIds = [], centers = []) {
+async function cleanupDatabase() {
   await database.query("begin");
   try {
-    if (userIds.length > 0) {
-      await database.query(
-        "delete from public.center_memberships where user_id = any($1::uuid[])",
-        [userIds],
-      );
-      await database.query("delete from public.platform_admins where user_id = any($1::uuid[])", [
-        userIds,
+    if (fixtureMembershipIds.size > 0) {
+      await database.query("delete from public.center_memberships where id = any($1::uuid[])", [
+        [...fixtureMembershipIds],
       ]);
     }
-    if (centers.length > 0) {
-      await database.query(
-        "delete from public.center_memberships where center_id = any($1::uuid[])",
-        [centers],
-      );
-      await database.query("delete from public.centers where id = any($1::uuid[])", [centers]);
+    if (fixturePlatformAdminUserIds.size > 0) {
+      await database.query("delete from public.platform_admins where user_id = any($1::uuid[])", [
+        [...fixturePlatformAdminUserIds],
+      ]);
     }
-    if (userIds.length > 0) {
-      await database.query("delete from public.users where id = any($1::uuid[])", [userIds]);
+    if (fixtureCenterIds.size > 0) {
+      await database.query("delete from public.centers where id = any($1::uuid[])", [
+        [...fixtureCenterIds],
+      ]);
+    }
+    if (fixturePublicUserIds.size > 0) {
+      await database.query("delete from public.users where id = any($1::uuid[])", [
+        [...fixturePublicUserIds],
+      ]);
     }
     await database.query("commit");
   } catch (error) {
@@ -113,28 +228,13 @@ async function cleanupDatabase(userIds = [], centers = []) {
   }
 }
 
-async function cleanupAuth(userIds) {
+async function cleanupAuth() {
   const errors = [];
-  for (const userId of [...userIds].reverse()) {
+  for (const userId of [...fixtureAuthUserIds].reverse()) {
     const { error } = await admin.auth.admin.deleteUser(userId);
     if (error && error.status !== 404) errors.push(error);
   }
   if (errors.length > 0) throw new AggregateError(errors, "Falló el cleanup Auth E2E.");
-}
-
-async function cleanupStaleFixtures() {
-  const staleUsers = await database.query(
-    `select id from auth.users where email like 'task005b1-%@example.test'`,
-  );
-  const staleCenters = await database.query(
-    `select id from public.centers where name like 'TASK-005B1 %'`,
-  );
-  const staleUserIds = staleUsers.rows.map((row) => row.id);
-  const staleCenterIds = staleCenters.rows.map((row) => row.id);
-  if (staleUserIds.length === 0 && staleCenterIds.length === 0) return;
-
-  await cleanupDatabase(staleUserIds, staleCenterIds);
-  await cleanupAuth(staleUserIds);
 }
 
 async function createFixtures() {
@@ -147,30 +247,35 @@ async function createFixtures() {
       `insert into public.users (id,email,first_name,last_name) values ($1,$2,$3,$4)`,
       [user.id, user.email, name === "platform" ? "Plataforma" : "Persona", name],
     );
+    fixturePublicUserIds.add(user.id);
   }
 
   const createdCenters = await database.query(
-    `insert into public.centers (name,is_active)
-     values ($1,true),($2,true),($3,false)
+    `insert into public.centers (id,name,is_active)
+     values ($1,$2,true),($3,$4,true),($5,$6,false)
      returning id,name,is_active`,
     [
+      centerIds[0],
       `TASK-005B1 ${runId} Centro A`,
+      centerIds[1],
       `TASK-005B1 ${runId} Centro B`,
+      centerIds[2],
       `TASK-005B1 ${runId} Centro inactivo`,
     ],
   );
   const [centerA, centerB, inactiveCenter] = createdCenters.rows;
-  centerIds.push(centerA.id, centerB.id, inactiveCenter.id);
+  for (const { id } of createdCenters.rows) fixtureCenterIds.add(id);
 
   await database.query(
-    `insert into public.center_memberships (center_id,user_id,role,is_active)
+    `insert into public.center_memberships (id,center_id,user_id,role,is_active)
      values
-       ($1,$4,'RECEPTION',true),
-       ($1,$5,'ADMIN',true),
-       ($2,$5,'RECEPTION',true),
-       ($1,$6,'RECEPTION',false),
-       ($3,$6,'RECEPTION',true)`,
+       ($1,$6,$9,'RECEPTION',true),
+       ($2,$6,$10,'ADMIN',true),
+       ($3,$7,$10,'RECEPTION',true),
+       ($4,$6,$11,'RECEPTION',false),
+       ($5,$8,$11,'RECEPTION',true)`,
     [
+      ...membershipIds,
       centerA.id,
       centerB.id,
       inactiveCenter.id,
@@ -179,36 +284,56 @@ async function createFixtures() {
       users.get("inactive").id,
     ],
   );
+  for (const id of membershipIds) fixtureMembershipIds.add(id);
   await database.query("insert into public.platform_admins (user_id) values ($1)", [
     users.get("platform").id,
   ]);
+  fixturePlatformAdminUserIds.add(users.get("platform").id);
 
   return { centerA, centerB };
 }
 
 async function cleanupFixtures() {
-  const userIds = [...users.values()].map((user) => user.id);
+  if (!databaseConnected) return;
   const cleanupErrors = [];
 
   try {
-    await cleanupDatabase(userIds, centerIds);
+    await cleanupDatabase();
   } catch (error) {
     cleanupErrors.push(error);
   }
   try {
-    await cleanupAuth(userIds);
+    await cleanupAuth();
   } catch (error) {
     cleanupErrors.push(error);
   }
   try {
     const residue = await database.query(
       `select
-         (select count(*)::integer from auth.users where email like 'task005b1-%@example.test') as auth_users,
-         (select count(*)::integer from public.users where email like 'task005b1-%@example.test') as profiles,
-         (select count(*)::integer from public.centers where name like 'TASK-005B1 %') as centers`,
+         (select count(*)::integer from auth.users where id=any($1::uuid[])) as auth_users,
+         (select count(*)::integer from public.users where id=any($2::uuid[])) as profiles,
+         (select count(*)::integer from public.centers where id=any($3::uuid[])) as centers,
+         (select count(*)::integer from public.center_memberships where id=any($4::uuid[])) as memberships,
+         (select count(*)::integer from public.platform_admins where user_id=any($5::uuid[])) as platform_admins`,
+      [
+        [...fixtureAuthUserIds],
+        [...fixturePublicUserIds],
+        [...fixtureCenterIds],
+        [...fixtureMembershipIds],
+        [...fixturePlatformAdminUserIds],
+      ],
     );
     for (const [kind, count] of Object.entries(residue.rows[0])) {
       if (count !== 0) cleanupErrors.push(new Error(`Quedaron residuos E2E: ${kind}.`));
+    }
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+  try {
+    const baselineAfter = await persistentSnapshot();
+    assertApprovedBaseline(baselineAfter, "TASK-005B1 baseline after cleanup");
+    if (JSON.stringify(baselineAfter) !== JSON.stringify(baselineBefore)) {
+      cleanupErrors.push(new Error("El baseline DEV no fue restaurado byte-for-byte por B1."));
     }
   } catch (error) {
     cleanupErrors.push(error);
@@ -218,7 +343,9 @@ async function cleanupFixtures() {
     throw new AggregateError(cleanupErrors, "Falló el cleanup de fixtures E2E TASK-005B1.");
   }
 
-  console.log("TASK-005B1 E2E fixture cleanup verified: zero Auth, profile and Center residues.");
+  console.log(
+    "TASK-005B1 exact-ID cleanup verified: zero owned residues and baseline DEV restored.",
+  );
 }
 
 async function login(page, name, password = originalPassword) {
@@ -236,8 +363,10 @@ test.describe.serial("TASK-005B1 Auth UI and Center access", () => {
   test.beforeAll(async () => {
     database = new Client({ ...temporaryDatabaseConfig(), application_name: "task005b1-e2e" });
     await database.connect();
+    databaseConnected = true;
     await database.query("set role postgres");
-    await cleanupStaleFixtures();
+    baselineBefore = await persistentSnapshot();
+    assertApprovedBaseline(baselineBefore, "TASK-005B1 baseline before fixtures");
     ({ centerA, centerB } = await createFixtures());
   });
 
@@ -245,7 +374,10 @@ test.describe.serial("TASK-005B1 Auth UI and Center access", () => {
     try {
       await cleanupFixtures();
     } finally {
-      await database?.end();
+      if (databaseConnected) {
+        await database.end();
+        databaseConnected = false;
+      }
     }
   });
 

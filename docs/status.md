@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — A/B1/B2, preflight y B3A/B3B/B3C/B3D completados
+**Fase:** Auth, plataforma y acceso a centros — Integration Review aprobado; TASK-005 lista para PR
 **Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
 **Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS` · `TASK-005B3D COMPLETED / REVIEW PASS`
+**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS` · `TASK-005B3D COMPLETED / REVIEW PASS` · `TASK-005 INTEGRATION REVIEW PASS` · `TASK-005 READY FOR PR`
 
 ## Completado
 
@@ -113,11 +113,22 @@
   permanecen en PASS con baseline DEV idéntico y 14 migrations sincronizadas.
 - TASK-005B3D obtuvo `TASK-005B3D REVIEW PASS`; B3D-R1 quedó `CLOSED` y B3D se cerró formalmente
   como checkpoint. TASK-005 permanece activa y no se inició ninguna subfase adicional.
+- El smoke manual B3B pasó: listado ADMIN y navegación Center ↔ Users verificados.
+- El smoke manual B3C pasó: nueva identidad RECEPTION, login real, `/users` denegado para RECEPTION,
+  `/platform` denegado/redirigido, duplicate membership detectada y PROFESSIONAL bloqueado sin
+  ProfessionalCenter; cleanup exacto y baseline restaurado.
+- El smoke manual B3D pasó: protección visible del último ADMIN, PROFESSIONAL bloqueado sin
+  ProfessionalCenter, transiciones RECEPTION → ADMIN y ADMIN → RECEPTION, Active → Inactive e
+  Inactive → Active, `/users` denegado para RECEPTION y permitido para ADMIN; cleanup exacto y
+  baseline restaurado.
+- El re-review integral independiente cerró `IR-1`, `IR-2` e `IR-3`: lifecycle del password B2,
+  cleanup exacto B1 y evidencia manual quedaron verificados sin regresiones nuevas. TASK-005 sigue
+  activa, quedó `READY FOR PR` y el PR todavía no fue abierto.
 
 ## Próximo
 
-Realizar en una instancia posterior el smoke manual B3D y la revisión integral de TASK-005. No
-iniciar otra subfase ni cerrar/archivar TASK-005 todavía.
+Abrir el PR de TASK-005 en una instancia posterior. No iniciar otra subfase ni cerrar/archivar
+TASK-005 todavía.
 
 ## Estado operativo
 
@@ -130,6 +141,11 @@ iniciar otra subfase ni cerrar/archivar TASK-005 todavía.
   `COMPLETED / REVIEW PASS`; B3D: `COMPLETED / REVIEW PASS`; B3D-R1: `CLOSED`. Brief, Plan,
   propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
   tarea completa sigue abierta.
+- Integration Review: `PASS`; `IR-1 = CLOSED`, `IR-2 = CLOSED`, `IR-3 = CLOSED`; TASK-005 está
+  `READY FOR PR`. No existe PR abierto.
+- El Reviewer verificó que B2 limpia password de estado/DOM/FormData en todos los resultados y
+  conserva el mismo operation ID; B1 usa ownership/cleanup exclusivo por UUID y baseline
+  fail-closed; la evidencia manual B3B/B3C/B3D quedó persistida en el Harness.
 - Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
 - Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las once migrations de TASK-005 están
@@ -145,7 +161,8 @@ iniciar otra subfase ni cerrar/archivar TASK-005 todavía.
   `platform_admins`, 1 Center activo, 1 membership ADMIN activa, 0 Professional, 0
   ProfessionalCenter y 0 Specialty. El User posee, de forma independiente, PLATFORM_ADMIN global y
   ADMIN tenant.
-- B3C no cambió DB: trece migrations locales/DEV siguen sincronizadas. Su E2E usa UUIDs propios y
+- B3C no cambió DB en su checkpoint; el estado actual conserva catorce migrations locales/DEV
+  sincronizadas. Su E2E usa UUIDs propios y
   cleanup exacto por IDs, sin `LIKE` ni prefijos amplios, y reconfirmó el baseline persistente
   idéntico antes/después. B3B/B3A/Auth/provisioning/B1/B2 permanecen en PASS.
 - B3D-R1 requirió la migration incremental `20260928120000_make_membership_stale_check_atomic.sql`:
@@ -183,3 +200,12 @@ iniciar otra subfase ni cerrar/archivar TASK-005 todavía.
 - Rate limiting concreto antes de producción pública.
 - Playwright completo en CI cuando E2E tenga entorno aislado.
 - Sentry si el producto llega a necesitarlo.
+
+## Pendientes pre-PROD
+
+- Custom SMTP para recuperación/email.
+- Rate limiting definitivo para exposición pública.
+- Leaked-password protection de Auth.
+
+Estos puntos continúan separados de los findings DEV del Integration Review y no se clasifican como
+defectos de la remediación IR-1/IR-2/IR-3.
