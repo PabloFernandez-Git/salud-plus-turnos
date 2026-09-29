@@ -1,9 +1,10 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — Integration Review aprobado; TASK-005 lista para PR
-**Tarea activa:** TASK-005 — Auth, usuarios y acceso a centros
-**Última tarea completada:** TASK-004 — Esquema PostgreSQL inicial
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3A COMPLETED` · `TASK-005B3B COMPLETED / REVIEW PASS` · `TASK-005B3C COMPLETED / REVIEW PASS` · `TASK-005B3D COMPLETED / REVIEW PASS` · `TASK-005 INTEGRATION REVIEW PASS` · `TASK-005 READY FOR PR`
+**Fase:** Auth, plataforma y acceso a centros — integrada en `main`
+**Tarea activa:** ninguna; TASK-006 no iniciada
+**Última tarea completada:** TASK-005 — Auth, usuarios y acceso a centros
+**Estado:** `TASK-005 COMPLETED` · `TASK-005 INTEGRATION REVIEW PASS` · `PR #4 MERGED`
+**Squash commit:** `374f039a3a11ecb696a7f764a948bbf9a75996aa`
 
 ## Completado
 
@@ -74,10 +75,9 @@
   El smoke manual real confirmó login, `/platform`, creación de `Centro Médico Salud Plus`
   reutilizando la identidad existente como primer ADMIN, acceso tenant, refresh, logout y redirect
   directo al único Center activo al volver a iniciar sesión.
-- TASK-005B3 completó ANALYZE + PLAN y design review. B3-D1 fue aprobada con máximo una membership
-  PROFESSIONAL activa por ProfessionalCenter, preservando asociaciones inactivas históricas cuando
-  el modelo actual lo permite. B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`; TASK-005 continúa
-  activa.
+- TASK-005B3 completó ANALYZE + PLAN y design review. B3-D1 fue aprobada e implementada con máximo
+  una membership PROFESSIONAL activa por ProfessionalCenter, preservando asociaciones inactivas
+  históricas cuando el modelo actual lo permite.
 - TASK-005B3A implementó en DEV el UNIQUE parcial de ProfessionalCenter activo exclusivo y ajustó
   `admin_provision_center_user`/`admin_set_center_membership` con el lock común por Center,
   validaciones state-aware y postcondición concurrente del último ADMIN. La migration 13, las
@@ -90,8 +90,7 @@
   ADMIN activo del Center, con tabla de identidad/rol/estado/asociación Professional y navegación
   tenant mínima. Reutiliza SELECT + RLS/grants existentes, sin migrations, RPCs, DML ni ampliación de
   permisos. Unit/component, E2E B3B y regresiones B1/B2/B3A pasan con baseline DEV intacto.
-- TASK-005B3B obtuvo `TASK-005B3B REVIEW PASS` y se cerró formalmente como checkpoint sin iniciar
-  B3C/B3D ni cerrar TASK-005.
+- TASK-005B3B obtuvo `TASK-005B3B REVIEW PASS` y se cerró formalmente como checkpoint.
 - TASK-005B3C implementó el alta tenant staged por email exacto, reutilización segura de identidad,
   creación de identidad nueva mediante el provisioning reconciliable existente y membership inicial
   `ADMIN`, `RECEPTION` o `PROFESSIONAL`. Conserva un `operation_id` recuperable sin persistir el
@@ -101,7 +100,7 @@
   password del FormData, DOM y estado React al finalizar, preservando sólo la intención no secreta
   y el mismo operation ID para reconciliación.
 - TASK-005B3C obtuvo `TASK-005B3C REVIEW PASS`; B3C-R1 quedó `CLOSED` y B3C se cerró formalmente
-  como checkpoint sin iniciar B3D ni cerrar TASK-005.
+  como checkpoint.
 - TASK-005B3D implementó administración de memberships existentes en
   `/centers/[centerId]/users`: cambio entre ADMIN/RECEPTION/PROFESSIONAL, activación/desactivación
   lógica y selección/reasignación de ProfessionalCenter, con confirmación explícita y refresh desde
@@ -112,7 +111,7 @@
   Unit/component 168/168 y E2E B3D 6/6 pasan; B3C/B3B/B3A/Auth/provisioning/schema/B1/B2 y cleanup
   permanecen en PASS con baseline DEV idéntico y 14 migrations sincronizadas.
 - TASK-005B3D obtuvo `TASK-005B3D REVIEW PASS`; B3D-R1 quedó `CLOSED` y B3D se cerró formalmente
-  como checkpoint. TASK-005 permanece activa y no se inició ninguna subfase adicional.
+  como checkpoint. No se inició ninguna subfase adicional.
 - El smoke manual B3B pasó: listado ADMIN y navegación Center ↔ Users verificados.
 - El smoke manual B3C pasó: nueva identidad RECEPTION, login real, `/users` denegado para RECEPTION,
   `/platform` denegado/redirigido, duplicate membership detectada y PROFESSIONAL bloqueado sin
@@ -122,31 +121,30 @@
   Inactive → Active, `/users` denegado para RECEPTION y permitido para ADMIN; cleanup exacto y
   baseline restaurado.
 - El re-review integral independiente cerró `IR-1`, `IR-2` e `IR-3`: lifecycle del password B2,
-  cleanup exacto B1 y evidencia manual quedaron verificados sin regresiones nuevas. TASK-005 sigue
-  activa, quedó `READY FOR PR` y el PR todavía no fue abierto.
+  cleanup exacto B1 y evidencia manual quedaron verificados sin regresiones nuevas.
+- PR #4 se integró mediante squash merge en `main`. El commit
+  `374f039a3a11ecb696a7f764a948bbf9a75996aa` conserva exactamente el árbol del HEAD aprobado
+  `0effea6885f8b76659a5fa7163e2cfee68f6af5c` y no incluye `next-env.d.ts`.
+- TASK-005 y sus checkpoints B3B/B3C/B3D quedaron cerrados y archivados en el Harness.
 
 ## Próximo
 
-Abrir el PR de TASK-005 en una instancia posterior. No iniciar otra subfase ni cerrar/archivar
-TASK-005 todavía.
+Definir la próxima tarea mediante un Task Brief independiente. TASK-006 no fue iniciada por este
+cierre documental.
 
 ## Estado operativo
 
-- Branch: `task/005-auth-users-center-access`, creada desde `main` en
-  `7bf1aa3d50b31d7ce420c805af60fe5b9c2ce01d` después de confirmar sincronización con `origin/main` y
-  working tree limpio.
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:
-  `TASK-005B3A COMPLETED`; B3B: `COMPLETED / REVIEW PASS`; B3C:
-  `COMPLETED / REVIEW PASS`; B3D: `COMPLETED / REVIEW PASS`; B3D-R1: `CLOSED`. Brief, Plan,
-  propuesta e implementation report permanecen en `.harness/tasks/active/TASK-005/` porque la
-  tarea completa sigue abierta.
-- Integration Review: `PASS`; `IR-1 = CLOSED`, `IR-2 = CLOSED`, `IR-3 = CLOSED`; TASK-005 está
-  `READY FOR PR`. No existe PR abierto.
+  `TASK-005B3A COMPLETED`; B3B/B3C/B3D: `COMPLETED / REVIEW PASS`; B3C-R1 y B3D-R1: `CLOSED`.
+- Integration Review: `PASS`; `IR-1 = CLOSED`, `IR-2 = CLOSED`, `IR-3 = CLOSED`.
+- PR #4: `MERGED` mediante squash; `main` remoto y local quedaron en
+  `374f039a3a11ecb696a7f764a948bbf9a75996aa` al momento del cierre.
+- Los artefactos de TASK-005, TASK-005B3B, TASK-005B3C y TASK-005B3D están archivados bajo
+  `.harness/tasks/archive/`.
 - El Reviewer verificó que B2 limpia password de estado/DOM/FormData en todos los resultados y
   conserva el mismo operation ID; B1 usa ownership/cleanup exclusivo por UUID y baseline
   fail-closed; la evidencia manual B3B/B3C/B3D quedó persistida en el Harness.
-- Branch: `task/005-auth-users-center-access`.
 - `pnpm bootstrap` y health check DEV: PASS.
 - Supabase DEV: `ehllxymqyzrofydrvtzo` (`sa-east-1`). Las once migrations de TASK-005 están
   sincronizadas local/remoto; las tres de TASK-004 permanecen inmutables (catorce versiones totales).
@@ -177,7 +175,7 @@ TASK-005 todavía.
   `964ec4bf-eeba-4f4f-914a-d2a8ca101934`. Esta última reutilizó la identidad; no creó otra.
 - Cero Auth users con namespaces temporales conocidos de TASK-005. Los datos anteriores son
   persistentes de desarrollo y no deben borrarse ni entrar en cleanup de tests.
-- PROD, push, PR, cierre y archivo de TASK-005 permanecen fuera de alcance.
+- PROD permaneció fuera de alcance durante implementación, review, merge y cierre documental.
 
 ## Decisiones aprobadas de TASK-005
 
