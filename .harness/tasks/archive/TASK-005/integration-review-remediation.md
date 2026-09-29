@@ -4,9 +4,11 @@
 
 **Baseline:** `fc234d2976ba443334c5b96c894e07140265f176`
 
-**Veredicto vigente del Reviewer:** `TASK-005 INTEGRATION REVIEW PASS` · `TASK-005 READY FOR PR`
+**Veredicto final del Reviewer:** `TASK-005 INTEGRATION REVIEW PASS`
 
-**Estado de la tarea:** activa; lista para PR; no cerrada ni archivada; PR no abierto.
+**Estado de cierre:** `TASK-005 COMPLETED` · `PR #4 MERGED`
+
+**Squash commit:** `374f039a3a11ecb696a7f764a948bbf9a75996aa`
 
 Este artefacto registra la remediación del Implementer por separado. No modifica ni reemplaza la
 evidencia histórica del Reviewer y no marca los findings como cerrados; ese dictamen corresponde al
@@ -189,4 +191,8 @@ Las 14 migrations locales y DEV permanecen sincronizadas y no existe drift de ti
 
 `TASK-005 INTEGRATION REVIEW PASS`
 
-`TASK-005 READY FOR PR`
+`TASK-005 COMPLETED`
+
+`PR #4 MERGED`
+
+Squash commit: `374f039a3a11ecb696a7f764a948bbf9a75996aa`.

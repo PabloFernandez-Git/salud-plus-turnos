@@ -1,6 +1,8 @@
 # TASK-005 — Auth, usuarios y acceso a centros
 
-**Estado:** `TASK-005A COMPLETED` · `TASK-005B1 COMPLETED` · `TASK-005B2 COMPLETED` · `BOOTSTRAP PREFLIGHT REMEDIATION COMPLETED` · `TASK-005B3 DESIGN APPROVED FOR IMPLEMENTATION`
+**Estado:** `TASK-005 COMPLETED` · `TASK-005 INTEGRATION REVIEW PASS` · `PR #4 MERGED`
+
+**Squash commit:** `374f039a3a11ecb696a7f764a948bbf9a75996aa`
 
 ## Objetivo
 
@@ -149,3 +151,13 @@ posterior fueron ejecutados exitosamente bajo instrucción humana, dejando un PL
 Center y su primera membership ADMIN como datos persistentes de DEV. Estos checkpoints no cierran
 ni archivan TASK-005. TASK-005B3 queda `DESIGN APPROVED FOR IMPLEMENTATION`, sin haber creado código,
 migrations ni datos durante esta fase documental.
+
+## Cierre post-merge
+
+- TASK-005B3A/B3B/B3C/B3D quedaron implementadas y obtuvieron `REVIEW PASS`.
+- B3C-R1, B3D-R1, IR-1, IR-2 e IR-3 quedaron `CLOSED`.
+- El Integration Review final emitió `TASK-005 INTEGRATION REVIEW PASS`.
+- PR #4 fue integrado en `main` mediante squash merge.
+- Squash commit: `374f039a3a11ecb696a7f764a948bbf9a75996aa`.
+- Estado final: `TASK-005 COMPLETED`.
+- PROD permaneció fuera de alcance.
