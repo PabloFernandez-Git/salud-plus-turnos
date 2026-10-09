@@ -6,16 +6,20 @@ declare
     'center_memberships_select_self_or_center_admin',
     'centers_select_active_members',
     'platform_admins_select_self',
+    'professional_center_specialties_select_center_admin',
     'professional_centers_select_admin_or_linked_professional',
     'professionals_select_admin_or_linked_professional',
+    'specialties_select_center_admin',
     'users_select_self_or_center_admin'
   ];
   expected_select_tables constant text[] := array[
     'center_memberships',
     'centers',
     'platform_admins',
+    'professional_center_specialties',
     'professional_centers',
     'professionals',
+    'specialties',
     'users'
   ];
   secured_function regprocedure;
@@ -113,7 +117,7 @@ begin
     from pg_catalog.pg_policies
     where schemaname = 'public'
   ) is distinct from expected_policies then
-    raise exception 'The public RLS policy set differs from the approved six policies';
+    raise exception 'The public RLS policy set differs from the approved eight policies';
   end if;
 
   if (
@@ -132,7 +136,7 @@ begin
         )
     ) as granted_tables
   ) is distinct from expected_select_tables then
-    raise exception 'authenticated SELECT grants differ from the approved six tables';
+    raise exception 'authenticated SELECT grants differ from the approved eight tables';
   end if;
 
   if exists (

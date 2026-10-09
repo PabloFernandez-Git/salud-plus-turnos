@@ -1,0 +1,28 @@
+{
+  "valid": [
+    { "input": "user@example.com", "normalized": "user@example.com" },
+    { "input": "USER@EXAMPLE.COM", "normalized": "user@example.com" },
+    { "input": " user@example.com ", "normalized": "user@example.com" },
+    { "input": "a.b+c@example.test", "normalized": "a.b+c@example.test" },
+    { "input": "first_last@example-domain.test", "normalized": "first_last@example-domain.test" }
+  ],
+  "invalid": [
+    "a@example.test.",
+    "@example.com",
+    "user@",
+    "userexample.com",
+    "user @example.com",
+    "user@ example.com",
+    "user@example..com",
+    "user@.example.com",
+    ".user@example.com",
+    "user.@example.com",
+    "user..name@example.com",
+    "user@@example.com",
+    "user@-example.com",
+    "user@example-.com",
+    "user@example_com",
+    "user@example.c",
+    "user@example.123"
+  ]
+}

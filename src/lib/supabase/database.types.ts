@@ -522,6 +522,52 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_create_professional_with_center: {
+        Args: {
+          p_center_id: string;
+          p_document_number: string;
+          p_email: string;
+          p_first_name: string;
+          p_last_name: string;
+          p_license_number: string;
+          p_nationality_code: string;
+          p_phone: string;
+          p_usual_appointment_duration_minutes: number;
+        };
+        Returns: {
+          outcome: string;
+          professional_center_id: string;
+          professional_center_is_active: boolean;
+          professional_center_updated_at: string;
+          professional_id: string;
+        }[];
+      };
+      admin_create_specialty: {
+        Args: { p_center_id: string; p_description: string; p_name: string };
+        Returns: {
+          description: string;
+          is_active: boolean;
+          name: string;
+          specialty_id: string;
+          updated_at: string;
+        }[];
+      };
+      admin_link_professional_to_center: {
+        Args: {
+          p_center_id: string;
+          p_document_number: string;
+          p_expected_professional_center_updated_at: string;
+          p_nationality_code: string;
+          p_professional_id: string;
+        };
+        Returns: {
+          outcome: string;
+          professional_center_id: string;
+          professional_center_is_active: boolean;
+          professional_center_updated_at: string;
+          professional_id: string;
+        }[];
+      };
       admin_provision_center_user: {
         Args: {
           p_auth_user_id: string;
@@ -536,6 +582,21 @@ export type Database = {
           application_user_created: boolean;
           membership_id: string;
           user_id: string;
+        }[];
+      };
+      admin_resolve_professional_by_document: {
+        Args: {
+          p_center_id: string;
+          p_document_number: string;
+          p_nationality_code: string;
+        };
+        Returns: {
+          first_name: string;
+          last_name: string;
+          professional_center_id: string;
+          professional_center_updated_at: string;
+          professional_id: string;
+          resolution_status: string;
         }[];
       };
       admin_resolve_user_by_email: {
@@ -566,6 +627,81 @@ export type Database = {
           membership_id: string;
           professional_center_id: string;
           role: Database["public"]["Enums"]["membership_role"];
+        }[];
+      };
+      admin_set_professional_center_active: {
+        Args: {
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_is_active: boolean;
+          p_professional_center_id: string;
+        };
+        Returns: {
+          is_active: boolean;
+          professional_center_id: string;
+          updated_at: string;
+        }[];
+      };
+      admin_set_specialty_active: {
+        Args: {
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_is_active: boolean;
+          p_specialty_id: string;
+        };
+        Returns: {
+          description: string;
+          is_active: boolean;
+          name: string;
+          specialty_id: string;
+          updated_at: string;
+        }[];
+      };
+      admin_update_professional_center: {
+        Args: {
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_license_number: string;
+          p_professional_center_id: string;
+          p_usual_appointment_duration_minutes: number;
+        };
+        Returns: {
+          is_active: boolean;
+          license_number: string;
+          professional_center_id: string;
+          updated_at: string;
+          usual_appointment_duration_minutes: number;
+        }[];
+      };
+      admin_update_professional_center_specialties: {
+        Args: {
+          p_activate_specialty_ids: string[];
+          p_center_id: string;
+          p_deactivate_specialty_ids: string[];
+          p_expected_professional_center_updated_at: string;
+          p_professional_center_id: string;
+        };
+        Returns: {
+          activated_count: number;
+          deactivated_count: number;
+          professional_center_id: string;
+          professional_center_updated_at: string;
+        }[];
+      };
+      admin_update_specialty: {
+        Args: {
+          p_center_id: string;
+          p_description: string;
+          p_expected_updated_at: string;
+          p_name: string;
+          p_specialty_id: string;
+        };
+        Returns: {
+          description: string;
+          is_active: boolean;
+          name: string;
+          specialty_id: string;
+          updated_at: string;
         }[];
       };
       bind_auth_provisioning_operation: {
