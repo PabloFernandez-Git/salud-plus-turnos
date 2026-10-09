@@ -388,3 +388,42 @@ El baseline DEV fue `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc61
 antes y despues; el cleanup fue exacto.
 
 **Veredicto final: R1 CLOSED · R2 CLOSED · TASK-006B REVIEW PASS — READY FOR CHECKPOINT**
+
+## TASK-006C REVIEW (2026-10-09)
+
+### Diff y alcance
+
+- Base: `0e045881aa20428bde595004661656f9a11a9ed6` en `task/006-professionals-specialties`; HEAD local y remoto permanecen en ese checkpoint. Se revisaron los archivos tracked modificados y los 12 archivos nuevos aún untracked de la ruta y `src/modules/specialties/`. El único cambio en `src/modules/access/` es el enlace de navegación.
+- El alcance implementado es `/centers/[centerId]/specialties`: listar, crear, renombrar, activar y desactivar. No hay DELETE, UI de Professional/ProfessionalCenter, asignación PC ↔ Specialty, Availability, Appointments, Agenda ni Patients. La documentación `docs/modules/specialties.md` y el informe de implementación describen sólo esta vertical; no adelantan TASK-006D/E.
+- No se detectaron `insert`, `update` ni `delete` directos desde la aplicación, cliente tenant privilegiado, `SUPABASE_SECRET_KEY` ni `SUPABASE_SERVICE_ROLE_KEY` en los archivos nuevos. Las mutaciones usan el cliente server de la sesión autenticada y exclusivamente `admin_create_specialty`, `admin_update_specialty` y `admin_set_specialty_active`.
+
+### Seguridad y comportamiento
+
+- La página valida `centerId` y exige `requireRole(centerId, ["ADMIN"])`; la query vuelve a exigirlo y filtra `center_id`. Las Server Actions crean el cliente de sesión y reautorizan antes de validar el payload; las funciones de dominio también reautorizan. `requireRole` exige membership activa y Center activo, sin bypass PLATFORM_ADMIN. RECEPTION, PROFESSIONAL, PLATFORM_ADMIN-only y Center ajeno quedan denegados. Ocultar el enlace es sólo UX.
+- La policy SELECT de TASK-006B exige ADMIN activo del Center. Las tres RPC comprueban `auth.uid()` y el rol antes y después del advisory lock. Update y status buscan `specialty.id` junto con `specialty.center_id`; un ID de otro Center devuelve `RESOURCE_NOT_FOUND` sin objeto ajeno. No se modificaron grants/RLS.
+- El listado incluye filas activas e inactivas del Center actual, muestra su estado y tiene loading, vacío y error de carga. La creación aplica trim, exige nombre no vacío y longitud máxima en servidor. La DB conserva la autoridad de unicidad mediante `(center_id, lower(btrim(name)))`, también para filas inactivas; `Cardiología`, `cardiología` y ` Cardiología ` colisionan.
+- La edición expone sólo `name`. La descripción se relee en servidor para preservarla, sin confiar en un campo del formulario; no se editan ID, Center ni timestamps manualmente. Edit y status envían el `expected_updated_at` de la fila renderizada. Las RPC comparan el token bajo row lock antes de mutar; el no-op conserva el mismo token. El trigger monotónico de TASK-006B permanece intacto.
+- En edit/activate/deactivate stale se devuelve feedback comprensible; el componente cierra la selección y llama `router.refresh()` sin retry. Al cerrar la selección descarta el token local anterior. La desactivación requiere un segundo paso explícito y explica que la Specialty deja de estar operativa y conserva asociaciones. TASK-006C no toca `professional_center_specialties`.
+- El mapping separa validación Zod, duplicate name, stale, autorización y fallo inesperado, sin mostrar SQL ni objetos cross-center. La navegación conserva `Usuarios`, usa el `centerId` de la ruta y muestra `Especialidades` sólo a ADMIN.
+
+### Verificación independiente
+
+| Check | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS |
+| `pnpm test` | PASS: 30 archivos, 231/231 tests; incluye tests de ruta, query, Actions, CAS, UI/navegación y la regresión de `requireRole` para ADMIN, RECEPTION, PROFESSIONAL, PLATFORM_ADMIN-only y Center ajeno |
+| `pnpm lint`; `pnpm typecheck` | PASS; PASS |
+| Prettier focalizado sobre ruta, módulo y navegación | PASS mediante el binario local de Prettier |
+| `git diff --check` | PASS; sólo avisos de conversión LF/CRLF |
+| `pnpm format:check` global | FAIL por 81 archivos ajenos al diff. El documento `docs/modules/specialties.md` tampoco satisface Prettier, pero su versión en el checkpoint ya fallaba el mismo check; no se atribuye a TASK-006C. |
+
+Los tests focalizados usan mocks para los límites de ruta y Actions; no constituyen una prueba remota nueva de RLS/RPC. Se inspeccionaron además `requireRole`, la policy y las tres RPC de la foundation aprobada. No se ejecutaron E2E ni checks remotos en DEV ni se crearon fixtures: la evidencia remota reciente de TASK-006B registra 17 migrations local == 17 DEV y `db push --dry-run` sin pendientes. No afirmamos una nueva verificación remota. Tampoco se repitió el build del implementer, para mantener intacto `next-env.d.ts`.
+
+### Migrations, estado protegido y findings
+
+- TASK-006C agrega **0 migrations**. Las 17 migrations existentes no fueron editadas; tampoco los tipos generados. Las firmas y argumentos de las tres RPC utilizadas coinciden con `database.types.ts`. No hay cambios de grants ni RLS.
+- `next-env.d.ts` continúa modificado localmente, **unstaged**, fuera del diff de TASK-006C y con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC` antes y después de los checks.
+- No hubo mutación DEV atribuible a TASK-006C. No se accedió a PROD ni se lo modificó. No se stageó, commiteó, pusheó ni creó PR durante este review.
+- Findings BLOCKER: ninguno. HIGH: ninguno. MEDIUM: ninguno. LOW: ninguno.
+
+**TASK-006C REVIEW PASS — READY FOR CHECKPOINT**

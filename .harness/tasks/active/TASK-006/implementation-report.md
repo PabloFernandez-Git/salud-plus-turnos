@@ -292,3 +292,50 @@ migrations anteriores fue editada. No hubo commit de implementación, push ni PR
 permanece unstaged y fuera del alcance. PROD no fue consultado ni modificado.
 
 **TASK-006B REMEDIATION COMPLETE — AWAITING RE-REVIEW**
+
+## TASK-006C — Especialidades (review independiente PASS)
+
+### Preflight y alcance
+
+- Branch `task/006-professionals-specialties` y HEAD local/remoto
+  `0e045881aa20428bde595004661656f9a11a9ed6` coincidentes antes de implementar.
+- El único cambio previo era `next-env.d.ts`, SHA-256
+  `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`; no se editó ni
+  stageó para TASK-006C.
+- La paridad de 17 migrations locales == 17 DEV y `Remote database is up to date` fue verificada
+  manualmente por el usuario desde una terminal autenticada. El CLI local de esta sesión carece de
+  `SUPABASE_ACCESS_TOKEN`, por lo que no se repitió esa verificación aquí.
+- No se crearon ni editaron migrations. No hubo commit, push, PR ni acceso a PROD.
+
+### Implementación
+
+- Ruta dinámica `/centers/[centerId]/specialties` con guard ADMIN server-side y fallo not-found
+  para rol no autorizado o Center ajeno.
+- Módulo `src/modules/specialties/`: schemas Zod, query server-only, funciones de dominio que
+  llaman exclusivamente las tres RPCs aprobadas, Server Actions delgadas y componente de listado/
+  formularios. La descripción existente se conserva en edición mediante lectura server-side.
+- Nombre trimeado, no vacío y máximo 120 caracteres en Zod. La unicidad case-insensitive + trim,
+  incluida fila inactiva, permanece bajo autoridad de DB y el error se mapea a feedback específico.
+- Editar y cambiar estado envían el `expected_updated_at` renderizado. El error stale se muestra,
+  cierra el formulario y refresca el listado sin overwrite ni retry. Los no-op pasan por la RPC,
+  que conserva el token CAS. Desactivar requiere una segunda confirmación en la UI y comunica que
+  las asociaciones se conservan.
+- Enlace `Especialidades` en la navegación tenant sólo para ADMIN.
+
+### Verificación
+
+- Pruebas focalizadas: 6 archivos / 38 tests PASS. Cubren ruta ADMIN y denegaciones, listado,
+  create/edit/state, validación, CAS, errores duplicate/stale, preservación de descripción,
+  confirmación y navegación ADMIN-only.
+- Regresión unit/component completa: 30 archivos / 231 tests PASS, incluidas las regresiones
+  locales de Access y schemas de TASK-006B.
+- Build: PASS, ruta dinámica incluida. Guard de secretos fuente/bundle: PASS.
+- Lint, typecheck, Prettier focalizado y `git diff --check`: PASS.
+- Se intentó `pnpm db:test:task006b:dev`: el CLI terminó antes de conectar o crear fixtures porque
+  esta sesión no tiene `SUPABASE_ACCESS_TOKEN`. No hubo test remoto ni cambio de baseline.
+- No se ejecutaron E2E ni tests remotos/fixtures en DEV en esta subfase; el baseline persistente
+  no se modificó. La evidencia DB/RLS/CAS/concurrencia remota corresponde a TASK-006B.
+- El build regeneró automáticamente `next-env.d.ts`; se restauraron exactamente los bytes previos
+  y se verificó de nuevo su SHA-256 esperado. Sigue unstaged y fuera de TASK-006C.
+- Review independiente: `TASK-006C REVIEW PASS — READY FOR CHECKPOINT`, sin findings abiertos.
+  No se inicia TASK-006D ni se cierra TASK-006.
