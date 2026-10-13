@@ -29,8 +29,7 @@ const row = {
 function fakeClient(data = [row]) {
   const single = vi.fn(async () => ({ data: row, error: null }));
   const order = vi.fn(async () => ({ data, error: null }));
-  const maybeSingle = vi.fn(async () => ({ data: { description: "Conservada" }, error: null }));
-  const eq = vi.fn(() => ({ eq, order, maybeSingle }));
+  const eq = vi.fn(() => ({ eq, order }));
   const select = vi.fn(() => ({ eq }));
   const from = vi.fn(() => ({ select }));
   const rpc = vi.fn(() => ({ single }));
@@ -62,7 +61,7 @@ describe("Specialty server query and RPC boundary", () => {
     },
   );
 
-  it("uses approved RPCs; edit preserves description and passes CAS", async () => {
+  it("uses approved RPCs for optional and editable descriptions with CAS", async () => {
     vi.mocked(requireRole).mockResolvedValue({} as never);
     const fake = fakeClient();
     await createSpecialty({ centerId, name: " Cardiología " }, fake.client);
@@ -71,8 +70,14 @@ describe("Specialty server query and RPC boundary", () => {
       p_name: "Cardiología",
       p_description: "",
     });
+    await createSpecialty({ centerId, name: " Clínica ", description: "  Adultos  " }, fake.client);
+    expect(fake.rpc).toHaveBeenCalledWith("admin_create_specialty", {
+      p_center_id: centerId,
+      p_name: "Clínica",
+      p_description: "Adultos",
+    });
     await updateSpecialty(
-      { centerId, specialtyId, expectedUpdatedAt, name: "Clínica" },
+      { centerId, specialtyId, expectedUpdatedAt, name: "Clínica", description: "  Pediatría  " },
       fake.client,
     );
     expect(fake.rpc).toHaveBeenCalledWith("admin_update_specialty", {
@@ -80,7 +85,18 @@ describe("Specialty server query and RPC boundary", () => {
       p_specialty_id: specialtyId,
       p_expected_updated_at: expectedUpdatedAt,
       p_name: "Clínica",
-      p_description: "Conservada",
+      p_description: "Pediatría",
+    });
+    await updateSpecialty(
+      { centerId, specialtyId, expectedUpdatedAt, name: "Clínica", description: "  " },
+      fake.client,
+    );
+    expect(fake.rpc).toHaveBeenCalledWith("admin_update_specialty", {
+      p_center_id: centerId,
+      p_specialty_id: specialtyId,
+      p_expected_updated_at: expectedUpdatedAt,
+      p_name: "Clínica",
+      p_description: "",
     });
     await setSpecialtyActive(
       { centerId, specialtyId, expectedUpdatedAt, isActive: false, confirmed: true },

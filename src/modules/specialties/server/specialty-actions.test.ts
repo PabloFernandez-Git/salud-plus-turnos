@@ -53,7 +53,10 @@ describe("Specialty Server Actions", () => {
     expect(await performSpecialtyAction("create", form(), dependencies)).toMatchObject({
       status: "success",
     });
-    expect(dependencies.create).toHaveBeenCalledWith({ centerId, name: "Cardiología" }, client);
+    expect(dependencies.create).toHaveBeenCalledWith(
+      { centerId, name: "Cardiología", description: "" },
+      client,
+    );
     expect(dependencies.revalidate).toHaveBeenCalledWith(centerId);
   });
 
@@ -61,7 +64,30 @@ describe("Specialty Server Actions", () => {
     const dependencies = deps();
     await performSpecialtyAction("update", form(), dependencies);
     expect(dependencies.update).toHaveBeenCalledWith(
-      { centerId, specialtyId, expectedUpdatedAt, name: "Cardiología" },
+      { centerId, specialtyId, expectedUpdatedAt, name: "Cardiología", description: "" },
+      client,
+    );
+  });
+
+  it("accepts a description on create and edit, including clearing it", async () => {
+    const dependencies = deps();
+    await performSpecialtyAction("create", form({ description: "  Adultos  " }), dependencies);
+    expect(dependencies.create).toHaveBeenCalledWith(
+      { centerId, name: "Cardiología", description: "Adultos" },
+      client,
+    );
+    await performSpecialtyAction(
+      "update",
+      form({ name: " Clínica ", description: " Pediatría " }),
+      dependencies,
+    );
+    expect(dependencies.update).toHaveBeenCalledWith(
+      { centerId, specialtyId, expectedUpdatedAt, name: "Clínica", description: "Pediatría" },
+      client,
+    );
+    await performSpecialtyAction("update", form({ description: "   " }), dependencies);
+    expect(dependencies.update).toHaveBeenLastCalledWith(
+      { centerId, specialtyId, expectedUpdatedAt, name: "Cardiología", description: "" },
       client,
     );
   });
@@ -91,6 +117,16 @@ describe("Specialty Server Actions", () => {
     expect(dependencies.create).not.toHaveBeenCalled();
     expect(dependencies.update).not.toHaveBeenCalled();
     expect(dependencies.setActive).not.toHaveBeenCalled();
+  });
+
+  it("returns a field error for a non-text description without calling the RPC", async () => {
+    const dependencies = deps();
+    const payload = form();
+    payload.set("description", new File(["invalid"], "description.txt"));
+    const state = await performSpecialtyAction("create", payload, dependencies);
+    expect(state.status).toBe("error");
+    expect(state.fieldErrors?.description).toBeDefined();
+    expect(dependencies.create).not.toHaveBeenCalled();
   });
 
   it.each([

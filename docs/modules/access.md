@@ -27,6 +27,12 @@ o cuentas compartidas reutilizando el mismo vínculo. Alta, reactivación y camb
 exigen un ProfessionalCenter activo y libre. La desactivación pura conserva rol/vínculo y se permite
 aunque el ProfessionalCenter ya esté inactivo, porque reduce permisos.
 
+TASK-006 aplica también la regla inversa: `admin_set_professional_center_active` bloquea la
+desactivación del ProfessionalCenter si lo referencia una membership `PROFESSIONAL` activa. Una
+membership inactiva no bloquea. El administrador debe desactivar o reasignar primero el acceso en
+`/centers/[centerId]/users`; Profesionales muestra un enlace a esa pantalla y nunca cambia la
+membership como efecto lateral.
+
 Roles MVP:
 - Administrator;
 - Reception;

@@ -1,10 +1,57 @@
 # Estado actual
 
-**Fase:** Auth, plataforma y acceso a centros — integrada en `main`
-**Tarea activa:** ninguna; TASK-006 no iniciada
-**Última tarea completada:** TASK-005 — Auth, usuarios y acceso a centros
-**Estado:** `TASK-005 COMPLETED` · `TASK-005 INTEGRATION REVIEW PASS` · `PR #4 MERGED`
-**Squash commit:** `374f039a3a11ecb696a7f764a948bbf9a75996aa`
+**Fase:** TASK-006 — implementación completa y review final PASS; pendiente de checkpoint, PR y merge
+**Tarea activa:** TASK-006, pendiente de PR/merge
+**Último veredicto:** `TASK-006 FINAL REVIEW PASS — READY FOR FINAL CHECKPOINT AND PR`; FINAL-R1 y FINAL-R2 CLOSED
+**Rama / checkpoint previo:** `task/006-professionals-specialties` / `da6ea31968c256a569c5b235f432bc0431bd6127`
+**Integración previa:** TASK-005 completada y PR #4 integrada en `main`
+
+## Verificación final TASK-006
+
+- Supabase CLI 2.117.0: 17 migrations locales == 17 DEV; `db push --dry-run` sin pendientes;
+  `db lint --linked` sin errores. No se crearon ni editaron migrations en TASK-006F.
+- Baseline DEV exacto antes y después de regresiones y E2E:
+  `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+- TASK-006B DB/RLS/RPC/concurrencia, Auth foundation, B3A invariants, E2E B3D y E2E focalizado
+  TASK-006F pasaron con cleanup. Tras la remediación final, `pnpm test` pasó 308/308; lint,
+  typecheck, build, Prettier focalizado y guard de secretos del bundle cliente pasaron. El E2E
+  ampliado pasó 1/1 y el smoke manual humano 6/6.
+- El re-review final independiente cerró FINAL-R1 y FINAL-R2 sin findings nuevos. TASK-006 está
+  lista para el checkpoint final y PR; aún no fue mergeada ni archivada. PROD no fue consultado ni
+  modificado. `next-env.d.ts` permanece unstaged con su SHA previo a TASK-006.
+
+## Review final inicial TASK-006 (histórico)
+
+- Veredicto: `TASK-006 FINAL REVIEW CHANGES_REQUESTED` (2026-10-13). Hay dos findings MEDIUM
+  documentados en `.harness/tasks/active/TASK-006/review.md`: falta administrar la descripción
+  opcional de Specialty y falta completar el mínimo E2E/smoke aprobado en el plan.
+- La verificación local independiente pasó: 303/303 unit/component, lint, typecheck, Prettier
+  focalizado y `git diff --check`. La evidencia previa de integración DEV y baseline exacto se
+  conserva; el review no repitió mutaciones remotas. Sin commit, push, PR, merge ni acceso a PROD.
+
+## Remediación del review final y smoke (histórico)
+
+- `Specialty.description` ya se puede crear, editar, limpiar y ver desde la UI mediante las RPCs
+  existentes. Se amplió el E2E para edición, nombre inactivo reservado, stale/refresh, denegación
+  de membership inactiva y resolución D4 desde Usuarios. No hay migrations nuevas.
+- La verificación DEV de la remediación pasó: CLI 2.117.0, 17 migrations locales y remotas
+  iguales, dry-run sin pendientes, E2E ampliado 1/1, DB lint sin errores y baseline BEFORE/AFTER
+  exacto `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+  Unit/component 308/308, lint, typecheck, build, Prettier, diff check y guard de secretos pasan.
+  El smoke manual humano pasó 6/6. El cleanup de sus fixtures está detenido hasta confirmar el
+  ownership exacto de dos Specialties y del usuario de prueba inventariados por UUID; en ese
+  momento aún no se había restaurado el baseline DEV posterior al smoke. Los dos findings MEDIUM
+  seguían abiertos hasta el re-review.
+- Mientras se espera esa confirmación, la verificación read-only de CLI 2.117.0 mantiene
+  17 migrations locales == 17 DEV y dry-run sin pendientes. No se ejecutó DELETE.
+- Luego la persona usuaria confirmó ownership por UUID de las dos Specialties, el Professional y
+  el Auth user del smoke. Se eliminaron exclusivamente esas filas y sus relaciones/operación por
+  IDs exactos, tras validar el grafo dentro de una transacción serializable. El baseline DEV
+  post-cleanup volvió al SHA-256 aprobado
+  `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+  CLI 2.117.0 confirmó 17 migrations locales == 17 DEV y dry-run sin pendientes tras reintentar
+  un timeout de conexión aislado. PROD no se consultó ni modificó. Posteriormente el re-review
+  independiente cerró FINAL-R1 y FINAL-R2; `review.md` conserva los findings como historial.
 
 ## Completado
 
@@ -129,10 +176,10 @@
 
 ## Próximo
 
-Definir la próxima tarea mediante un Task Brief independiente. TASK-006 no fue iniciada por este
-cierre documental.
+Crear el checkpoint final y preparar el PR de TASK-006. No declarar merge, archivar ni crear la
+retrospectiva final antes de completar esos pasos y su aceptación.
 
-## Estado operativo
+## Estado operativo al cierre de TASK-005 (histórico)
 
 - TASK-005 Fase A: `TASK-005A COMPLETED`; B1: `TASK-005B1 COMPLETED`; B2:
   `TASK-005B2 COMPLETED`; remediación de preflight: `COMPLETED`; B3:

@@ -21,6 +21,7 @@ const emailContractCases = JSON.parse(
   ),
 );
 const expectedCenterId = "76dcbe41-38be-475d-a590-f4ae6619c1e8";
+const expectedBaselineDigest = "e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a";
 const expectedOperationIds = [
   "352a309e-f137-488e-b6e7-4b53e2cdb7b2",
   "964ec4bf-eeba-4f4f-914a-d2a8ca101934",
@@ -1669,6 +1670,23 @@ async function verifyConcurrency(control, clientA, clientB) {
     invariantPcId,
     "D4 final membership link",
   );
+}
+
+if (process.argv.includes("--baseline-only")) {
+  const baselineControl = await connect("baseline-only");
+  try {
+    const snapshot = await persistentSnapshot(baselineControl);
+    assertApprovedBaseline(snapshot, "DEV baseline before TASK-006F tests");
+    assertEqual(
+      snapshotDigest(snapshot),
+      expectedBaselineDigest,
+      "exact approved DEV baseline digest",
+    );
+    console.log(`DEV baseline before TASK-006F: sha256=${snapshotDigest(snapshot)}.`);
+  } finally {
+    await baselineControl.end();
+  }
+  process.exit(0);
 }
 
 let control;

@@ -43,10 +43,11 @@ afterEach(() => {
 
 describe("SpecialtiesScreen", () => {
   it("shows title, list, empty and failed states", () => {
-    const view = show();
+    const view = show([{ ...specialty, description: "Atención de adultos" }]);
     expect(screen.getByRole("heading", { level: 1, name: "Especialidades" })).toBeVisible();
     expect(screen.getByText("Cardiología")).toBeVisible();
     expect(screen.getByText("Activa")).toBeVisible();
+    expect(screen.getByText("Atención de adultos")).toBeVisible();
     view.rerender(
       <SpecialtiesScreen
         centerId={centerId}
@@ -77,8 +78,54 @@ describe("SpecialtiesScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
     await waitFor(() => expect(create).toHaveBeenCalledOnce());
     expect(create.mock.calls[0][0].get("name")).toBe("Dermatología");
+    expect(create.mock.calls[0][0].get("description")).toBe("");
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(screen.queryByRole("textbox", { name: "Nombre" })).not.toBeInTheDocument();
+  });
+
+  it("sends description on create and edit, and supports clearing it", async () => {
+    create.mockResolvedValue({ status: "success", message: "Especialidad creada." });
+    update.mockResolvedValue({ status: "success", message: "Especialidad actualizada." });
+    const view = show([]);
+    fireEvent.click(screen.getByRole("button", { name: "Nueva especialidad" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Nombre" }), {
+      target: { value: "Clínica" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Descripción (opcional)" }), {
+      target: { value: "Adultos" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => expect(create.mock.calls[0][0].get("description")).toBe("Adultos"));
+    view.rerender(
+      <SpecialtiesScreen
+        centerId={centerId}
+        centerName="Centro Salud"
+        loadFailed={false}
+        specialties={[{ ...specialty, description: "Adultos" }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    expect(screen.getByRole("textbox", { name: "Descripción (opcional)" })).toHaveValue("Adultos");
+    fireEvent.change(screen.getByRole("textbox", { name: "Descripción (opcional)" }), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => expect(update.mock.calls[0][0].get("description")).toBe(""));
+  });
+
+  it("shows server validation feedback beside description", async () => {
+    create.mockResolvedValue({
+      status: "error",
+      message: "Revisá los datos ingresados.",
+      fieldErrors: { description: ["Descripción inválida."] },
+    });
+    show([]);
+    fireEvent.click(screen.getByRole("button", { name: "Nueva especialidad" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Nombre" }), {
+      target: { value: "Clínica" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    await waitFor(() => expect(screen.getByText("Descripción inválida.")).toBeVisible());
   });
 
   it("edits with the row CAS token and refreshes after stale without retry", async () => {

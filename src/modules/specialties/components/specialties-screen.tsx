@@ -28,12 +28,14 @@ export function SpecialtiesScreen({
   const router = useRouter();
   const [selection, setSelection] = useState<Selection | null>(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [feedback, setFeedback] = useState<SpecialtyActionState | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function select(next: Selection | null) {
     setSelection(next);
     setName(next?.mode === "edit" ? next.specialty.name : "");
+    setDescription(next?.mode === "edit" ? (next.specialty.description ?? "") : "");
     setFeedback(null);
   }
 
@@ -51,6 +53,7 @@ export function SpecialtiesScreen({
       formData.set("confirmed", "true");
     } else {
       formData.set("name", name);
+      formData.set("description", description);
     }
 
     setFeedback(null);
@@ -66,6 +69,7 @@ export function SpecialtiesScreen({
         if (result.status === "success" || result.status === "stale") {
           setSelection(null);
           setName("");
+          setDescription("");
           router.refresh();
         }
       } catch {
@@ -80,6 +84,7 @@ export function SpecialtiesScreen({
   }
 
   const fieldError = feedback?.fieldErrors?.name?.[0];
+  const descriptionError = feedback?.fieldErrors?.description?.[0];
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
@@ -153,18 +158,33 @@ export function SpecialtiesScreen({
                 )}
                 <form onSubmit={submit} className="mt-4 space-y-4">
                   {selection.mode !== "state" && (
-                    <label className="block max-w-lg space-y-1 text-sm font-medium text-slate-800">
-                      <span>Nombre</span>
-                      <input
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        maxLength={120}
-                        required
-                        disabled={isPending}
-                        className="w-full rounded-md border border-slate-300 px-3 py-2"
-                      />
-                      {fieldError && <span className="text-red-700">{fieldError}</span>}
-                    </label>
+                    <div className="max-w-lg space-y-4">
+                      <label className="block space-y-1 text-sm font-medium text-slate-800">
+                        <span>Nombre</span>
+                        <input
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          maxLength={120}
+                          required
+                          disabled={isPending}
+                          className="w-full rounded-md border border-slate-300 px-3 py-2"
+                        />
+                        {fieldError && <span className="text-red-700">{fieldError}</span>}
+                      </label>
+                      <label className="block space-y-1 text-sm font-medium text-slate-800">
+                        <span>Descripción (opcional)</span>
+                        <textarea
+                          value={description}
+                          onChange={(event) => setDescription(event.target.value)}
+                          disabled={isPending}
+                          rows={3}
+                          className="w-full rounded-md border border-slate-300 px-3 py-2"
+                        />
+                        {descriptionError && (
+                          <span className="text-red-700">{descriptionError}</span>
+                        )}
+                      </label>
+                    </div>
                   )}
                   <div className="flex gap-3">
                     <button
@@ -202,6 +222,7 @@ export function SpecialtiesScreen({
                   <thead className="bg-slate-100 text-slate-700">
                     <tr>
                       <th className="p-4">Nombre</th>
+                      <th className="p-4">Descripción</th>
                       <th className="p-4">Estado</th>
                       <th className="p-4">Acciones</th>
                     </tr>
@@ -210,6 +231,9 @@ export function SpecialtiesScreen({
                     {specialties.map((specialty) => (
                       <tr key={specialty.id} className="border-t border-slate-200">
                         <td className="p-4 font-medium text-slate-900">{specialty.name}</td>
+                        <td className="max-w-md p-4 text-slate-700">
+                          {specialty.description ?? "Sin descripción"}
+                        </td>
                         <td className="p-4">{specialty.is_active ? "Activa" : "Inactiva"}</td>
                         <td className="flex flex-wrap gap-2 p-4">
                           <button

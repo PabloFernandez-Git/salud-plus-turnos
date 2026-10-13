@@ -21,6 +21,29 @@ describe("specialty schemas", () => {
     );
   });
 
+  it("normalizes optional descriptions without inventing a DB length limit", () => {
+    expect(createSpecialtySchema.parse({ centerId, name: "Clínica" }).description).toBe("");
+    expect(
+      createSpecialtySchema.parse({ centerId, name: "Clínica", description: null }).description,
+    ).toBe("");
+    expect(
+      createSpecialtySchema.parse({ centerId, name: "Clínica", description: "  Adultos  " })
+        .description,
+    ).toBe("Adultos");
+    expect(
+      updateSpecialtySchema.parse({
+        centerId,
+        specialtyId,
+        expectedUpdatedAt,
+        name: "Clínica",
+        description: "   ",
+      }).description,
+    ).toBe("");
+    expect(
+      createSpecialtySchema.safeParse({ centerId, name: "Clínica", description: 5 }).success,
+    ).toBe(false);
+  });
+
   it("requires a valid scoped identity and CAS token for edits", () => {
     expect(
       updateSpecialtySchema.safeParse({ centerId, specialtyId, expectedUpdatedAt, name: "Clínica" })

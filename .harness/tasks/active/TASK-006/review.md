@@ -548,3 +548,237 @@ DEV no fue consultado ni modificado en este review. La paridad `17 local == 17 D
 BLOCKER: ninguno. HIGH: ninguno. MEDIUM: ninguno. LOW: ninguno.
 
 **TASK-006E REVIEW PASS — READY FOR CHECKPOINT**
+
+## TASK-006F INTEGRATION VERIFICATION — BLOCKED (2026-10-13)
+
+La verificación independiente de TASK-006F no pudo comenzar en DEV. Preflight Git y SHA de
+`next-env.d.ts` coincidieron exactamente con el checkpoint `da6ea31968c256a569c5b235f432bc0431bd6127`.
+`pnpm bootstrap` pasó y se contaron 17 migrations SQL locales. El primer intento de
+`pnpm exec supabase migration list` no alcanzó el proyecto: pnpm intentó reconstruir dependencias
+y el registro respondió `EACCES`. Se detuvo el intento y se eliminó sólo `.pnpm-store/`, generado
+por él. No hay autenticación Supabase detectada en la sesión, por lo que se cumplió el gate del
+usuario: ninguna consulta de baseline, test remoto ni fixture se ejecutó.
+
+Paridad DEV, baseline antes/después, E2E/smoke, regresión DB/RPC, matriz de autorización real,
+CAS/concurrencia y suite/build/security actuales no tienen resultado de TASK-006F. La evidencia
+previa de TASK-006B–E permanece en las secciones anteriores y no se eleva a PASS de integración.
+No se detectó un finding nuevo de producto; el bloqueo es operativo y requiere restaurar el login
+de Supabase antes de continuar. Cero migrations nuevas, cero mutaciones DEV/PROD, sin stage, commit,
+push ni PR.
+
+**TASK-006F BLOCKED**
+
+## TASK-006F INTEGRATION VERIFICATION — RESUMED / PASS (2026-10-13)
+
+El bloqueo anterior se conserva como evidencia histórica. Tras restaurarse la sesión Supabase,
+se midió **antes de fixtures** el baseline completo DEV con digest exacto
+`e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+La última medición, después de todas las regresiones y E2E, devolvió el mismo digest. Cada runner
+con fixtures verificó ownership/cleanup; el E2E nuevo elimina sólo UUIDs de sus dos Centers
+temporales y falló cerrado ante un baseline inicial distinto.
+
+| Gate | Resultado |
+| --- | --- |
+| Preflight / CLI | Rama y HEAD esperados; staging vacío; Supabase CLI 2.117.0. |
+| Migrations / DB lint | 17 local == 17 DEV; dry-run sin pendientes; cero errores de schema. |
+| E2E integración | 1/1 PASS, un worker, con flujo Specialty → Professional → PC → asociaciones → inactivación/reactivación, vínculo entre Centers, D2, D4 y rutas denegadas. |
+| DB/RPC/RLS | Runner TASK-006B PASS con baseline exacto antes/después y concurrencia lock-observed. |
+| Access | Auth foundation PASS; B3A PASS; E2E Auth 9/9 y B3D 6/6 PASS; schema/concurrencia PASS. |
+| Calidad | 303/303 unit/component; lint, typecheck, build, Prettier focalizado, `git diff --check` y secret guard PASS. |
+| Baseline final / scope | SHA aprobado exacto; 0 migrations nuevas/editadas; PROD intacto. |
+
+El E2E inicial había supuesto que un 404 cambiaba la URL; la ruta preserva la URL y muestra
+correctamente 404. Se ajustó esa aserción del test, se comprobó el cleanup exacto y se reejecutó
+el flujo final con PASS. No se cambió producto para acomodar el test.
+
+Las decisiones D1–D8 mantienen evidencia coherente entre código, tests de límites, E2E y DB:
+identidad global inmutable; proyección mínima D2; documento PostgreSQL; D4 atómico sin cascade;
+asociaciones retenidas por Specialty inactiva; PC único/reutilizable; ADMIN-only con RLS; CAS
+under lock con stale sin efectos parciales, token monotónico en cambios y no-op determinista.
+La matriz de ruta se observó en DEV para ADMIN, RECEPTION, PROFESSIONAL, PLATFORM_ADMIN-only,
+anon y cross-center; las Actions y los IDs manipulados están cubiertos por tests de módulo y las
+RPCs/RLS por el runner real. D-R1 y email pasaron en validación server/DB sin drift de contrato.
+
+No hay findings BLOCKER, HIGH, MEDIUM ni LOW abiertos en esta fase. El review final integral de
+TASK-006 sigue pendiente; no se archivó la tarea ni se creó retrospectiva. `next-env.d.ts`
+conserva SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`,
+unstaged. Sin stage, commit, push, PR, merge ni acceso a PROD.
+
+**TASK-006F INTEGRATION PASS — READY FOR FINAL TASK-006 REVIEW**
+
+## TASK-006 FINAL REVIEW (2026-10-13)
+
+### Alcance y preflight
+
+Review independiente del diff acumulado desde `4760c77360fdadea6e0f2cfdc143da23cbba4e1a` hasta
+`da6ea31968c256a569c5b235f432bc0431bd6127`, más todos los cambios actuales de TASK-006F y
+el archivo E2E untracked. Rama `task/006-professionals-specialties`; HEAD local igual a
+`origin/task/006-professionals-specialties`; staging vacío. `next-env.d.ts` es ajeno y conserva
+SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+Se leyeron brief, plan, implementation-report, review histórico y `docs/status.md`; se contrastaron
+con código, migrations, tests, scripts y documentación modular. `pnpm bootstrap` pasó.
+
+### Resultado por contrato
+
+- D1–D8: la implementación revisada preserva inmutabilidad global, divulgación mínima del resolve,
+  autoridad PostgreSQL documental, bloqueo D4 bajo lock, asociaciones retenidas con Specialty
+  inactiva, PC único por Professional+Center, ADMIN tenant como autoridad y CAS/no-op monotónico.
+  D-R1 LOW permanece CLOSED: resolve/create rechazan `---` en el servidor y DB sigue canonicalizando.
+- DB/API: sólo tres migrations nuevas y 17 totales. Las 14 anteriores no se editaron. Las nueve
+  RPCs usan `SECURITY DEFINER`, `search_path = ''`, autorización ADMIN y grants `EXECUTE` limitados a
+  `authenticated`; no se observó DML tenant genérico ni DELETE de producto. El trigger conserva
+  `greatest(clock_timestamp(), OLD.updated_at + interval '1 microsecond')`. Tests SQL/runner cubren
+  RLS/grants, cross-center, no-op, stale, batch atómico y concurrencia observada.
+- Specialties: list/create/rename/estado, unicidad `lower(btrim(name))` aun inactiva y CAS existen;
+  queda incompleta la descripción opcional, detallada en F1.
+- Professionals y asociaciones: el flujo staged, vinculación/reactivación de la misma fila, matrícula,
+  duración, D4, batch de deltas, preservación por omisión y desasociación explícita se corresponden
+  con las RPCs. La UI y la API de TASK-006 no crean Auth/User/membership implícitamente. El resolve
+  retorna sólo nombre/apellido, estado local y soporte técnico opaco; no se detectaron props, logs ni
+  errores que expongan email, teléfono, documento almacenado u otros Centers.
+- Autorización: rutas, queries, Actions, funciones server y RPC revalidan ADMIN del Center activo;
+  RLS limita SELECT por Center. El runner de DB y el E2E reportan denegación para RECEPTION,
+  PROFESSIONAL, PLATFORM_ADMIN-only, anon y cross-center. El E2E omite membership inactiva (F2).
+- DEV/fixtures: la evidencia TASK-006F registra CLI 2.117.0, 17 local == 17 DEV, dry-run sin
+  pendientes, DB lint sin errores y digest DEV antes/después idéntico
+  `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`. El modo nuevo
+  `--baseline-only` se bifurca antes del runner mutante y ejecuta sólo el SELECT de snapshot,
+  validación y digest. El E2E usa dos Centers/UUID propios, borra por IDs exactos y verifica el
+  baseline fail-closed; no usa LIKE, ILIKE ni cleanup por prefijo. El flujo E2E es integración real
+  de navegador, Auth, RPC y DB, pero no satisface todo el mínimo del plan (F2).
+- Regresión/calidad: el reporte TASK-006F registra Auth foundation, B3A, B3D 6/6, Auth E2E 9/9,
+  schema, build, secret guard y DB lint PASS. En este review se reejecutaron `pnpm test` (38 archivos,
+  303/303), `pnpm lint`, `pnpm typecheck`, Prettier focalizado y `git diff --check`: PASS. No se
+  repitieron fixtures ni mutaciones remotas. El escaneo de patrones de tokens en commits de TASK-006,
+  diff actual y E2E untracked no halló valores con forma de secreto; el guard de bundle reportado
+  pasó. No se detectó ampliación a Availability, Patients, Appointments, Agenda, historia clínica,
+  vacaciones, reservas públicas, recordatorios o billing.
+- Documentación/estado: `docs/status.md` deja TASK-006 pendiente de review final, sin afirmar merge,
+  PR integrado o archivo. `docs/modules` refleja D1–D8; el módulo Specialties aún presenta la
+  descripción como campo del catálogo mientras la UI no la administra (F1). No hay evidencia de
+  acceso a PROD; este review no consultó ni modificó PROD.
+
+### Findings abiertos
+
+**F1 — MEDIUM — La descripción de Specialty no se puede crear ni editar desde la administración.**
+
+- Evidencia y ubicación: `brief.md:184-186` exige descripción opcional y edición de nombre y
+  descripción; `plan.md:474,478` pide schema y tabla con descripción. En
+  `src/modules/specialties/schemas/specialty.ts:17-22` los schemas sólo incluyen `name`;
+  `src/modules/specialties/components/specialties-screen.tsx:30,53,157,204-206` sólo ofrece y
+  muestra nombre; `src/modules/specialties/server/specialties.ts:52,67-83` fuerza descripción vacía
+  al crear y preserva la anterior al editar. La RPC sí acepta `p_description`.
+- Impacto: un ADMIN no puede registrar ni mantener el dato aprobado; el criterio funcional de
+  Specialties y el plan de TASK-006C quedan incompletos pese a que los tests actuales pasan.
+- Corrección esperada: permitir descripción opcional en create/edit, normalizar vacío a NULL,
+  mostrarla en el listado, enviarla a las RPCs con CAS y cubrirlo con pruebas de módulo e integración.
+
+**F2 — MEDIUM — El E2E TASK-006F y el smoke no cubren todo el mínimo de integración aprobado.**
+
+- Evidencia y ubicación: `plan.md:569-586` requiere edición de Specialty, nombre reservado cuando
+  está inactiva, membership inactiva denegada, stale/refresh con estado persistido y smoke manual;
+  `plan.md:558,575-576` requiere comprobar la resolución de D4 hacia Usuarios. En
+  `tests/e2e/task-006-integration.spec.mjs:274-283,334-379` se crean y cambian estados de
+  Specialties, pero no se edita ni se intenta el nombre reservado. En `:454-470` la membership se
+  desactiva/reactiva mediante SQL de fixture, sin recorrer Usuarios. En `:473-505` se prueban roles
+  denegados salvo membership inactiva. No hay escenario stale/refresh de navegador en ese archivo
+  ni evidencia de smoke manual posterior en `implementation-report.md`.
+- Impacto: las pruebas DB/component prueban piezas, pero faltan los flujos end-to-end y la
+  comprobación manual que el plan definió como gate de TASK-006F. No se puede afirmar que todos los
+  criterios de aceptación del plan estén verificados.
+- Corrección esperada: ampliar el E2E con esos flujos y registrar el smoke manual previsto, o
+  obtener una modificación explícita del plan antes de solicitar un nuevo review final.
+
+BLOCKER: 0. HIGH: 0. MEDIUM: 2. LOW: 0. No se modificó código, migrations, fixtures, DEV ni PROD;
+sin stage, commit, push, PR, merge ni archivo de tarea.
+
+**TASK-006 FINAL REVIEW CHANGES_REQUESTED**
+
+## TASK-006 FINAL RE-REVIEW (2026-10-13)
+
+Este re-review es focalizado en los dos findings MEDIUM del review final anterior. El veredicto
+`TASK-006 FINAL REVIEW CHANGES_REQUESTED` y sus findings F1/F2 permanecen íntegros arriba como
+historial. Para este cierre se denominan `FINAL-R1 MEDIUM` (F1) y `FINAL-R2 MEDIUM` (F2).
+
+### Preflight y diff de remediación
+
+- Rama `task/006-professionals-specialties`; HEAD local y remoto
+  `da6ea31968c256a569c5b235f432bc0431bd6127`; staging vacío. Se revisó todo el diff actual
+  desde ese checkpoint y el E2E untracked. La remediación funcional afecta sólo schemas, servidor,
+  Actions, UI y tests de Specialties, más el E2E de integración; no cambia módulos Professionals,
+  Access, rutas ni migrations. Los cambios anteriores TASK-006F y del review final se preservan.
+- `next-env.d.ts` sigue fuera de TASK-006, unstaged, con SHA-256
+  `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- Se releyeron brief, plan, implementation-report, review histórico, `docs/status.md`, módulo
+  Specialties, código y tests afectados. `pnpm bootstrap` pasó.
+
+### FINAL-R1 — CLOSED
+
+`createSpecialtySchema` y `updateSpecialtySchema` aceptan descripción opcional, la trimean y envían
+`''` si falta o se limpia. La Action valida el FormData en servidor y reautoriza ADMIN; las funciones
+server pasan el valor a `admin_create_specialty`/`admin_update_specialty`, sin lectura previa que
+sobrescriba una edición. Las RPCs existentes aplican `nullif(btrim(p_description), '')` y almacenan
+`NULL` para vacío o sólo espacios; la columna es `text NULL` sin límite de longitud. La UI ofrece
+crear, editar y limpiar la descripción y muestra el texto o «Sin descripción» en el listado.
+
+El update conserva `expected_updated_at`; la RPC compara CAS bajo lock antes de escribir, compara
+nombre y descripción normalizados para no-op, y el trigger monotónico avanza token en un cambio
+efectivo. El E2E verifica cambio de nombre y descripción, token avanzado, no-op con token idéntico,
+dos pestañas con stale sin overwrite y refresh autoritativo. Duplicate name con fila inactiva y
+activate/deactivate siguen cubiertos. Tests focalizados inspeccionados y reejecutados: 33/33 PASS;
+suite completa: 308/308 PASS.
+
+### FINAL-R2 — CLOSED
+
+El E2E untracked ahora verifica create/edit/clear de descripción contra UI y DB, nombre reservado
+case/trim con Specialty inactiva, stale real entre dos pestañas, mensaje, ausencia de overwrite,
+refresh y descarte del editor viejo. Crea un Auth user propio con membership ADMIN del Center de
+fixture inactiva, prueba ambas rutas denegadas y luego carga formularios mientras está activa para
+desactivar esa misma membership antes de guardar: las Actions de Specialty y Professional rechazan
+los submits y la DB no cambia. Nunca toca la membership ADMIN del baseline.
+
+En D4, el E2E comprueba PC y membership PROFESSIONAL activos, bloqueo de desactivación sin efecto
+lateral, sigue «Ir a Usuarios», desactiva allí explícitamente la membership mediante la UI de
+TASK-005, vuelve a Profesionales y desactiva el PC. El flujo restante conserva la integración
+Specialty → ProfessionalCenter → asociaciones y la denegación por roles/Center. El test usa Auth,
+Center y membership de fixture propios, UUIDs exactos, `finally` de cleanup y baseline fail-closed;
+no depende de filas residuales de DEV ni usa LIKE/ILIKE o borrado por prefijo.
+
+`implementation-report.md` distingue el smoke humano de Playwright y registra PASS 6/6 para
+navegación/móvil, descripción y duplicate, Professional/PC, asociación inactiva/reactivada, D4 vía
+Usuarios y UX. También preserva la pausa inicial de cleanup por ownership incierto, la confirmación
+humana posterior de UUIDs y el cleanup de 2 Specialties, 1 Professional, 1 PC, 1 asociación,
+1 membership, 1 provisioning operation, 1 public User y 1 Auth user. El reporte documenta
+validación de relaciones dentro de transacción serializable, DELETE por UUID exacto con RETURNING
+comprobado y digest final DEV idéntico al aprobado:
+`e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+
+### Regresiones, calidad y límites de evidencia
+
+- El diff no modifica D1–D8, D2, D-R1, contrato email, identidad Professional,
+  ProfessionalCenter, asociaciones, autorizaciones ni TASK-005 Users/Auth. La nueva Action sigue
+  exigiendo ADMIN; no hay escritura directa de tabla ni nuevos grants. El scope no agrega
+  Availability, Patients, Appointments, Agenda ni funcionalidad clínica.
+- 17 migrations SQL locales, exactamente tres nuevas respecto de TASK-005 y ninguna agregada o
+  editada por esta remediación. El reporte registra CLI 2.117.0, 17 local == 17 DEV, dry-run sin
+  pendientes y DB lint sin errores. Build, secret guard y E2E 1/1 están reportados PASS. Este review
+  reejecutó bootstrap, Specialty 33/33, suite completa 308/308, lint, typecheck, Prettier focalizado,
+  `node --check` del E2E y `git diff --check`: PASS. Escaneo de patrones de tokens del diff actual y
+  E2E untracked: sin valores con forma de secreto. No se hallaron credenciales embebidas.
+- Se intentó una lectura independiente `--baseline-only`, pero esta sesión no tiene login de
+  Supabase (`LegacyPlatformAuthRequiredError`); no se consultaron filas ni se ejecutaron fixtures.
+  La conclusión sobre DEV se apoya en la evidencia exacta antes/después, ownership y cleanup
+  documentados en `implementation-report.md`, no en una medición remota nueva de este review.
+  `docs/modules/specialties.md`, `docs/status.md` y el informe reflejan remediación completa,
+  pendiente de re-review, sin afirmar merge, PR integrado ni archivo de TASK-006.
+- PROD no fue consultado ni modificado en este review y el reporte de remediación lo mantiene fuera
+  de alcance. No hubo cambios de implementación, stage, commit, push, PR, merge ni archivo durante
+  este re-review; sólo se agregó esta sección histórica a `review.md`.
+
+Findings nuevos: ninguno. BLOCKER: 0; HIGH: 0; MEDIUM: 0; LOW: 0.
+
+**FINAL-R1 CLOSED**
+
+**FINAL-R2 CLOSED**
+
+**TASK-006 FINAL REVIEW PASS — READY FOR FINAL CHECKPOINT AND PR**

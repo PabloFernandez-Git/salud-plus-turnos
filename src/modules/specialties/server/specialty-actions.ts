@@ -98,6 +98,7 @@ export async function performSpecialtyAction(
     specialtyId: formData.get("specialtyId"),
     expectedUpdatedAt: formData.get("expectedUpdatedAt"),
     name: formData.get("name"),
+    description: formData.get("description") ?? "",
     isActive:
       formData.get("isActive") === "true"
         ? true

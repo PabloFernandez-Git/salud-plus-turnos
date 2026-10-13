@@ -481,3 +481,249 @@ permanece unstaged y fuera del alcance. PROD no fue consultado ni modificado.
   consultado ni modificado.
 
 **TASK-006E IMPLEMENTATION COMPLETE — AWAITING REVIEW**
+
+## TASK-006F INTEGRATION VERIFICATION — BLOCKED (2026-10-13)
+
+- Preflight PASS: rama `task/006-professionals-specialties`; HEAD local y remoto
+  `da6ea31968c256a569c5b235f432bc0431bd6127`; staging vacío; único cambio inicial
+  `M next-env.d.ts`, unstaged, SHA-256
+  `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- `pnpm bootstrap` PASS (Node 24.21.0, pnpm 11.26.0, configuración DEV/link coherentes).
+  Se leyeron brief, plan, historial de implementación/review y convenciones. Hay 17 archivos
+  locales de migration SQL.
+- La comprobación remota de paridad no llegó a Supabase: `pnpm exec supabase migration list`
+  intentó reconstruir `node_modules` y recibió `EACCES` al descargar paquetes. Se interrumpió;
+  el `.pnpm-store/` generado por ese intento se eliminó con ruta absoluta verificada dentro del
+  workspace. No se actualizó la CLI. La sesión no presenta `SUPABASE_ACCESS_TOKEN` en el entorno
+  ni en `.env.local`, ni archivo de login Supabase en las ubicaciones habituales verificadas.
+- Conforme al gate explícito de TASK-006F, no se ejecutaron tests remotos, consultas de baseline,
+  fixtures ni el runner mutante TASK-006B sin autenticación. Paridad DEV, baseline inicial/final,
+  RLS/RPC real, integración E2E y D1–D8 en DEV quedan pendientes de verificación actual.
+- `pnpm test`, lint, typecheck, build y guard de bundle no se ejecutaron en esta corrida;
+  las dependencias locales no quedaron instaladas. No se cambió código, tests, migrations ni
+  documentación permanente. PROD no fue consultado ni modificado.
+- TASK-006F permanece abierta. Siguiente condición: restaurar únicamente el login de Supabase
+  en la sesión y reanudar el gate de paridad/baseline antes de cualquier fixture.
+
+## TASK-006F INTEGRATION VERIFICATION — RESUMED / PASS (2026-10-13)
+
+La sesión Supabase fue restaurada externamente. Se preserva arriba el bloqueo inicial como
+historial. La rama y HEAD permanecieron en `task/006-professionals-specialties` /
+`da6ea31968c256a569c5b235f432bc0431bd6127`; staging vacío y único cambio preexistente
+`next-env.d.ts` con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+Se reinstalaron desde el lockfile las dependencias locales incompletas; no se cambió Node, pnpm,
+lockfile ni Supabase CLI. El respaldo incompleto de `node_modules` fue eliminado tras verificar la
+instalación activa.
+
+### Gates DEV y ownership
+
+- Antes de cualquier fixture, `node scripts/verify-task006b-db-foundation.mjs --baseline-only`
+  midió el snapshot persistente completo y exigió el SHA-256 aprobado
+  `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`. PASS.
+- Supabase CLI **2.117.0**: `migration list` mostró las 17 versiones locales iguales a las 17
+  remotas; `db push --dry-run` informó `Remote database is up to date`; `db lint --linked` informó
+  cero errores. No hubo migrations nuevas, editadas ni aplicadas.
+- El nuevo E2E usa dos Center UUID propios, Auth/User/membership UUID propios y nombres únicos del
+  run. Registra los UUID generados en esos Centers propios y borra sólo IDs exactos en orden FK.
+  No usa `LIKE`, `ILIKE`, prefijos para cleanup, truncate, seed ni reset. Su `finally` exige el
+  baseline aprobado; la lectura final externa tras todas las suites confirmó el mismo SHA exacto.
+- La primera corrida E2E falló sólo por una aserción del test que esperaba cambio de URL ante
+  acceso denegado. La ruta responde correctamente 404 en la URL solicitada. Se corrigió la
+  aserción a contenido 404, se confirmó baseline exacto y la corrida final pasó.
+
+### Integración y regresiones
+
+| Área | Evidencia TASK-006F |
+| --- | --- |
+| E2E TASK-006F | 1/1 PASS con un worker: navegación ADMIN; Specialty y Professional nuevos; D-R1 `---`; identidad sin Auth/User/membership implícitos; asociación múltiple; Specialty inactiva conservada y reactivada operativa; desasociación explícita y reasociación; resolve/link desde segundo Center sin datos ajenos; LINKED_ACTIVE/INACTIVE y reactivación de misma fila; D4; RECEPTION, PROFESSIONAL, PLATFORM_ADMIN-only, anon y cross-center denegados en rutas. |
+| DB/RLS/RPC/concurrencia TASK-006B | PASS real; baseline exacto antes/después; firmas, grants, policies, privacidad D2, deduplicación documental y email, duración, inactive, cross-center, CAS/stale, no-op/token, atomicidad, D4 y carreras lock-observed. |
+| Auth/Access | Auth foundation PASS; B3A invariants/concurrency PASS; B3D E2E 6/6 PASS; Auth/Center access E2E 9/9 PASS; schema/concurrencia inicial PASS. Cada runner verificó cleanup propio. |
+| Local | `pnpm test` 38 archivos, 303/303 PASS; `pnpm lint` PASS; `pnpm typecheck` PASS; `pnpm build` PASS, ambas rutas dinámicas. |
+| Formato/seguridad | Prettier focalizado en runner y E2E PASS; `git diff --check` PASS; guard de secretos fuente/bundle PASS con build; DB lint PASS. |
+
+### Contrato D1–D8 y límites
+
+- **D1/D3/D6:** identidad global inmutable desde la administración, clave documental PostgreSQL,
+  una fila ProfessionalCenter por Professional+Center y reactivación de la misma fila. El E2E
+  confirmó ausencia de mutación implícita Auth/User/membership y reutilización cross-center.
+- **D2:** resolve mostró sólo nombre, apellido y estado tenant; el E2E comprobó ausencia visible de
+  email y matrícula ajena. El runner real comprobó proyección RPC exacta, aislamiento y grants.
+- **D4/D5:** D4 bloqueó la desactivación con membership PROFESSIONAL activa y no la cambió; con
+  membership inactiva permitió desactivar. Specialty inactiva conservó la asociación; al
+  reactivarse volvió a marcarse operativa; desasociar explícitamente inactivó la relación.
+- **D7/D8:** ruta/Action/función/RPC ADMIN-only, RLS y grants verificados con tests de límites y
+  runner real. El runner confirmó CAS antes de mutación, cero efecto parcial ante stale/batch
+  inválido, avance monotónico ante cambio efectivo y token intacto en no-op; la UI descarta el
+  snapshot stale y refresca sin retry automático.
+- D-R1 y contrato email: los tests locales y la regresión PostgreSQL conservaron documentos
+  válidos con números, letras, ceros iniciales y separadores alrededor de contenido real;
+  `---` se rechazó en resolve/create. Los casos compartidos de email válido/inválido pasaron
+  en server y DB sin cambiar el contrato.
+
+### Archivos y cierre de fase
+
+Se agregó `tests/e2e/task-006-integration.spec.mjs`; el runner TASK-006B recibió sólo un modo
+read-only `--baseline-only` con comparación del digest aprobado. Se actualizaron únicamente
+`docs/modules/{professionals,specialties,access}.md`, `docs/status.md` y estos dos artefactos
+Harness. Sin cambios funcionales de producto, migrations, tipos generados, grants ni RLS.
+`next-env.d.ts` fue respaldado antes de los builds y restaurado byte por byte al SHA original;
+permanece unstaged y fuera de TASK-006. PROD no fue consultado ni modificado. Sin stage, commit,
+push, PR o merge. No hay findings de producto abiertos; el primer fallo E2E fue de aserción del
+test y quedó corregido. TASK-006 permanece activa para el review final, sin retrospectiva ni
+archivo todavía.
+
+**TASK-006F INTEGRATION PASS — READY FOR FINAL TASK-006 REVIEW**
+
+## FINAL REVIEW REMEDIATION — AUTOMATED PASS / MANUAL SMOKE PASS (2026-10-13)
+
+El review final previo permanece `TASK-006 FINAL REVIEW CHANGES_REQUESTED` con exactamente dos
+findings MEDIUM (F1 y F2). Esta sección registra la corrección en curso; no cierra `review.md` ni
+sustituye el re-review independiente.
+
+### F1: descripción de Specialty
+
+- Contrato inspeccionado antes de editar: `specialties.description` es `text NULL`, sin check ni
+  límite de longitud. `admin_create_specialty(uuid,text,text)` y
+  `admin_update_specialty(uuid,uuid,timestamptz,text,text)` reciben `p_description text`; ambas
+  aplican `nullif(btrim(p_description), '')`, por lo que vacío/espacios son `NULL`. El update valida
+  CAS antes del no-op; nombre y descripción sin cambio conservan `updated_at`; un cambio efectivo
+  dispara el trigger monotónico. El índice de nombre también reserva filas inactivas.
+- Formulario de alta y edición: campo opcional «Descripción (opcional)», trim Zod en servidor,
+  feedback de validación y envío de `p_description` a las RPCs reales. El listado muestra el texto
+  o «Sin descripción». El update ya no lee la descripción actual para preservarla: envía el valor
+  editado junto a `name` y `expected_updated_at`. No se expusieron otros campos mutables.
+- Cobertura focalizada: create sin/con descripción, edit de nombre y descripción, clear, listado,
+  stale, no-op, duplicate e invariantes de estado/autorización. `pnpm test -- src/modules/specialties`
+  pasó 33/33; suite total pasó 308/308. El runner DB previo cubre CAS/no-op/duplicate/estado,
+  y el contrato DB/RPC no fue modificado en esta remediación.
+
+### F2: integración E2E y smoke
+
+- `tests/e2e/task-006-integration.spec.mjs` se amplió para crear Specialty con descripción,
+  editar nombre y descripción, desactivar y rechazar el nombre equivalente case/trim, mantener
+  la fila original, limpiar descripción y observar no-op. Dos pestañas ejercitan token stale,
+  feedback, cero overwrite y refresh del listado desde servidor.
+- El flujo D4 ahora sigue «Ir a Usuarios», administra explícitamente la membership PROFESSIONAL
+  con la UI de TASK-005, comprueba que queda inactiva y vuelve a Profesionales para desactivar el
+  PC. También comprueba rutas denegadas para una membership ADMIN inactiva propia del run y que
+  las Server Actions de Specialty y Professional rechazan submits tras desactivarla.
+- Los fixtures siguen siendo Auth/User/Center/membership propios del run, con UUID explícitos;
+  `finally` limpia IDs exactos y exige baseline aprobado. No se altera la membership ADMIN
+  persistente del baseline, no se usa LIKE/ILIKE ni cleanup por prefijo.
+- El primer intento de verificar baseline quedó bloqueado porque la sesión aislada no podía leer
+  el login de Supabase. Tras restaurarlo externamente, el gate read-only pasó antes de cualquier
+  fixture: digest BEFORE exacto
+  `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+  CLI local 2.117.0, 17 migrations locales == 17 remotas y `db push --dry-run` sin pendientes.
+- La primera corrida E2E falló por un selector `role=alert` ambiguo: Next agrega un anunciador
+  vacío con el mismo rol. El `finally` limpió fixtures y el baseline externo siguió idéntico.
+  Se ajustaron sólo las aserciones de mensajes visibles y, tras reconfirmar baseline BEFORE,
+  el E2E ampliado pasó 1/1 con un worker. El baseline AFTER externo fue exactamente el mismo
+  digest; `db lint --linked` informó cero errores. No se consultó ni modificó PROD.
+
+### Verificación local y estado
+
+- `pnpm bootstrap`, Specialty focalizado 33/33, `pnpm test` 308/308, lint, typecheck, build,
+  Prettier focalizado, `git diff --check`, `node --check` del E2E y guard de secretos fuente/bundle:
+  PASS. El build regeneró `next-env.d.ts`; se restauraron exactamente sus dos imports DEV y el
+  SHA-256 original `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- Migrations nuevas/editadas: 0; total local y remoto: 17. Sin stage, commit, push, PR, merge ni
+  archivo. `review.md` conserva el veredicto y findings anteriores. Pendientes: cleanup exacto
+  de los fixtures del smoke, baseline DEV restaurado y re-review independiente.
+
+### Checklist de smoke manual para la persona usuaria
+
+Usar la app local conectada al proyecto DEV aprobado y un Center/ProfessionalCenter de prueba
+controlado. Registrar los UUID de cualquier fixture nuevo para cleanup exacto posterior; no usar
+datos ajenos ni borrar por nombre/prefijo. Anotar PASS/FAIL y evidencia visible por paso.
+
+1. Iniciar sesión como ADMIN del Center de prueba. Abrir el Center y navegar por **Usuarios**,
+   **Especialidades** y **Profesionales**. Comprobar que los tres enlaces funcionan y que los
+   listados se leen en desktop y ancho móvil básico.
+2. En **Especialidades**, crear una Specialty con nombre único y descripción. Comprobar feedback
+   de éxito y descripción visible en el listado. Editar nombre y descripción; confirmar ambos
+   valores. Limpiar descripción y comprobar «Sin descripción». Probar un error de nombre duplicado
+   y comprobar que se muestra feedback sin crear otra fila.
+3. En **Profesionales**, crear un Professional de prueba o usar uno controlado; resolver identidad,
+   vincularlo al Center, configurar matrícula y duración. Comprobar que no aparece edición de la
+   identidad global y que hay feedback visible tras guardar.
+4. Asociar la Specialty al ProfessionalCenter desde **Profesionales**. Desactivar la Specialty
+   desde **Especialidades** y comprobar en **Profesionales** que la asociación queda retenida pero
+   inactiva operativamente. Reactivar la Specialty y comprobar que vuelve a ser operativa sin
+   reasociarla.
+5. Desde **Usuarios**, crear o usar una membership PROFESSIONAL activa de prueba vinculada a ese
+   PC. En **Profesionales**, intentar desactivar el PC: D4 debe bloquear y ofrecer **Ir a Usuarios**,
+   sin cambiar la membership. Seguir el enlace, desactivar explícitamente ese acceso desde
+   **Usuarios**, volver a **Profesionales** y desactivar el PC con éxito.
+6. Comprobar labels, foco, confirmaciones y mensajes visibles en los pasos anteriores. Registrar
+   cualquier error con ruta, acción y captura. Enviar el resultado y los UUID de fixtures para
+   cleanup exacto; no marcar PASS si algún paso queda sin ejecutar.
+
+### Resultado del smoke humano y gate de cleanup
+
+La persona usuaria ejecutó y confirmó **PASS 6/6**: navegación desktop/móvil y scroll horizontal,
+Specialty con descripción/clear/duplicate, Professional y PC con matrícula/duración sin edición
+global, asociación retenida al desactivar Specialty y operativa al reactivar, D4 resuelto desde
+Usuarios y feedback visible comprensible. Se registra **MANUAL SMOKE PASS** con esta evidencia
+humana, sin atribuirla a Playwright.
+
+El E2E automatizado limpió sus fixtures en `finally` y verificó baseline exacto. Tras el smoke,
+una lectura read-only de DEV mostró 2 Auth users frente a 1 baseline; no se ha borrado nada. El
+inventario por UUID halló dos Specialties no-baseline (`b08ae56f-ed50-4ee2-bc44-a2eb72cdae39`
+y `36f61f54-c415-4c99-8372-41671c31fad8`), Professional
+`fbd72998-9f8a-4297-8db9-4b74614c4a85`, PC `0e41d6ae-8610-416b-8b71-32f762c97ffe`,
+asociación de ese PC con la segunda Specialty, Auth/User
+`2580779d-b99e-4169-9d78-e5588673ff90`, membership
+`00e102eb-d15b-459c-8f22-a015e5a397e3` y operación de provisioning
+`478e7ed9-7d9b-4fd2-80d4-cac5754f3c98`. La relación y timestamps son coherentes con el
+smoke, pero el mensaje humano no suministró UUIDs ni confirmó que ambas Specialties y ese Auth
+user sean fixtures propios. Se solicitó confirmación explícita de ownership; **cleanup detenido
+antes de cualquier DELETE**. El digest exacto post-cleanup queda pendiente.
+Una comprobación read-only adicional mantuvo CLI 2.117.0, 17 migrations locales == 17 DEV y
+`db push --dry-run` sin pendientes; esta paridad es previa al cleanup, no reemplaza el gate final.
+
+**MANUAL SMOKE PASS — CLEANUP AWAITING OWNERSHIP CONFIRMATION**
+
+### Cleanup exacto completado y baseline restaurado
+
+La persona usuaria confirmó expresamente que ambas Specialties UUID
+`b08ae56f-ed50-4ee2-bc44-a2eb72cdae39` y `36f61f54-c415-4c99-8372-41671c31fad8`,
+el Professional UUID `fbd72998-9f8a-4297-8db9-4b74614c4a85` y el Auth user UUID
+`2580779d-b99e-4169-9d78-e5588673ff90` pertenecían exclusivamente al smoke y podían
+eliminarse con sus relaciones exactas. La pausa anterior permanece arriba como historial.
+
+El cleanup revalidó dentro de una transacción serializable el conjunto completo de UUIDs
+baseline + smoke y las relaciones Center, ProfessionalCenter, membership, asociación y operación
+de provisioning. Con `DELETE` por UUID exacto y `RETURNING` verificado, eliminó:
+
+- 1 operación `private.provisioning_operations`: `478e7ed9-7d9b-4fd2-80d4-cac5754f3c98`;
+- 1 membership: `00e102eb-d15b-459c-8f22-a015e5a397e3`;
+- 1 asociación PC–Specialty: PC `0e41d6ae-8610-416b-8b71-32f762c97ffe` + Specialty
+  `36f61f54-c415-4c99-8372-41671c31fad8`;
+- 1 ProfessionalCenter `0e41d6ae-8610-416b-8b71-32f762c97ffe`;
+- las 2 Specialties confirmadas arriba;
+- 1 Professional `fbd72998-9f8a-4297-8db9-4b74614c4a85`;
+- 1 application User y luego, mediante Auth Admin API, el Auth user
+  `2580779d-b99e-4169-9d78-e5588673ff90`.
+
+El E2E ya había limpiado sus propios fixtures en `finally`; no tenía residuos. No se borró ningún
+Center, registro baseline ni dato de ownership incierto. No hubo LIKE, ILIKE, búsqueda por prefijo,
+DELETE amplio, reset ni seed. El baseline DEV post-cleanup volvió al SHA-256 exacto
+`e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a`.
+Supabase CLI 2.117.0 confirmó 17 migrations locales == 17 DEV. Un primer `db push --dry-run`
+post-cleanup tuvo timeout de conexión; el reintento pasó con `Remote database is up to date` y
+cero migrations pendientes. PROD no se consultó ni modificó.
+
+La remediación automatizada, el smoke humano y el cleanup exacto están completos. `review.md`
+conserva `TASK-006 FINAL REVIEW CHANGES_REQUESTED` y los dos findings MEDIUM para el re-review
+independiente; no hubo stage, commit, push, PR, merge ni archivo.
+
+**TASK-006 FINAL REMEDIATION COMPLETE — AWAITING RE-REVIEW**
+
+## TASK-006 FINAL RE-REVIEW — PASS (2026-10-13)
+
+El re-review independiente focalizado en F1/F2 cerró ambos findings como `FINAL-R1 CLOSED` y
+`FINAL-R2 CLOSED`, sin findings nuevos. El veredicto está registrado íntegro en `review.md` como
+`TASK-006 FINAL REVIEW PASS — READY FOR FINAL CHECKPOINT AND PR`. La evidencia automatizada,
+smoke humano 6/6, cleanup exacto y baseline DEV restaurado de las secciones anteriores permanecen
+intactos. TASK-006 sigue activa hasta el checkpoint y PR; no se archivó ni se creó retrospectiva.
