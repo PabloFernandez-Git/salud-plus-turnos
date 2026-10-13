@@ -703,11 +703,13 @@ try {
     client.query("select count(*)::integer as count from public.platform_admins"),
   );
   assertEqual(tenantPlatformRows.rows[0].count, 0, "tenant ADMIN platform access");
-  await expectSqlState(
-    () =>
-      asUser(control, platform.id, (client) => client.query("select * from public.specialties")),
-    "42501",
-    "PLATFORM_ADMIN direct operational SELECT",
+  const platformSpecialties = await asUser(control, platform.id, (client) =>
+    client.query("select * from public.specialties"),
+  );
+  assertEqual(
+    platformSpecialties.rows.length,
+    0,
+    "PLATFORM_ADMIN direct operational SELECT remains RLS-empty",
   );
 
   const adminBMembership = await control.query(

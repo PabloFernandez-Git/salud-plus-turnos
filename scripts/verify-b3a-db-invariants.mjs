@@ -437,7 +437,7 @@ async function verifyCatalog() {
   const policies = await control.query(
     "select policyname from pg_catalog.pg_policies where schemaname='public' order by policyname",
   );
-  assertEqual(policies.rows.length, 6, "public policy count");
+  assertEqual(policies.rows.length, 8, "public policy count");
   const badPrivileges = await control.query(
     `select exists (
        select 1

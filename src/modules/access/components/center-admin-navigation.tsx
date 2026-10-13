@@ -14,12 +14,24 @@ export function CenterAdminNavigation({
   if (role !== "ADMIN") return null;
 
   return (
-    <nav aria-label="Administración del centro">
+    <nav aria-label="Administración del centro" className="flex flex-wrap gap-3">
       <Link
         className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"
         href={`/centers/${centerId}/users`}
       >
         Usuarios
+      </Link>
+      <Link
+        className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"
+        href={`/centers/${centerId}/specialties`}
+      >
+        Especialidades
+      </Link>
+      <Link
+        className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"
+        href={`/centers/${centerId}/professionals`}
+      >
+        Profesionales
       </Link>
     </nav>
   );
