@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** TASK-006 completada y archivada; PR #6 se integró en `main` mediante squash merge.
-**Tarea activa:** ninguna. El próximo trabajo aún no se inició.
-**Último veredicto:** `TASK-006 FINAL REVIEW PASS` · `PR #6 REVIEW PASS` · `PR #6 MERGED`.
-**Squash commit / main:** `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
+**Fase:** TASK-007A DB/API Foundation IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — READY FOR INDEPENDENT REVIEW. TASK-007 completa sigue abierta.
+**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 CLOSED en el segundo re-review. TASK-007A fue autorizada, pero no alcanzó checkpoint ni review de implementación. Evidencia en `.harness/tasks/active/TASK-007/implementation-report.md`.
+**Último veredicto:** `TASK-007A DB/API FOUNDATION COMPLETE — READY FOR INDEPENDENT REVIEW`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
 ## Verificación final TASK-006
@@ -179,7 +179,7 @@
 
 ## Próximo
 
-No hay tarea activa. El próximo trabajo no fue diseñado ni autorizado.
+La reanudación autorizada completó seis carreras reales bajo locks observados, matrices DB/RPC/RLS, cleanup exacto por UUID y comparación read-only final con el baseline V2 autoritativo: digest global `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`, 15/15 componentes y conteos, filas/campos exactos; sin fixtures residuales. Schema/API separado: 19 migrations locales/DEV, dry-run sin pendientes, lint y verificador de catálogo PASS. Focused 15/15, suite completa 323/323, lint, typecheck, build, guard de secretos, formato focalizado y E2E habitual 1/1 PASS. Las dos migrations aplicadas permanecen inmutables; tipos generados desde DEV y sin regeneración adicional. El gap histórico `72e4ff...` → `86b6cd...` sigue **E — evidencia insuficiente**, sin equivalencia retrospectiva. Pendiente review independiente de 007A; no PR, merge ni archivo y TASK-007 completa sigue abierta. PROD fuera de alcance. Evidencia detallada en `implementation-report.md`.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
@@ -244,14 +244,14 @@ No hay tarea activa. El próximo trabajo no fue diseñado ni autorizado.
 ## Decisiones postergadas
 
 - Email/recovery provider definitivo.
-- Rate limiting concreto antes de producción pública.
+- Control concreto de abuso/rate limiting y monitoreo antes de producción pública, incluido el resolve exacto de Person y el create/error de identidad existente de TASK-007.
 - Playwright completo en CI cuando E2E tenga entorno aislado.
 - Sentry si el producto llega a necesitarlo.
 
 ## Pendientes pre-PROD
 
 - Custom SMTP para recuperación/email.
-- Rate limiting definitivo para exposición pública.
+- Control definitivo de abuso/rate limiting y monitoreo del resolve exacto de Person **y** create/error de identidad existente antes de exposición pública. Riesgo residual de inferencia global `ACCEPTED RISK` sólo para MVP DEV; no se implementa rate limiting en TASK-007.
 - Leaked-password protection de Auth.
 
 Estos puntos continúan separados de los findings DEV del Integration Review y no se clasifican como

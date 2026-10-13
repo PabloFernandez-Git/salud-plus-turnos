@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5";
+    PostgrestVersion: "14.17";
   };
   public: {
     Tables: {
@@ -881,6 +881,132 @@ export type Database = {
           result_membership_id: string;
           result_user_id: string;
           scope_center_id: string;
+        }[];
+      };
+      staff_create_patient_with_center: {
+        Args: {
+          p_administrative_notes: string;
+          p_birth_date: string;
+          p_center_id: string;
+          p_document_number: string;
+          p_email: string;
+          p_first_name: string;
+          p_insurance_name: string;
+          p_last_name: string;
+          p_nationality_code: string;
+          p_phone: string;
+        };
+        Returns: {
+          outcome: string;
+          patient_center_id: string;
+          person_id: string;
+          updated_at: string;
+        }[];
+      };
+      staff_deactivate_patient_center: {
+        Args: {
+          p_center_id: string;
+          p_confirmed: boolean;
+          p_expected_updated_at: string;
+          p_patient_center_id: string;
+        };
+        Returns: {
+          outcome: string;
+          patient_center_id: string;
+          updated_at: string;
+        }[];
+      };
+      staff_link_person_to_center: {
+        Args: {
+          p_administrative_notes: string;
+          p_birth_date: string;
+          p_center_id: string;
+          p_confirmed: boolean;
+          p_document_number: string;
+          p_email: string;
+          p_insurance_name: string;
+          p_nationality_code: string;
+          p_person_id: string;
+          p_phone: string;
+        };
+        Returns: {
+          outcome: string;
+          patient_center_id: string;
+          person_id: string;
+          updated_at: string;
+        }[];
+      };
+      staff_reactivate_patient_center: {
+        Args: {
+          p_birth_date: string;
+          p_center_id: string;
+          p_confirmed: boolean;
+          p_document_number: string;
+          p_expected_updated_at: string;
+          p_nationality_code: string;
+          p_patient_center_id: string;
+        };
+        Returns: {
+          outcome: string;
+          patient_center_id: string;
+          updated_at: string;
+        }[];
+      };
+      staff_resolve_patient_identity: {
+        Args: {
+          p_birth_date: string;
+          p_center_id: string;
+          p_document_number: string;
+          p_nationality_code: string;
+        };
+        Returns: {
+          birth_date_matches: boolean;
+          first_name: string;
+          identity_status: string;
+          last_name: string;
+          patient_center_id: string;
+          patient_center_updated_at: string;
+          person_id: string;
+          relationship_state: string;
+        }[];
+      };
+      staff_search_patient_centers: {
+        Args: {
+          p_center_id: string;
+          p_limit?: number;
+          p_offset?: number;
+          p_query?: string;
+          p_state?: string;
+        };
+        Returns: {
+          birth_date: string;
+          document_number: string;
+          email: string;
+          first_name: string;
+          insurance_name: string;
+          is_active: boolean;
+          last_name: string;
+          nationality_code: string;
+          patient_center_id: string;
+          person_id: string;
+          phone: string;
+          updated_at: string;
+        }[];
+      };
+      staff_update_patient_center: {
+        Args: {
+          p_administrative_notes: string;
+          p_center_id: string;
+          p_email: string;
+          p_expected_updated_at: string;
+          p_insurance_name: string;
+          p_patient_center_id: string;
+          p_phone: string;
+        };
+        Returns: {
+          outcome: string;
+          patient_center_id: string;
+          updated_at: string;
         }[];
       };
     };
