@@ -1,10 +1,10 @@
 # Estado actual
 
-**Fase:** TASK-006 — implementación completa, checkpoint final pusheado y PR #6 abierto; pendiente de validación final y merge
-**Tarea activa:** TASK-006, pendiente de CI/re-review del PR #6 y merge
-**Último veredicto:** `PR #6 REVIEW CHANGES_REQUESTED` por un único finding LOW documental; review final de TASK-006 PASS, FINAL-R1 y FINAL-R2 CLOSED
-**Rama / checkpoint final:** `task/006-professionals-specialties` / `1add7efbeb9c8eb57a4c36c862b5c7769aa2e21d` (HEAD previo al fix documental)
-**Integración previa:** TASK-005 completada y PR #4 integrada en `main`
+**Fase:** TASK-006 completada y archivada; PR #6 se integró en `main` mediante squash merge.
+**Tarea activa:** ninguna. El próximo trabajo aún no se inició.
+**Último veredicto:** `TASK-006 FINAL REVIEW PASS` · `PR #6 REVIEW PASS` · `PR #6 MERGED`.
+**Squash commit / main:** `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
+**Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
 ## Verificación final TASK-006
 
@@ -16,17 +16,18 @@
   TASK-006F pasaron con cleanup. Tras la remediación final, `pnpm test` pasó 308/308; lint,
   typecheck, build, Prettier focalizado y guard de secretos del bundle cliente pasaron. El E2E
   ampliado pasó 1/1 y el smoke manual humano 6/6.
-- El re-review final independiente cerró FINAL-R1 y FINAL-R2 sin findings nuevos. El checkpoint
-  final fue pusheado y el PR #6 está abierto; CI del HEAD `1add7ef` pasó. El único finding del review
-  del PR es documental y su corrección requiere CI/re-review del nuevo HEAD antes del merge.
-  TASK-006 aún no fue mergeada ni archivada. PROD no fue consultado ni modificado. `next-env.d.ts`
-  permanece unstaged con su SHA previo a TASK-006.
+- El re-review final independiente cerró FINAL-R1 y FINAL-R2 sin findings nuevos. El finding LOW
+  documental del review del PR #6 también quedó corregido y el PR obtuvo REVIEW PASS antes del
+  squash merge. TASK-006 está archivada en `.harness/tasks/archive/TASK-006/` con retrospectiva.
+  PROD no fue consultado ni modificado durante TASK-006. El cambio local ajeno en `next-env.d.ts`
+  permanece unstaged y fuera del cierre.
 
 ## Review final inicial TASK-006 (histórico)
 
 - Veredicto: `TASK-006 FINAL REVIEW CHANGES_REQUESTED` (2026-10-13). Hay dos findings MEDIUM
-  documentados en `.harness/tasks/active/TASK-006/review.md`: falta administrar la descripción
-  opcional de Specialty y falta completar el mínimo E2E/smoke aprobado en el plan.
+  documentados en `.harness/tasks/archive/TASK-006/review.md`: faltaba administrar la descripción
+  opcional de Specialty y completar el mínimo E2E/smoke aprobado en el plan. Ambos quedaron cerrados
+  en el re-review final.
 - La verificación local independiente pasó: 303/303 unit/component, lint, typecheck, Prettier
   focalizado y `git diff --check`. La evidencia previa de integración DEV y baseline exacto se
   conserva; el review no repitió mutaciones remotas. Sin commit, push, PR, merge ni acceso a PROD.
@@ -178,8 +179,7 @@
 
 ## Próximo
 
-Verificar CI y re-review del PR #6 tras el fix documental. Si queda aprobado, realizar squash merge;
-después del merge, cerrar y archivar TASK-006.
+No hay tarea activa. El próximo trabajo no fue diseñado ni autorizado.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 

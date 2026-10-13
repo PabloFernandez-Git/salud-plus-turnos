@@ -1,6 +1,8 @@
 # TASK-006 — Profesionales y especialidades
 
-**Estado:** `DESIGN APPROVED` · `PLAN REVIEW PASS` · `READY FOR IMPLEMENTATION`
+**Estado:** `TASK-006 COMPLETED` · `TASK-006 FINAL REVIEW PASS` · `PR #6 MERGED`
+
+**Squash commit:** `c127d3b81f73aba5c47d9ecf462529c73df79fcb`
 
 ## Objetivo
 
