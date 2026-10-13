@@ -40,7 +40,7 @@ Los datos administrativos son privados por centro. La existencia de una Persona 
 
 La UI puede presentar la operación simplemente como “Registrar paciente”.
 
-## Foundation DB/API de TASK-007A (lista para review independiente)
+## Foundation DB/API de TASK-007A (remediación lista para re-review independiente)
 
 Dos migrations incrementales aplicadas a DEV agregan SELECT tenant bajo RLS para ADMIN y RECEPTION activos: PatientCenters de su Center y Persons vinculadas a una relación visible. No hay DML genérico ni directorio global. La RPC de búsqueda acepta una consulta literal, estado `ACTIVE/INACTIVE/ALL`, límite 1..50 y offset 0..10000. Un resultado vacío no inicia resolve global.
 
@@ -48,4 +48,6 @@ El alta staged usa RPCs separadas para resolve exacto, create, link y reactivate
 
 Los inputs de pacientes usan edge trim explícito para TAB, LF, VT, FF, CR y SPACE; nacionalidad usa un snapshot versionado de 249 códigos ISO alpha-2, y email opcional reutiliza el contrato TASK-006 tras convertir blanco canónico en NULL. La fecha futura se compara con el día local del Center mediante `private.center_local_date_at(timezone, statement_timestamp())`.
 
-**Estado:** implementación y verificación de 007A completas en DEV, listas para review independiente; TASK-007 completa sigue abierta. Las carreras reales, matrices DB/RPC/RLS, cleanup exacto y comparación final con Baseline V2 pasaron. La discrepancia histórica del digest ampliado permanece como **HISTORICAL VERIFICATION GAP**, categoría E, sin equivalencia retrospectiva demostrada. El riesgo de inferencia mediante resolve/create está aceptado sólo para MVP DEV; abuso, rate limiting y monitoreo son requisitos PRE-PROD. Véase `.harness/tasks/active/TASK-007/implementation-report.md`.
+El contrato de aplicación para las siete RPCs vive en `src/modules/patients/api/patient-rpc-contracts.ts` y se valida en `patient-rpc-adapter.ts`. SQL es la autoridad de DB; `database.types.ts` es un artefacto generado de transporte cuya introspección de funciones omite nulabilidad de argumentos y `RETURNS TABLE`. Resolve distingue `NOT_FOUND`, DOB mismatch, `NOT_LINKED`, `ACTIVE` e `INACTIVE`; `NULL` permanece `NULL` en resultados y argumentos administrativos. La futura 007B debe consumir el adapter, no el resultado raw de `supabase.rpc` para pacientes. El guard de tipos confronta nombres y claves de argumentos con los tipos generados; el schema verifier confronta las siete firmas reales en DEV.
+
+**Estado:** 007A-IR-1 y 007A-IR-2 `remediated — pending independent closure`. La comparación V2 ahora detecta drift de metadata e inventario incluso en tablas vacías; DEV read-only y tests pasaron. TASK-007 completa sigue abierta y 007B no se inició. La discrepancia histórica del digest ampliado permanece como **HISTORICAL VERIFICATION GAP**, categoría E, sin equivalencia retrospectiva demostrada. El riesgo de inferencia mediante resolve/create está aceptado sólo para MVP DEV; abuso, rate limiting y monitoreo son requisitos PRE-PROD. Véase `.harness/tasks/active/TASK-007/implementation-report.md`.

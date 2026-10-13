@@ -1,10 +1,16 @@
 # Estado actual
 
-**Fase:** TASK-007A DB/API Foundation IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — READY FOR INDEPENDENT REVIEW. TASK-007 completa sigue abierta.
-**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 CLOSED en el segundo re-review. TASK-007A fue autorizada, pero no alcanzó checkpoint ni review de implementación. Evidencia en `.harness/tasks/active/TASK-007/implementation-report.md`.
-**Último veredicto:** `TASK-007A DB/API FOUNDATION COMPLETE — READY FOR INDEPENDENT REVIEW`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Fase:** TASK-007A implementation review `CHANGES_REQUESTED`; 007A-IR-1 y 007A-IR-2 remediated — pending independent closure. TASK-007 completa sigue abierta; no se inicia 007B.
+**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 CLOSED. Evidencia de la remediación en `.harness/tasks/active/TASK-007/implementation-report.md`.
+**Último veredicto:** `TASK-007A REVIEW FINDINGS REMEDIATED — READY FOR INDEPENDENT RE-REVIEW`. Sólo el reviewer independiente puede cerrar 007A-IR-1/IR-2. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
+
+## Remediación de review TASK-007A
+
+- 007A-IR-1: contrato app-facing derivado de Zod y adapter único para las siete RPCs; resolve modela cinco variantes, search conserva email/cobertura NULL y create/link/update aceptan argumentos administrativos NULL. Los tipos de transporte generados siguen intactos. Tests de tipo y payload, guard de firmas/nombres y checks locales PASS.
+- 007A-IR-2: comparador V2 comprueba inventario y metadata exacta (`included_fields`, `excluded_fields`, `field_types`, `row_key_fields`) además de filas y digests. Tests sintéticos de columna agregada con `persons` vacía, tipo, clave, exclusión Auth y componente extra PASS. Manifest y verificador V2 intactos; SHA del verificador `f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c`.
+- DEV read-only final: 19 migrations locales == 19 DEV, dry-run sin pendientes, lint de DB y schema verifier PASS. Baseline V2 exacto 15/15 componentes y metadata, digest global `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. Suite 330/330, lint, typecheck, build, formato y guard de secretos PASS. PROD fuera de alcance.
 
 ## Verificación final TASK-006
 

@@ -162,3 +162,42 @@ No hubo duplicados, estado parcial ni deadlock. La reactivación preservó telé
 - `.gitattributes` fija LF sólo para el verificador V2 y el script forense V1, preservando sus SHA documentados bajo `core.autocrlf=true`. Se quitaron dos espacios finales del encabezado histórico de `review.md` para que el diff staged pase `git diff --check`; el veredicto histórico no cambió.
 
 **Estado de implementación/verificación:** `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — READY FOR INDEPENDENT REVIEW`. El checkpoint Git autorizado es un commit y push de TASK-007/007A, excluyendo `next-env.d.ts`; la evidencia de su SHA se informa al terminar. TASK-007 completa no se cierra; no hay PR, merge ni archivo.
+
+## Remediación de implementation review 007A-IR-1/IR-2 — 2026-10-13
+
+El review independiente de `3a0f74cefa8d8935be7e146e92e626a9e243e9f1` pidió dos correcciones MEDIUM. Ambas quedan **remediated — pending independent closure**; `review.md` permanece intacto. D1–D8 y P007-R1/R2/R3 no cambian. No se inició 007B.
+
+### Matriz exacta SQL → contrato de aplicación
+
+La autoridad es `20261013190000_add_patient_foundation.sql`, incluidos `RETURN QUERY`, y el schema vivo comprobado por `verify-task007a-schema-v2.mjs`. Todos los argumentos sin default son obligatorios; los siete RPCs rechazan `NULL` en campos de identidad, token, teléfono y confirmación mediante helpers/guards. Los tres campos administrativos aceptan `NULL` explícito como ausencia/limpieza. El tipo generado por la introspección de funciones marca erróneamente argumentos `text` y columnas `RETURNS TABLE` como no nulos; no se editó `database.types.ts` a mano ni se cambió SQL.
+
+| RPC | Argumentos obligatorios no NULL | NULL permitido / default | Retorno exitoso |
+| --- | --- | --- | --- |
+| `staff_search_patient_centers` | `p_center_id` | `p_query text DEFAULT NULL`, `p_state text DEFAULT NULL`; `p_limit integer DEFAULT 25`, `p_offset integer DEFAULT 0` son omitibles pero `NULL` explícito inválido | 0..N filas; `email`, `insurance_name` pueden ser NULL; los otros diez campos siempre valor |
+| `staff_resolve_patient_identity` | `p_center_id`, `p_nationality_code`, `p_document_number`, `p_birth_date` | ninguno | exactamente una fila; matriz abajo |
+| `staff_create_patient_with_center` | `p_center_id`, `p_first_name`, `p_last_name`, `p_birth_date`, `p_nationality_code`, `p_document_number`, `p_phone` | `p_email`, `p_insurance_name`, `p_administrative_notes`: NULL, sin default | `person_id`, `patient_center_id`, `updated_at`, `outcome=CREATED`: todos valor |
+| `staff_link_person_to_center` | `p_center_id`, `p_person_id`, `p_nationality_code`, `p_document_number`, `p_birth_date`, `p_phone`, `p_confirmed=true` | los mismos tres administrativos: NULL, sin default | mismos IDs/token valor; `outcome=LINKED/ALREADY_ACTIVE` |
+| `staff_reactivate_patient_center` | `p_center_id`, `p_patient_center_id`, `p_nationality_code`, `p_document_number`, `p_birth_date`, `p_expected_updated_at`, `p_confirmed=true` | ninguno | `patient_center_id`, `updated_at`, `outcome=REACTIVATED/ALREADY_ACTIVE`: valor |
+| `staff_update_patient_center` | `p_center_id`, `p_patient_center_id`, `p_expected_updated_at`, `p_phone` | los mismos tres administrativos: NULL, sin default | `patient_center_id`, `updated_at`, `outcome=UPDATED/UNCHANGED`: valor |
+| `staff_deactivate_patient_center` | `p_center_id`, `p_patient_center_id`, `p_expected_updated_at`, `p_confirmed=true` | ninguno | `patient_center_id`, `updated_at`, `outcome=DEACTIVATED/UNCHANGED`: valor |
+
+| Resolve state | `first_name`/`last_name` | `birth_date_matches` | `relationship_state` | `person_id` | `patient_center_id`/`patient_center_updated_at` |
+| --- | --- | --- | --- | --- | --- |
+| `NOT_FOUND` | NULL | NULL | NULL | NULL | NULL |
+| `FOUND`, DOB mismatch | valor | false | `NOT_LINKED/ACTIVE/INACTIVE` | NULL | NULL |
+| `FOUND`, DOB match, `NOT_LINKED` | valor | true | `NOT_LINKED` | valor | NULL |
+| `FOUND`, DOB match, `ACTIVE` | valor | true | `ACTIVE` | valor | valor |
+| `FOUND`, DOB match, `INACTIVE` | valor | true | `INACTIVE` | valor | valor |
+
+`patient-rpc-contracts.ts` usa Zod para args y retornos; deriva los tipos desde esos schemas. `patient-rpc-adapter.ts` es el único límite con un cast local documentado para el transporte generado: valida argumentos, llama `supabase.rpc`, propaga errores y valida el payload de éxito antes de exponerlo. El guard de compilación compara los siete nombres/claves de argumentos con `Database["public"]["Functions"]`; `@ts-expect-error` comprueba NULL de resolve/search y obligatoriedad de teléfono. Los tests runtime cubren las cinco ramas, opcionales NULL, rechazos de forma y el adapter. En el smoke DB anterior se verificaron `NOT_FOUND`, mismatch, opcionales y paths reales; no fueron necesarios fixtures DEV nuevos en esta remediación.
+
+### Baseline V2 y verificación
+
+`compareBaselineV2(reference, actual)` es función pura y el preloader CLI usa esa misma implementación. Ahora compara inventario bidireccional de componentes y `included_fields`, `excluded_fields` con motivos, `field_types`, `row_key_fields`, conteos, digests y hashes de filas/campos. Las pruebas sintéticas fallan para columna agregada en `public.persons` vacía aun con mismo digest/filas, cambio de tipo, cambio de row key, motivo de exclusión Auth y componente extra. No se creó V3 ni se mutó DEV para los casos negativos. Manifest V2 y `verify-task007a-baseline-v2.mjs` siguen byte por byte intactos; SHA del verificador `f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c`.
+
+- `pnpm bootstrap` PASS. Tests focalizados nuevos 7/7; suite completa 330/330 en 41 archivos; `pnpm lint`, `pnpm typecheck`, `pnpm build`, Prettier focalizado, `git diff --check` y guard de secretos del bundle PASS.
+- DEV read-only `ehllxymqyzrofydrvtzo`: schema verifier PASS para tablas/RLS/grants/siete firmas; 19 migrations locales == 19 DEV, dry-run sin pendientes, `db lint --linked` sin errores.
+- Comparador V2 vivo: `stable=true`, `domain_invariants_pass=true`, 15/15 componentes, metadata exacta y global `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359` PASS. `persons=0`, `patient_centers=0`; sin fixtures nuevos ni cleanup.
+- El **HISTORICAL VERIFICATION GAP** `72e4ff... → 86b6cd...` sigue categoría **E — insufficient evidence**. El riesgo de inferencia por resolve/create continúa `ACCEPTED RISK — MVP DEV`; abuso, rate limiting y monitoreo siguen **PRE-PROD REQUIRED**. PROD no se consultó ni modificó.
+
+**Veredicto de remediación:** `TASK-007A REVIEW FINDINGS REMEDIATED — READY FOR INDEPENDENT RE-REVIEW`. Sólo el reviewer puede cerrar 007A-IR-1/IR-2.
