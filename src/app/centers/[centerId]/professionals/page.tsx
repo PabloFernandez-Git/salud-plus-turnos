@@ -4,7 +4,10 @@ import { AuthorizationError, requireRole } from "@/modules/access/server/authori
 import { ProfessionalsScreen } from "@/modules/professionals/components/professionals-screen";
 import { professionalCenterIdSchema } from "@/modules/professionals/schemas/professional-center";
 import {
+  listProfessionalSpecialtyConfiguration,
   listProfessionals,
+  type ProfessionalSpecialtyAssociation,
+  type ProfessionalSpecialtyOption,
   type ProfessionalListItem,
 } from "@/modules/professionals/server/professionals";
 
@@ -28,9 +31,17 @@ export default async function ProfessionalsPage({
     throw error;
   }
   let professionals: ProfessionalListItem[] = [];
+  let specialties: ProfessionalSpecialtyOption[] = [];
+  let associations: ProfessionalSpecialtyAssociation[] = [];
   let loadFailed = false;
   try {
-    professionals = await listProfessionals(centerId.data, supabase);
+    const [professionalRows, specialtyConfiguration] = await Promise.all([
+      listProfessionals(centerId.data, supabase),
+      listProfessionalSpecialtyConfiguration(centerId.data, supabase),
+    ]);
+    professionals = professionalRows;
+    specialties = specialtyConfiguration.specialties;
+    associations = specialtyConfiguration.associations;
   } catch (error) {
     if (error instanceof AuthorizationError) {
       if (error.code === "UNAUTHENTICATED") redirect("/login");
@@ -44,6 +55,8 @@ export default async function ProfessionalsPage({
       centerId={centerId.data}
       centerName={context.center.name}
       professionals={professionals}
+      specialties={specialties}
+      associations={associations}
       loadFailed={loadFailed}
     />
   );

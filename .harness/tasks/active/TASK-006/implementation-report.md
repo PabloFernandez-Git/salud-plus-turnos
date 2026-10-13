@@ -418,3 +418,66 @@ permanece unstaged y fuera del alcance. PROD no fue consultado ni modificado.
   PR ni inicio de TASK-006E.
 
 **TASK-006D REMEDIATION COMPLETE — AWAITING RE-REVIEW**
+
+## TASK-006E — ProfessionalCenter ↔ Specialty (implementación, pendiente de review)
+
+### Preflight y alcance
+
+- Branch `task/006-professionals-specialties`; HEAD local y remoto
+  `81dcdf1b36f7a294fd1b6a2ef845cf127655b1fa`; staging vacío antes de implementar.
+- Único cambio previo: `next-env.d.ts`, SHA-256
+  `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+  El build lo regeneró; se restauraron exactamente sus bytes previos y quedó unstaged.
+- Bootstrap pasó. Se usó la evidencia reciente de 17 migrations locales == 17 DEV y
+  `Remote database is up to date`; esta fase no consultó ni modificó DEV o PROD.
+- Cero migrations nuevas o editadas; no se inició TASK-006F ni se modificó TASK-006C,
+  identidad global, Auth, Users o memberships.
+
+### Implementación
+
+- El panel `Configurar` de Profesionales incorpora un editor de Especialidades. La query
+  server-only, protegida por ADMIN, carga en dos lecturas por Center todas las Specialties
+  (activas e inactivas) y todas las asociaciones (activas e inactivas), sin N+1. Una
+  asociación sin Specialty visible falla cerrado.
+- Para un PC activo, checkboxes muestran sólo Specialties activas del Center. El editor
+  calcula `activate` y `deactivate` comparando con el estado de asociaciones renderizado.
+  Una Specialty inactiva ya asociada aparece en sección retenida, marcada `Inactiva`; sólo
+  la acción explícita `Desasociar` la agrega al delta de desactivación. Omitirla del selector
+  activo no cambia su fila. Al reactivarse la Specialty, la asociación preservada vuelve a
+  mostrarse marcada y operativa sin una nueva asignación.
+- Con PC inactivo se muestran las asociaciones como no operativas y sólo se permite
+  `Desasociar`; no se ofrecen activaciones. La RPC permite esa reducción aunque PC o Specialty
+  estén inactivos.
+- La Action valida UUIDs, arrays sin duplicados/intersección y token, revalida ADMIN y llama
+  exclusivamente `admin_update_professional_center_specialties` una vez por submit, con
+  `p_center_id`, `p_professional_center_id`,
+  `p_expected_professional_center_updated_at`, `p_activate_specialty_ids` y
+  `p_deactivate_specialty_ids`. No hay DML directo, service role, secret key ni admin client.
+  El batch vacío se evita en UI y Action; `NO_SPECIALTY_CHANGES` se mapea defensivamente.
+- La RPC existente conserva autoridad para same-center, estados activos, CAS bajo lock y
+  atomicidad. `SPECIALTY_NOT_ACTIVE`, `PROFESSIONAL_CENTER_NOT_ACTIVE`, stale e IDs ajenos
+  producen feedback seguro y recarga obligatoria. Tras éxito se recibe el nuevo token
+  `professional_center_updated_at`; la UI cierra el editor, descarta el snapshot anterior
+  y refresca la página. El botón `Configurar` de ese PC queda bloqueado hasta que llega el
+  nuevo snapshot, evitando reabrir con el token previo. Un no-op válido en RPC conserva el
+  token y conteos cero.
+
+### Verificación
+
+- Tests nuevos de query, Action, RPC boundary y UI: lecturas Center-scoped, roles denegados,
+  payload exacto, múltiples altas, baja, batch mixto, preservación inactiva, desasociación
+  explícita, reactivación visible sin INSERT, PC inactivo, batch vacío, IDs manipulados,
+  errores de estado, stale y descarte del token UI.
+- La evidencia DB/RPC previa de TASK-006B cubre directamente `SPECIALTY_NOT_ACTIVE`,
+  `INVALID_SPECIALTY_BATCH` cross-center, `STALE_PROFESSIONAL_CENTER_STATE`, batch/batch,
+  preservación al desactivar Specialty, no-op/token, batch vacío y atomicidad. No se repitió
+  DEV; por ello no existe una medición nueva de baseline antes/después en esta fase. El
+  baseline conocido permanece como referencia, no como resultado medido de esta sesión.
+- Suite unit/component completa: 38 archivos / 303 tests PASS (incluidas regresiones
+  TASK-006C y TASK-006D). Lint, typecheck, build, Prettier focalizado,
+  `git diff --check` y guard de secretos fuente/bundle: PASS. La ruta de Profesionales
+  figura dinámica en el build. No se ejecutaron E2E remotos.
+- Sin commit, stage, push o PR. `next-env.d.ts` conserva su SHA esperado; PROD no fue
+  consultado ni modificado.
+
+**TASK-006E IMPLEMENTATION COMPLETE — AWAITING REVIEW**

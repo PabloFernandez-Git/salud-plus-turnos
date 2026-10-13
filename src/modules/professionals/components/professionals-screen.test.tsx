@@ -10,6 +10,7 @@ const create = vi.fn();
 const link = vi.fn();
 const update = vi.fn();
 const setActive = vi.fn();
+const saveSpecialties = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("../actions/professional-actions", () => ({
   resolveProfessionalAction: (data: FormData) => resolve(data),
@@ -17,6 +18,9 @@ vi.mock("../actions/professional-actions", () => ({
   linkProfessionalAction: (data: FormData) => link(data),
   updateProfessionalCenterAction: (data: FormData) => update(data),
   setProfessionalCenterActiveAction: (data: FormData) => setActive(data),
+}));
+vi.mock("../actions/professional-specialty-action", () => ({
+  updateProfessionalSpecialtiesAction: (data: FormData) => saveSpecialties(data),
 }));
 const centerId = "11111111-1111-4111-8111-111111111111";
 const professional: ProfessionalListItem = {
@@ -27,6 +31,11 @@ const professional: ProfessionalListItem = {
   usualAppointmentDurationMinutes: 30,
   isActive: true,
   updatedAt: "2026-10-09T12:00:00+00:00",
+};
+const specialty = {
+  id: "44444444-4444-4444-8444-444444444444",
+  name: "Cardiología",
+  isActive: true,
 };
 const show = (professionals: ProfessionalListItem[] = [professional], loadFailed = false) =>
   render(
@@ -216,5 +225,76 @@ describe("ProfessionalsScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar desactivación" }));
     await waitFor(() => expect(screen.getByRole("link", { name: "Ir a Usuarios" })).toBeVisible());
     expect(setActive.mock.calls[0][0].get("expectedUpdatedAt")).toBe(professional.updatedAt);
+  });
+  it("refreshes after a successful specialty batch and discards the old aggregate token", async () => {
+    saveSpecialties.mockResolvedValue({
+      status: "success",
+      message: "Guardado",
+      updatedAt: "new-token",
+    });
+    const view = render(
+      <ProfessionalsScreen
+        centerId={centerId}
+        centerName="Centro"
+        professionals={[professional]}
+        specialties={[specialty]}
+        associations={[]}
+        loadFailed={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cardiología" }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar especialidades" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect((saveSpecialties.mock.calls[0][0] as FormData).get("expectedUpdatedAt")).toBe(
+      professional.updatedAt,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Guardar especialidades" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Configurar" })).toBeDisabled();
+    const refreshed = { ...professional, updatedAt: "2026-10-09T12:01:00+00:00" };
+    view.rerender(
+      <ProfessionalsScreen
+        centerId={centerId}
+        centerName="Centro"
+        professionals={[refreshed]}
+        specialties={[specialty]}
+        associations={[
+          { professionalCenterId: professional.id, specialtyId: specialty.id, isActive: true },
+        ]}
+        loadFailed={false}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Configurar" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cardiología" }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar especialidades" }));
+    await waitFor(() => expect(saveSpecialties).toHaveBeenCalledTimes(2));
+    expect((saveSpecialties.mock.calls[1][0] as FormData).get("expectedUpdatedAt")).toBe(
+      refreshed.updatedAt,
+    );
+  });
+  it("closes on stale specialty batch and cannot reuse the old token", async () => {
+    saveSpecialties.mockResolvedValue({ status: "stale", message: "Cambió en otra sesión" });
+    render(
+      <ProfessionalsScreen
+        centerId={centerId}
+        centerName="Centro"
+        professionals={[professional]}
+        specialties={[specialty]}
+        associations={[]}
+        loadFailed={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Configurar" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Cardiología" }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar especialidades" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(
+      screen.queryByRole("button", { name: "Guardar especialidades" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Cambió en otra sesión");
+    expect(screen.getByRole("button", { name: "Configurar" })).toBeDisabled();
   });
 });

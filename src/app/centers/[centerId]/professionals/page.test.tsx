@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
-import { listProfessionals } from "@/modules/professionals/server/professionals";
+import {
+  listProfessionalSpecialtyConfiguration,
+  listProfessionals,
+} from "@/modules/professionals/server/professionals";
 import ProfessionalsPage from "./page";
 vi.mock("next/navigation", () => ({
   notFound: () => {
@@ -18,7 +21,14 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
 vi.mock("@/modules/professionals/server/professionals", async (importOriginal) => {
   const original =
     await importOriginal<typeof import("@/modules/professionals/server/professionals")>();
-  return { ...original, listProfessionals: vi.fn(async () => []) };
+  return {
+    ...original,
+    listProfessionals: vi.fn(async () => []),
+    listProfessionalSpecialtyConfiguration: vi.fn(async () => ({
+      specialties: [],
+      associations: [],
+    })),
+  };
 });
 const centerId = "11111111-1111-4111-8111-111111111111";
 const page = (id = centerId) => ProfessionalsPage({ params: Promise.resolve({ centerId: id }) });
@@ -30,6 +40,10 @@ describe("Professionals route authorization", () => {
     const result = await page();
     expect(result.props.centerId).toBe(centerId);
     expect(listProfessionals).toHaveBeenCalledWith(centerId, expect.anything());
+    expect(listProfessionalSpecialtyConfiguration).toHaveBeenCalledWith(
+      centerId,
+      expect.anything(),
+    );
   });
   it.each(["ROLE_FORBIDDEN", "CENTER_ACCESS_DENIED"] as const)("denies %s", async (code) => {
     vi.mocked(requireRole).mockRejectedValueOnce(new AuthorizationError(code));

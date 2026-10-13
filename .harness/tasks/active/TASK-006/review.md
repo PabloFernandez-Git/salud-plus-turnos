@@ -502,3 +502,49 @@ La suite comprueba separadores solos en ambos schemas y Actions, documentos num�
 **D-R1 LOW — CLOSED.** No se detectaron regresiones introducidas por la remediación ni findings nuevos.
 
 **TASK-006D REVIEW PASS — READY FOR CHECKPOINT**
+
+## TASK-006E REVIEW (2026-10-13)
+
+### Diff, alcance y contrato
+
+- Branch y HEAD: `task/006-professionals-specialties` / `81dcdf1b36f7a294fd1b6a2ef845cf127655b1fa`. Revisé el diff completo del working tree contra ese SHA y los ocho archivos untracked de TASK-006E. El staging permanece vacío; no hubo commit, push ni PR.
+- TASK-006E modifica `implementation-report.md`, la ruta y los tests de Profesionales, `professionals-screen.tsx` y su test, y la query `professionals.ts`; agrega editor, schema, Action delgada, función server y tests. No aparecen cambios de TASK-006F, Availability, Patients, Appointments, Agenda, identidad global, User/Auth, memberships ni tooling.
+- `next-env.d.ts` es el único cambio ajeno esperado: modificado localmente, unstaged y fuera de TASK-006E. Su SHA-256 inicial y final es `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- Brief D5 y plan RPC 9 permiten desasociación explícita de una relación retenida con Specialty o PC inactivo. Exigen preservar la asociación inactiva omitida; no exigen preservación absoluta ante `Desasociar`.
+
+### Lecturas, aislamiento y autorización
+
+- La ruta exige ADMIN activo del Center. `listProfessionalSpecialtyConfiguration` vuelve a exigir `requireRole(centerId, ["ADMIN"])` y hace exactamente dos lecturas, ambas con `.eq("center_id", centerId)`: todas las Specialties y todas las asociaciones del Center, sin N+1. `listProfessionals` mantiene su filtro del Center y la proyección mínima de nombre/apellido del Professional. Una asociación cuya Specialty no sea visible falla cerrada; el componente sólo entrega al editor asociaciones del PC seleccionado.
+- Las dos FK compuestas de `professional_center_specialties` a `(professional_center_id, center_id)` y `(specialty_id, center_id)` impiden que una fila etiquetada con ese Center apunte a un PC o una Specialty de otro. Las policies SELECT ADMIN por `center_id`, `requireRole` y la RPC refuerzan el aislamiento. Un ID cross-center en una mutación falla por PC no encontrado o batch inválido, sin revelar datos ajenos.
+- Route, query, Action, función server y RPC requieren ADMIN tenant; `requireRole` exige sesión, membership activa y Center activo. RECEPTION, PROFESSIONAL, PLATFORM_ADMIN-only, anon y actor de otro Center no obtienen acceso por esos límites y RLS. La Action directa valida UUID/token y reautoriza; la función server también reautoriza. La RPC reautoriza antes y después del advisory lock del Center.
+- No se agregó información global de Professional, otros Centers, Auth, Users o memberships a la UI. No hay logging nuevo de IDs o datos sensibles. La sesión usada es el cliente Supabase SSR tenant normal. La única mutación de asociaciones desde application code es `admin_update_professional_center_specialties`; no hay DML directo, service role, admin client ni secret key.
+
+### Deltas, estados, CAS y token
+
+- El editor forma `activate` sólo con opciones activas seleccionadas que no están asociadas activamente; `deactivate` sólo con opciones activas asociadas que se desmarcan, más IDs retenidos marcados mediante `Desasociar`. Con PC activo, las opciones activas y las retenidas son disjuntas; con PC inactivo, el cálculo omite todas las bajas por checkbox y sólo toma `Desasociar`. El schema y la RPC rechazan duplicados e intersección. El cálculo cubre alta sola/múltiple, baja sola/múltiple y lote mixto sin convertir la omisión de una Specialty inactiva en baja.
+- En el caso Cardiología activa + Clínica médica inactiva, ambas asociadas, editar Cardiología u otra opción activa deja Clínica médica fuera de `deactivate`. La sección retenida muestra `Inactiva`; sólo `Desasociar` genera su baja explícita. La RPC cambia `is_active=false` y nunca borra la fila. Al reactivar la Specialty, la asociación conservada vuelve a aparecer marcada y operativa sin INSERT adicional.
+- La UI no ofrece una Specialty inactiva para alta. Una ID inactiva enviada manualmente, una desactivación entre render y save, o una ID de otro Center llegan como máximo a la RPC: ésta bloquea/relee, exige Specialty activa y same-center para activar y revierte el lote completo al fallar. La Action mapea el error a feedback seguro y refresh, sin retry. Un PC inactivo no ofrece altas; la RPC rechaza activaciones incluso si se llama la Action directamente, mientras permite desasociaciones reductivas con CAS.
+- Cada submit envía `p_expected_professional_center_updated_at` del PC renderizado y una sola RPC batch. La RPC compara CAS bajo lock antes de mutar. Un stale rechaza el lote completo, muestra feedback y refresca sin retry. Tras éxito o stale, `ProfessionalsScreen` cierra el editor, descarta la selección y bloquea `Configurar` de ese PC mientras se conserve la misma referencia de snapshot; el nuevo render desde `router.refresh()` permite reabrir con los datos y token recibidos del servidor. El test de componente comprueba bloqueo inmediato y siguiente submit con token nuevo. La Action devuelve además el token autoritativo de la RPC, aunque la UI opta por recargar.
+- Un batch efectivo avanza `professional_centers.updated_at` por el trigger monotónico de TASK-006B. Un no-op válido conserva token y conteos cero. UI y Action evitan normalmente el batch vacío; `NO_SPECIALTY_CHANGES` se mapea como error sin mutación ni token inventado. La evidencia DB/RPC y concurrencia de TASK-006B cubre atomicidad, cross-center, inactivos, stale, monotonicidad y no-op; las migrations no cambiaron desde entonces.
+
+### Regresiones y verificación independiente
+
+| Check | Resultado |
+| --- | --- |
+| `pnpm bootstrap` | PASS |
+| `pnpm test` | PASS: 38 archivos, 303/303 tests unit/component, incluidas regresiones 006C/006D |
+| `pnpm lint`; `pnpm typecheck` | PASS; PASS |
+| Prettier focalizado sobre los 13 archivos de código/tests afectados, con binario local | PASS |
+| `git diff --check 81dcdf1b...` | PASS; sólo avisos LF/CRLF |
+| SQL migrations, tipos generados, grants/RLS/RPC contra checkpoint | 0 archivos modificados; 17 migrations existentes |
+| Staging / `next-env.d.ts` | vacío / SHA-256 esperado, unstaged |
+
+Los tests locales prueban rutas/lecturas ADMIN, roles denegados, dos lecturas filtradas por Center, payload RPC y CAS, lotes mixtos, preservación por omisión, baja retenida explícita, rechazo de IDs/estados inválidos, PC inactivo, stale, batch vacío, reactivación visible y bloqueo de reapertura antes del refresh. Las pruebas de Action y RPC boundary usan mocks; no equivalen a una nueva medición DB. La cobertura DB/RPC real de TASK-006B se reutiliza porque las 17 migrations, tipos, RLS, grants y RPC permanecen intactos. No repetí build ni guard de bundle: el implementer los reportó PASS y el review verificó tipos, lint y ausencia de secretos/DML en el código afectado, manteniendo intacto `next-env.d.ts`.
+
+DEV no fue consultado ni modificado en este review. La paridad `17 local == 17 DEV` y baseline `e25c76ea22daa7c50273affef4d7b2c22b73883d047db5b3ebb6b3ccc6158e7a` son evidencia previa de TASK-006B, no una medición nueva. No se crearon fixtures. PROD no fue consultado ni modificado. No se modificó implementación ni se inició TASK-006F.
+
+### Findings y veredicto
+
+BLOCKER: ninguno. HIGH: ninguno. MEDIUM: ninguno. LOW: ninguno.
+
+**TASK-006E REVIEW PASS — READY FOR CHECKPOINT**

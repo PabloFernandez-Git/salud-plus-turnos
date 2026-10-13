@@ -11,7 +11,13 @@ import {
   updateProfessionalCenterAction,
 } from "../actions/professional-actions";
 import type { ProfessionalActionState } from "../server/professional-actions";
-import type { ProfessionalListItem } from "../server/professionals";
+import type { ProfessionalSpecialtyActionState } from "../server/professional-specialty-actions";
+import type {
+  ProfessionalListItem,
+  ProfessionalSpecialtyAssociation,
+  ProfessionalSpecialtyOption,
+} from "../server/professionals";
+import { ProfessionalSpecialtiesEditor } from "./professional-specialties-editor";
 
 type Selection = { mode: "new" } | { mode: "edit" | "state"; professional: ProfessionalListItem };
 type Resolution = NonNullable<ProfessionalActionState["resolution"]>;
@@ -21,11 +27,15 @@ export function ProfessionalsScreen({
   centerName,
   loadFailed,
   professionals,
+  specialties = [],
+  associations = [],
 }: {
   centerId: string;
   centerName: string;
   loadFailed: boolean;
   professionals: ProfessionalListItem[];
+  specialties?: ProfessionalSpecialtyOption[];
+  associations?: ProfessionalSpecialtyAssociation[];
 }) {
   const router = useRouter();
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -35,6 +45,10 @@ export function ProfessionalsScreen({
   const [licenseNumber, setLicenseNumber] = useState("");
   const [duration, setDuration] = useState("30");
   const [feedback, setFeedback] = useState<ProfessionalActionState | null>(null);
+  const [specialtyRefreshBlock, setSpecialtyRefreshBlock] = useState<{
+    professionalCenterId: string;
+    snapshot: ProfessionalListItem[];
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function select(next: Selection | null) {
@@ -133,6 +147,17 @@ export function ProfessionalsScreen({
       form.set("isActive", String(!selection.professional.isActive));
       form.set("confirmed", "true");
       run(setProfessionalCenterActiveAction, form);
+    }
+  }
+
+  function specialtyResult(professionalCenterId: string, result: ProfessionalSpecialtyActionState) {
+    setFeedback(result);
+    if (result.status === "success" || result.status === "stale") {
+      // Discard the rendered aggregate token; the refreshed page supplies the authoritative one.
+      setSpecialtyRefreshBlock({ professionalCenterId, snapshot: professionals });
+      setSelection(null);
+      setResolution(null);
+      router.refresh();
     }
   }
 
@@ -386,6 +411,18 @@ export function ProfessionalsScreen({
                     </button>
                   </form>
                 )}
+                {selection.mode === "edit" && (
+                  <ProfessionalSpecialtiesEditor
+                    key={`${selection.professional.id}:${selection.professional.updatedAt}`}
+                    centerId={centerId}
+                    professional={selection.professional}
+                    specialties={specialties}
+                    associations={associations.filter(
+                      (row) => row.professionalCenterId === selection.professional.id,
+                    )}
+                    onResult={(result) => specialtyResult(selection.professional.id, result)}
+                  />
+                )}
                 <button
                   type="button"
                   disabled={isPending}
@@ -427,7 +464,11 @@ export function ProfessionalsScreen({
                         <td className="flex flex-wrap gap-2 p-4">
                           <button
                             type="button"
-                            disabled={isPending}
+                            disabled={
+                              isPending ||
+                              (specialtyRefreshBlock?.professionalCenterId === professional.id &&
+                                specialtyRefreshBlock.snapshot === professionals)
+                            }
                             onClick={() => select({ mode: "edit", professional })}
                             className="rounded-md border px-3 py-2 text-sky-800 disabled:opacity-50"
                           >

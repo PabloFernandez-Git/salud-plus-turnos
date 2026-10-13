@@ -27,6 +27,50 @@ export type ProfessionalListItem = {
   updatedAt: string;
 };
 
+export type ProfessionalSpecialtyOption = {
+  id: string;
+  name: string;
+  isActive: boolean;
+};
+
+export type ProfessionalSpecialtyAssociation = {
+  professionalCenterId: string;
+  specialtyId: string;
+  isActive: boolean;
+};
+
+export async function listProfessionalSpecialtyConfiguration(
+  centerId: string,
+  client?: ServerClient,
+) {
+  const parsedCenterId = professionalCenterIdSchema.parse(centerId);
+  const supabase = await authorizedClient(parsedCenterId, client);
+  const [specialtiesResult, associationsResult] = await Promise.all([
+    supabase.from("specialties").select("id, name, is_active").eq("center_id", parsedCenterId),
+    supabase
+      .from("professional_center_specialties")
+      .select("professional_center_id, specialty_id, is_active")
+      .eq("center_id", parsedCenterId),
+  ]);
+  if (specialtiesResult.error) throw specialtiesResult.error;
+  if (associationsResult.error) throw associationsResult.error;
+  const specialties: ProfessionalSpecialtyOption[] = (specialtiesResult.data ?? [])
+    .map((row) => ({ id: row.id, name: row.name, isActive: row.is_active }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  const visibleIds = new Set(specialties.map((specialty) => specialty.id));
+  const associations: ProfessionalSpecialtyAssociation[] = (associationsResult.data ?? []).map(
+    (row) => {
+      if (!visibleIds.has(row.specialty_id)) throw new Error("SPECIALTY_NOT_VISIBLE");
+      return {
+        professionalCenterId: row.professional_center_id,
+        specialtyId: row.specialty_id,
+        isActive: row.is_active,
+      };
+    },
+  );
+  return { specialties, associations };
+}
+
 async function authorizedClient(centerId: string, client?: ServerClient) {
   const supabase = client ?? (await createSupabaseServerClient());
   await requireRole(centerId, ["ADMIN"], supabase);
