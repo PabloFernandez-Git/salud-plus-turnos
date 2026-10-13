@@ -1,9 +1,9 @@
 # Estado actual
 
-**Fase:** TASK-006 — implementación completa y review final PASS; pendiente de checkpoint, PR y merge
-**Tarea activa:** TASK-006, pendiente de PR/merge
-**Último veredicto:** `TASK-006 FINAL REVIEW PASS — READY FOR FINAL CHECKPOINT AND PR`; FINAL-R1 y FINAL-R2 CLOSED
-**Rama / checkpoint previo:** `task/006-professionals-specialties` / `da6ea31968c256a569c5b235f432bc0431bd6127`
+**Fase:** TASK-006 — implementación completa, checkpoint final pusheado y PR #6 abierto; pendiente de validación final y merge
+**Tarea activa:** TASK-006, pendiente de CI/re-review del PR #6 y merge
+**Último veredicto:** `PR #6 REVIEW CHANGES_REQUESTED` por un único finding LOW documental; review final de TASK-006 PASS, FINAL-R1 y FINAL-R2 CLOSED
+**Rama / checkpoint final:** `task/006-professionals-specialties` / `1add7efbeb9c8eb57a4c36c862b5c7769aa2e21d` (HEAD previo al fix documental)
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`
 
 ## Verificación final TASK-006
@@ -16,9 +16,11 @@
   TASK-006F pasaron con cleanup. Tras la remediación final, `pnpm test` pasó 308/308; lint,
   typecheck, build, Prettier focalizado y guard de secretos del bundle cliente pasaron. El E2E
   ampliado pasó 1/1 y el smoke manual humano 6/6.
-- El re-review final independiente cerró FINAL-R1 y FINAL-R2 sin findings nuevos. TASK-006 está
-  lista para el checkpoint final y PR; aún no fue mergeada ni archivada. PROD no fue consultado ni
-  modificado. `next-env.d.ts` permanece unstaged con su SHA previo a TASK-006.
+- El re-review final independiente cerró FINAL-R1 y FINAL-R2 sin findings nuevos. El checkpoint
+  final fue pusheado y el PR #6 está abierto; CI del HEAD `1add7ef` pasó. El único finding del review
+  del PR es documental y su corrección requiere CI/re-review del nuevo HEAD antes del merge.
+  TASK-006 aún no fue mergeada ni archivada. PROD no fue consultado ni modificado. `next-env.d.ts`
+  permanece unstaged con su SHA previo a TASK-006.
 
 ## Review final inicial TASK-006 (histórico)
 
@@ -176,8 +178,8 @@
 
 ## Próximo
 
-Crear el checkpoint final y preparar el PR de TASK-006. No declarar merge, archivar ni crear la
-retrospectiva final antes de completar esos pasos y su aceptación.
+Verificar CI y re-review del PR #6 tras el fix documental. Si queda aprobado, realizar squash merge;
+después del merge, cerrar y archivar TASK-006.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
