@@ -27,6 +27,12 @@ export function CenterAdminNavigation({
       >
         Especialidades
       </Link>
+      <Link
+        className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"
+        href={`/centers/${centerId}/professionals`}
+      >
+        Profesionales
+      </Link>
     </nav>
   );
 }

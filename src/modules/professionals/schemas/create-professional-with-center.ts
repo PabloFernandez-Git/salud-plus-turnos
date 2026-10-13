@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { professionalDocumentSchema } from "./professional-document";
 import { professionalEmailSchema } from "./professional-email";
 
 const optionalTrimmedTextSchema = z
@@ -16,7 +17,7 @@ export const createProfessionalWithCenterSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{2}$/),
-  documentNumber: z.string().trim().min(1),
+  documentNumber: professionalDocumentSchema,
   email: professionalEmailSchema,
   phone: optionalTrimmedTextSchema,
   licenseNumber: optionalTrimmedTextSchema,

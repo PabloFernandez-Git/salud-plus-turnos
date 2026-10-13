@@ -339,3 +339,82 @@ permanece unstaged y fuera del alcance. PROD no fue consultado ni modificado.
   y se verificó de nuevo su SHA-256 esperado. Sigue unstaged y fuera de TASK-006C.
 - Review independiente: `TASK-006C REVIEW PASS — READY FOR CHECKPOINT`, sin findings abiertos.
   No se inicia TASK-006D ni se cierra TASK-006.
+
+## TASK-006D — Profesionales / ProfessionalCenter (implementación, pendiente de review)
+
+### Preflight y alcance
+
+- Branch `task/006-professionals-specialties`, HEAD local y remoto
+  `1631c2dc1651d90ed72a41caaef35882b448d69b` coincidentes; staging vacío.
+- Único cambio previo: `next-env.d.ts`, SHA-256
+  `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+  Permanece unstaged y fuera de TASK-006D.
+- Bootstrap pasó. Se usó la evidencia reciente de 17 migrations locales/DEV y cero drift del
+  checkpoint. Esta fase no aplicó migrations ni accedió a DEV o PROD.
+- Alcance limitado a Professional y ProfessionalCenter. No hay controles de especialidades,
+  mutaciones de User/Auth/membership ni servicio privilegiado para operaciones tenant.
+
+### Implementación
+
+- Ruta dinámica `/centers/[centerId]/professionals` con guard ADMIN activo del Center y estados de
+  carga/error/vacío. La query server-only exige ADMIN, filtra ProfessionalCenters por Center y
+  proyecta de Professional sólo nombre y apellido para el listado. Muestra además matrícula,
+  duración habitual, estado y acciones locales.
+- Flujo staged de nacionalidad/documento exactos mediante
+  `admin_resolve_professional_by_document`: `NOT_FOUND` abre alta con identidad global y
+  configuración local; `NOT_LINKED` exige confirmar vínculo; `LINKED_INACTIVE` exige confirmar
+  reactivación de la misma fila; `LINKED_ACTIVE` informa que ya pertenece al Center. La resolución
+  existente muestra sólo nombre, apellido y estado local. IDs y CAS viajan como datos opacos.
+- El alta reutiliza `createProfessionalWithCenterSchema` y su contrato de email; create/link usan
+  exclusivamente las RPCs aprobadas. Una carrera `NOT_FOUND` → identidad creada devuelve stale y
+  exige nueva resolución/confirmación, sin auto-link.
+- Editar sólo matrícula y duración (5–480, múltiplo de 5; default 30). Estado activo/inactivo con
+  confirmación. Edición y estado envían el `updated_at` renderizado; stale cierra el formulario,
+  descarta el token y refresca. No hay reintento automático ni actualización optimista; el no-op
+  se delega a la semántica RPC de TASK-006B.
+- D4 se traduce a explicación y enlace a Usuarios. La RPC/DB conserva autoridad para impedir
+  desactivar un PC con membership PROFESSIONAL activa. La navegación ADMIN agrega Profesionales y
+  conserva Usuarios y Especialidades.
+
+### Verificación
+
+- Focalizados TASK-006D: 5 archivos / 55 tests PASS, incluidos ruta, autorización server-side,
+  query Center-scoped, RPCs exactas, validación, email, confirmaciones, CAS, stale, D4 y UI.
+- Regresión unit/component completa: 34 archivos / 260 tests PASS, incluida TASK-006C y Access.
+- Lint, typecheck, build, Prettier focalizado, `git diff --check` y secret guard fuente/bundle:
+  PASS. La ruta `/professionals` figura como dinámica en el build.
+- TASK-006B DB/RPC/RLS/concurrencia se apoya en su verificación DEV previa del checkpoint; no se
+  repitió DEV ni E2E remoto en esta fase. Baseline DEV no fue tocado; no hay comparación nueva
+  antes/después. La paridad DEV se informa según evidencia reciente, no como medición de esta
+  sesión.
+- Migrations nuevas o editadas: 0. `next-env.d.ts` conserva exactamente el SHA previo después de
+  build y guard de secretos. Sin commit, push ni PR.
+
+**TASK-006D IMPLEMENTATION COMPLETE — AWAITING REVIEW**
+
+## TASK-006D — Remediación D-R1 (pendiente de re-review)
+
+- El review independiente registró `TASK-006D REVIEW CHANGES_REQUESTED`, finding único `D-R1 LOW`.
+  Su verdict histórico permanece en `review.md`, sin cambios en esta remediación.
+- Causa: los schemas de resolve y create sólo exigían `trim().min(1)` para el documento. La cadena
+  `"---"` pasaba Zod, pero `private.normalize_document()` eliminaba los guiones y la RPC rechazaba
+  el resultado vacío con `22023 / INVALID_PROFESSIONAL_INPUT`; el mapping lo trataba como fallo
+  inesperado.
+- Se agregó `professionalDocumentSchema`, compartido por resolve/create. Su helper reproduce para
+  validación la secuencia aprobada: trim, uppercase,
+  remoción de whitespace y puntos, y sólo las variantes de guion enumeradas en la función SQL.
+  Exige resultado no vacío, sin cambiar el documento persistido ni la autoridad de PostgreSQL
+  para canonicalización y deduplicación. Preserva letras, números y ceros iniciales.
+- Si la RPC responde directamente `22023 / INVALID_PROFESSIONAL_INPUT`, la Action devuelve feedback
+  seguro de documento/nacionalidad inválidos. Un fallo Zod del documento devuelve el error del
+  campo como mensaje visible en la UI de resolve y create.
+- Tests nuevos: separadores solos rechazados en ambos schemas y Actions antes de invocar RPC;
+  números, letras, ceros iniciales y separadores alrededor de contenido aceptados; mapping RPC
+  directo seguro en resolve/create; mensaje visible en componente.
+- Verificación: focalizados afectados 3 archivos / 37 tests PASS; suite unit/component completa
+  35 archivos / 277 tests PASS; bootstrap, lint, typecheck, Prettier focalizado y guard de secretos
+  con build PASS. `git diff --check` y SHA de `next-env.d.ts` se verifican al cierre.
+- Migrations nuevas o editadas: 0. No se modificaron RPCs, DEV ni PROD. Sin commit, stage, push,
+  PR ni inicio de TASK-006E.
+
+**TASK-006D REMEDIATION COMPLETE — AWAITING RE-REVIEW**
