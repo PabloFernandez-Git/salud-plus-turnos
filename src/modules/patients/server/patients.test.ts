@@ -80,6 +80,17 @@ describe("tenant patient listing", () => {
     });
     await expect(
       listPatientCenters(centerId, { query: "", state: "ACTIVE", page: 1 }, client),
-    ).rejects.toMatchObject({ code: "CENTER_ACCESS_DENIED" });
+    ).rejects.toMatchObject({ name: "AuthorizationError", code: "CENTER_ACCESS_DENIED" });
+  });
+
+  it.each([
+    { code: "42501", message: "prefix PATIENT_ACCESS_DENIED suffix" },
+    { code: "42501", message: "OTHER_ERROR" },
+    { code: "XXXXX", message: "PATIENT_ACCESS_DENIED" },
+  ])("preserves technical RPC errors: $code $message", async (error) => {
+    vi.mocked(callPatientRpc).mockRejectedValueOnce(error);
+    await expect(
+      listPatientCenters(centerId, { query: "", state: "ACTIVE", page: 1 }, client),
+    ).rejects.toBe(error);
   });
 });

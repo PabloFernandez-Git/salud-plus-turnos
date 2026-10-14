@@ -234,3 +234,16 @@ Permanece el **HISTORICAL VERIFICATION GAP** `72e4ff... → 86b6cd...`, categor�
 - Build y guard de secretos regeneraron temporalmente `next-env.d.ts`; se repusieron exactamente sus bytes previos desde una copia local verificada. SHA-256 final `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, `M` y unstaged, fuera de 007B.
 
 **Handoff:** review independiente de implementación pendiente. No PR, merge, archive ni 007C.
+
+## Remediación de implementation review TASK-007B — 2026-10-14
+
+El review independiente de `5b2ec479c90c5c85323ac08c0c7faee476d26bfd` pidió tres correcciones LOW. Las tres quedan **remediated — pending independent re-review**; sólo el reviewer puede cerrarlas. `review.md` no fue editado durante implementación. D1–D8, 007A y el comportamiento ACTIVE vacío sin consulta extra permanecen intactos.
+
+- **007B-IR-1 remediated — pending independent re-review:** `src/proxy.ts` usa `refreshSupabaseSession()`; éste clona los request headers, sobrescribe `x-salud-plus-original-search` con `NextRequest.nextUrl.search` y reenvía el mismo conjunto con `NextResponse.next({ request: { headers } })`, incluso tras `setAll`. Conserva `getAll`, `setAll`, `getClaims()` y cookies de respuesta. `PatientsPage` lee `headers()` sólo después de `requireRole()`. Parsing semántico, construcción de URL y comparación de la query original se distinguen en el módulo. Tests con literales cubren `?q=Ana`, `%41na`, `%61na`, `%20Ana%20`, `%20` interior, `state=%41CTIVE`, `page=%31`, desconocidos, repetidos, defaults, caracteres reservados/no ASCII y ausencia de loops. El test de proxy prueba spoofing y refresh de cookies.
+- **007B-IR-2 remediated — pending independent re-review:** sólo `{ code: "42501", message: "PATIENT_ACCESS_DENIED" }` se mapea a `AuthorizationError("CENTER_ACCESS_DENIED")`. Subcadena con prefijo/sufijo, mensaje distinto y código distinto conservan exactamente el error técnico.
+- **007B-IR-3 remediated — pending independent re-review:** se eliminó `it.each` sin uso del rol. La ruta verifica que solicita `ADMIN` y `RECEPTION`, y los tests del guard real con fake client ejercen ambos roles activos, rechazo de PROFESSIONAL, membership/Center inactivos y cross-center.
+- Preflight: rama `task/007-patients`, HEAD `5b2ec479c90c5c85323ac08c0c7faee476d26bfd`, sólo `review.md` y `next-env.d.ts` modificados previamente; bootstrap y diff check PASS. `next-env.d.ts` no se editó ni restauró; SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- Verificación: tests IR **74/74** en 5 archivos; focalizados 007B **85/85** en 7; suite **399/399** en 47; lint y typecheck PASS. Build y `pnpm security:check:client-bundle` PASS en copia temporal del código y dependencias instaladas, aislada para que Next no regenere el `next-env.d.ts` ajeno del checkout. Prettier focalizado y `git diff --check` PASS.
+- Zero migrations, SQL, RLS, grants, RPC o tipos generados cambiados. DEV no se consultó ni mutó; PROD fuera de alcance. Sin E2E DEV, baseline regeneration, PR, merge ni 007C.
+
+**Estado:** `TASK-007B REVIEW REMEDIATION COMPLETE — READY FOR INDEPENDENT RE-REVIEW`.

@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { headers } from "next/headers";
+import { ORIGINAL_SEARCH_HEADER } from "@/lib/original-search-header";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { listPatientCenters } from "@/modules/patients/server/patients";
 import PatientsPage from "./page";
@@ -11,6 +13,7 @@ vi.mock("next/navigation", () => ({
     throw new Error(`REDIRECT:${path}`);
   },
 }));
+vi.mock("next/headers", () => ({ headers: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: vi.fn(async () => ({})) }));
 vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/access/server/authorization")>();
@@ -19,14 +22,30 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
 vi.mock("@/modules/patients/server/patients", () => ({ listPatientCenters: vi.fn() }));
 
 const centerId = "11111111-1111-4111-8111-111111111111";
-const page = (searchParams: Record<string, string | string[]> = {}, id = centerId) =>
-  PatientsPage({
+const page = (
+  searchParams: Record<string, string | string[]> = {},
+  id = centerId,
+  originalSearch?: string,
+) => {
+  const raw = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) for (const item of value) raw.append(key, item);
+    else raw.append(key, value);
+  }
+  vi.mocked(headers).mockResolvedValue(
+    new Headers({
+      [ORIGINAL_SEARCH_HEADER]: originalSearch ?? (raw.size ? `?${raw}` : ""),
+    }) as never,
+  );
+  return PatientsPage({
     params: Promise.resolve({ centerId: id }),
     searchParams: Promise.resolve(searchParams),
   });
+};
 
 beforeEach(() => {
   vi.mocked(requireRole).mockReset();
+  vi.mocked(headers).mockReset();
   vi.mocked(listPatientCenters).mockReset();
   vi.mocked(requireRole).mockResolvedValue({ center: { id: centerId, name: "Centro" } } as never);
   vi.mocked(listPatientCenters).mockResolvedValue({
@@ -39,7 +58,7 @@ beforeEach(() => {
 });
 
 describe("patients route", () => {
-  it.each(["ADMIN", "RECEPTION"])("uses the tenant guard for %s", async () => {
+  it("requests ADMIN and RECEPTION from the tenant guard", async () => {
     const result = await page();
     expect(result.props.centerId).toBe(centerId);
     expect(requireRole).toHaveBeenCalledWith(centerId, ["ADMIN", "RECEPTION"], expect.anything());
@@ -54,6 +73,7 @@ describe("patients route", () => {
     async (code) => {
       vi.mocked(requireRole).mockRejectedValueOnce(new AuthorizationError(code));
       await expect(page({ page: "402" })).rejects.toThrow("NOT_FOUND");
+      expect(headers).not.toHaveBeenCalled();
       expect(listPatientCenters).not.toHaveBeenCalled();
     },
   );
@@ -66,7 +86,7 @@ describe("patients route", () => {
     expect(requireRole).not.toHaveBeenCalled();
   });
   it("canonicalizes after authorization and before search", async () => {
-    await expect(page({ q: " Ana ", foo: "bar" })).rejects.toThrow(
+    await expect(page({ q: "Ana" }, centerId, "?q=%41na")).rejects.toThrow(
       `REDIRECT:/centers/${centerId}/patients?q=Ana`,
     );
     expect(requireRole).toHaveBeenCalledOnce();

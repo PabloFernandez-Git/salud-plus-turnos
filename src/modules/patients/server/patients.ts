@@ -49,8 +49,7 @@ export async function listPatientCenters(
       "code" in error &&
       error.code === "42501" &&
       "message" in error &&
-      typeof error.message === "string" &&
-      error.message.includes("PATIENT_ACCESS_DENIED")
+      error.message === "PATIENT_ACCESS_DENIED"
     ) {
       throw new AuthorizationError("CENTER_ACCESS_DENIED");
     }

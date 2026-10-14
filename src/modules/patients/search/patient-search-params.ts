@@ -18,13 +18,7 @@ export function patientSearchUrl(centerId: string, filters: PatientFilters): str
   return search ? `${path}?${search}` : path;
 }
 
-export function parsePatientSearchParams(centerId: string, input: PatientSearchParams) {
-  const raw = new URLSearchParams();
-  for (const [key, value] of Object.entries(input)) {
-    if (typeof value === "string") raw.append(key, value);
-    else if (Array.isArray(value)) for (const item of value) raw.append(key, item);
-  }
-
+function parsePatientFilters(input: PatientSearchParams): PatientFilters {
   const q = input.q;
   const state = input.state;
   const page = input.page;
@@ -52,10 +46,16 @@ export function parsePatientSearchParams(centerId: string, input: PatientSearchP
   }
   if (resetPage) parsedPage = 1;
 
-  const filters: PatientFilters = { query, state: parsedState, page: parsedPage };
+  return { query, state: parsedState, page: parsedPage };
+}
+
+export function parsePatientSearchParams(
+  centerId: string,
+  input: PatientSearchParams,
+  originalSearch: string,
+) {
+  const filters = parsePatientFilters(input);
   const canonicalUrl = patientSearchUrl(centerId, filters);
-  const actualUrl = raw.size
-    ? `/centers/${centerId}/patients?${raw}`
-    : `/centers/${centerId}/patients`;
+  const actualUrl = `/centers/${centerId}/patients${originalSearch}`;
   return { ...filters, canonicalUrl, needsRedirect: actualUrl !== canonicalUrl };
 }

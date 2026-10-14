@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { z } from "zod";
+import { ORIGINAL_SEARCH_HEADER } from "@/lib/original-search-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { PatientsScreen } from "@/modules/patients/components/patients-screen";
@@ -33,7 +35,8 @@ export default async function PatientsPage({
     if (error instanceof AuthorizationError) handleAuthorization(error);
     throw error;
   }
-  const parsed = parsePatientSearchParams(centerId.data, await searchParams);
+  const originalSearch = (await headers()).get(ORIGINAL_SEARCH_HEADER) ?? "";
+  const parsed = parsePatientSearchParams(centerId.data, await searchParams, originalSearch);
   if (parsed.needsRedirect) redirect(parsed.canonicalUrl);
   const filters = { query: parsed.query, state: parsed.state, page: parsed.page };
   let result: PatientPage | null = null;
