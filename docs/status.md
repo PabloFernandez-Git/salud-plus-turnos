@@ -1,14 +1,14 @@
 # Estado actual
 
-**Fase:** TASK-007A `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED`; TASK-007B `REVIEW REMEDIATION COMPLETE — READY FOR INDEPENDENT RE-REVIEW`. TASK-007 general sigue `ACTIVE`.
-**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 y 007A-IR-1/IR-2 CLOSED. 007B implementa sólo listado y búsqueda tenant; el plan y su review PASS están en `.harness/tasks/active/TASK-007/`.
-**Último veredicto:** `TASK-007B IMPLEMENTATION REVIEW CHANGES_REQUESTED`; 007B-IR-1 permanece OPEN y su regresión de cookie refresh está remediada localmente, pendiente de re-review independiente. 007B-IR-2 y 007B-IR-3 están CLOSED. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Fase:** TASK-007A `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED`; TASK-007B `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED`. TASK-007 general sigue `ACTIVE — READY FOR 007C ANALYZE + PLAN`.
+**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2 y 007B-IR-1/IR-2/IR-3 CLOSED. 007B implementó sólo listado y búsqueda tenant; el plan y el review independiente PASS están en `.harness/tasks/active/TASK-007/`.
+**Último veredicto:** `TASK-007B IMPLEMENTATION REVIEW PASS — READY FOR 007B CLOSURE`; 007B-IR-1, 007B-IR-2 y 007B-IR-3 están CLOSED. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
-## Remediación del review TASK-007B
+## Cierre del review TASK-007B
 
-- 007B-IR-1 **OPEN — cookie refresh remediado localmente, pendiente de re-review independiente**: cada `NextResponse.next` recibe un snapshot fresco de `request.headers` y sobrescribe `x-salud-plus-original-search` con `NextRequest.nextUrl.search`. Después de `setAll`, el nuevo snapshot incluye las cookies renovadas y conserva las demás. La prueba con clases reales de Next falló en `1c214bad` por reenviar `session=old` y pasa tras el fix; cubre dos cookies renovadas, una conservada, spoofing y respuesta `Set-Cookie`. Sin refresh, la cookie original y la query real se conservan. La página sigue leyendo el header tras `requireRole`.
+- 007B-IR-1 **CLOSED — cookie refresh verificado por re-review independiente**: cada `NextResponse.next` recibe un snapshot fresco de `request.headers` y sobrescribe `x-salud-plus-original-search` con `NextRequest.nextUrl.search`. Después de `setAll`, el nuevo snapshot incluye las cookies renovadas y conserva las demás. La prueba con clases reales de Next falló en `1c214bad` por reenviar `session=old` y pasa tras el fix; cubre dos cookies renovadas, una conservada, spoofing y respuesta `Set-Cookie`. Sin refresh, la cookie original y la query real se conservan. La página sigue leyendo el header tras `requireRole`.
 - 007B-IR-2 **CLOSED**: la denegación RPC se reconoce sólo con `code=42501` y `message=PATIENT_ACCESS_DENIED` exactos. Subcadenas y otros errores siguen siendo fallos técnicos recuperables.
 - 007B-IR-3 **CLOSED**: el test de ruta verifica el contrato `ADMIN`/`RECEPTION`; una prueba separada ejecuta `requireRole` real con roles permitidos y rechazos de PROFESSIONAL, membership/Center inactivos y cross-center.
 - Verificación local de la remediación actual: proxy 2/2; IR-1 focalizados 44/44 en 3 archivos; 007B focalizados 86/86 en 7 archivos; suite completa 400/400 en 47 archivos; lint y typecheck PASS. `pnpm build` y `pnpm security:check:client-bundle` PASS en copia física aislada con `pnpm_config_verify_deps_before_run=false`; Prettier focalizado y `git diff --check` PASS. `next-env.d.ts` ajeno conserva SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, unstaged. Zero DB/schema delta; DEV y PROD no consultados ni mutados. TASK-007C no iniciado.
@@ -201,7 +201,7 @@ El reviewer independiente cerró 007A-IR-1/IR-2 y aceptó evidencia live DEV cap
 
 ## Próximo
 
-Realizar review independiente de la implementación de TASK-007B. No iniciar 007C ni E2E de Patients antes del siguiente checkpoint autorizado. 007A conserva review independiente PASS y baseline V2 aprobado de 15/15 componentes, digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — evidencia insuficiente**. TASK-007 sigue abierta; PROD fuera de alcance.
+TASK-007B está cerrada; TASK-007 general sigue ACTIVE y lista para 007C ANALYZE + PLAN en un checkpoint posterior. E2E de Patients permanece reservado a 007D. 007A conserva review independiente PASS y baseline V2 aprobado de 15/15 componentes, digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — evidencia insuficiente**, sin reconciliación retrospectiva. TASK-007 sigue abierta; PROD fuera de alcance.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
