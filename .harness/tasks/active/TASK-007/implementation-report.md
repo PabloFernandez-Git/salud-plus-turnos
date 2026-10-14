@@ -209,3 +209,28 @@ El re-review independiente de `review.md` concluyó `007A-IR-1 CLOSED`, `007A-IR
 El reviewer aceptó `HUMAN-CAPTURED LIVE DEV EVIDENCE` para su gate read-only final: 19/19 migrations, dry-run sin pendientes, DB lint y schema verifier PASS, y comparación Baseline V2 exacta con 15/15 componentes y digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. Esa evidencia fue ejecutada por la persona usuaria desde una terminal autenticada; no se atribuye al entorno aislado del reviewer ni implica nuevas mutaciones DEV en este checkpoint.
 
 Permanece el **HISTORICAL VERIFICATION GAP** `72e4ff... → 86b6cd...`, categoría **E — insufficient evidence**, sin reconciliación retrospectiva. La inferencia por resolve/create continúa como **ACCEPTED RISK — MVP DEV**; protección contra abuso, rate limiting y monitoreo siguen requeridos **PRE-PROD**. No se consultó ni modificó PROD.
+
+## TASK-007B — Patients List + Tenant Search · implementación 2026-10-14
+
+**Estado:** `TASK-007B IMPLEMENTATION COMPLETE — READY FOR INDEPENDENT IMPLEMENTATION REVIEW`. TASK-007 general sigue ACTIVE; 007A permanece CLOSED. La autorización humana de 007B y el `TASK-007B PLAN REVIEW PASS` son el gate de esta implementación. D1–D8 no cambian.
+
+### Preflight y límites
+
+- Rama `task/007-patients`, HEAD/base remoto `ff391d832ae887aefa228eec11d8d8d435b282c6`. Working tree inicial exactamente `M plan.md`, `M review.md`, `M docs/status.md` y `M next-env.d.ts`, todos unstaged; los tres primeros eran artefactos de PLAN/PLAN REVIEW de 007B. `next-env.d.ts` era ajeno y conservaba SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+- `pnpm bootstrap` y `git diff --check` iniciales PASS. Sólo se leyeron código y documentos relevantes. Ninguna migration, SQL, RLS, grant, RPC o tipo generado se modificó. No se consultó ni mutó DEV para esta implementación; PROD no se accedió. Baseline V2 fijo: `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`; no se regeneró.
+
+### Implementación
+
+- `patient-search-params.ts` interpreta exclusivamente `q`, `state`, `page`. Omite defaults; elimina desconocidos; repetidos o inválidos descartan el valor afectado y vuelven a página 1. `q` usa `trimPatientInput` de 007A y máximo 100 puntos de código. `state` permite ACTIVE/INACTIVE/ALL; páginas canónicas 1..401. Genera URL determinista y señal de redirect sin autorización mezclada. Página 401 produce offset 10000, nunca superior.
+- La ruta `page.tsx` valida UUID, crea `createSupabaseServerClient()` con la sesión real, exige `requireRole(centerId, ["ADMIN", "RECEPTION"], supabase)`, interpreta filtros sólo después del guard, redirige URL no canónica antes de leer y compone la pantalla. `UNAUTHENTICATED` → `/login`; Center/rol denegado y revocación RPC → `notFound()`. Fallo ordinario de SEARCH → estado de error sin exponer SQL/PII.
+- `listPatientCenters()` usa `tenantPatientSearchSchema` y exclusivamente `callPatientRpc(client, "staff_search_patient_centers", { p_center_id, p_query, p_state, p_limit: 26, p_offset })`. Conserva NULL en filas, muestra primeras 25, `hasNext` sólo con fila 26 antes de página 401, `hasPrevious` sólo desde página 2. Página >1 sin filas redirige a página 1 con `q/state`, sin segunda consulta en esa request. No usa resolve, SELECT directo sobre Person/PatientCenter, COUNT ni cliente privilegiado.
+- `PatientsScreen` usa un solo array de filas para tabla desktop y tarjetas móviles informativas. Muestra nombre/apellido, nacionalidad/documento, nacimiento como fecha civil `DD/MM/YYYY` sin `Date`, teléfono, email/cobertura con `—` sólo en UI y estado activo/inactivo. No muestra notas, IDs/tokens internos ni datos de otros Centers. Formulario GET accesible envía `q/state` sin `page`; Limpiar vuelve a ruta base. Hay loading, error con reintento que conserva URL y mensajes exactos de búsqueda vacía/ACTIVE/INACTIVE/ALL. No se hace consulta secundaria para clasificar ACTIVE vacío, conforme a la autorización de implementación más reciente.
+- `CenterAdminNavigation` se generalizó a `CenterNavigation` y se actualizaron todos los imports/tests/call sites. ADMIN ve Pacientes, Usuarios, Especialidades y Profesionales; RECEPTION sólo Pacientes; PROFESSIONAL ninguno. Los guards ADMIN de rutas existentes permanecen intactos.
+
+### Verificación
+
+- Tests focalizados iniciales: **47/47 PASS**. Suite completa después de formatear: **377/377 PASS** en 46 archivos. Incluye parser literal, límites, adapter y paginación, presentación responsive, estados vacíos/error, guard de página, redirects y matriz de navegación. No se creó E2E Patients; corresponde a 007D. No se crearon fixtures DEV.
+- `pnpm lint` PASS; `pnpm typecheck` PASS; `pnpm build` PASS con la ruta Patients server-rendered; Prettier focalizado PASS; `git diff --check` PASS; `pnpm security:check:client-bundle` PASS. Un typecheck intermedio detectó sólo la mutabilidad del array literal en un test; se ajustó el tipo de entrada puro y el typecheck final pasó.
+- Build y guard de secretos regeneraron temporalmente `next-env.d.ts`; se repusieron exactamente sus bytes previos desde una copia local verificada. SHA-256 final `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, `M` y unstaged, fuera de 007B.
+
+**Handoff:** review independiente de implementación pendiente. No PR, merge, archive ni 007C.

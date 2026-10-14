@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CenterAdminNavigation } from "@/modules/access/components/center-admin-navigation";
+import { CenterNavigation } from "@/modules/access/components/center-navigation";
 import type { SpecialtyListItem } from "../server/specialties";
 import { SpecialtiesScreen } from "./specialties-screen";
 
@@ -167,15 +167,14 @@ describe("SpecialtiesScreen", () => {
 
 describe("tenant navigation", () => {
   it("shows Especialidades only to ADMIN", () => {
-    const view = render(<CenterAdminNavigation centerId={centerId} role="ADMIN" />);
+    const view = render(<CenterNavigation centerId={centerId} role="ADMIN" />);
     expect(
-      within(screen.getByRole("navigation", { name: "Administración del centro" })).getByRole(
-        "link",
-        { name: "Especialidades" },
-      ),
+      within(screen.getByRole("navigation", { name: "Navegación del centro" })).getByRole("link", {
+        name: "Especialidades",
+      }),
     ).toHaveAttribute("href", `/centers/${centerId}/specialties`);
     for (const role of ["RECEPTION", "PROFESSIONAL"] as const) {
-      view.rerender(<CenterAdminNavigation centerId={centerId} role={role} />);
+      view.rerender(<CenterNavigation centerId={centerId} role={role} />);
       expect(screen.queryByRole("link", { name: "Especialidades" })).not.toBeInTheDocument();
     }
   });

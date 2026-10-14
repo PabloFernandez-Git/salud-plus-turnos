@@ -1,10 +1,17 @@
 # Estado actual
 
-**Fase:** TASK-007A `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED — READY FOR 007B`. TASK-007 general sigue `ACTIVE`; 007B aún no se inició.
-**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 CLOSED. Evidencia del cierre en `.harness/tasks/active/TASK-007/review.md` y `implementation-report.md`.
-**Último veredicto:** `TASK-007A IMPLEMENTATION REVIEW PASS — READY FOR 007B`; 007A-IR-1 y 007A-IR-2 `CLOSED`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Fase:** TASK-007A `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED`; TASK-007B `IMPLEMENTATION COMPLETE — READY FOR INDEPENDENT IMPLEMENTATION REVIEW`. TASK-007 general sigue `ACTIVE`.
+**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3 y 007A-IR-1/IR-2 CLOSED. 007B implementa sólo listado y búsqueda tenant; el plan y su review PASS están en `.harness/tasks/active/TASK-007/`.
+**Último veredicto:** `TASK-007B PLAN REVIEW PASS`; implementación local completa y pendiente de review independiente. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
+
+## Implementación TASK-007B
+
+- `/centers/[centerId]/patients` ofrece búsqueda tenant con `q/state/page` canónicos, filtros ACTIVE/INACTIVE/ALL, paginación 25+1 sin COUNT, tabla desktop, tarjetas móviles, loading y estados vacíos/error. ADMIN y RECEPTION acceden; PROFESSIONAL y PLATFORM_ADMIN-only no acceden. La home muestra navegación según rol.
+- La única lectura de Patients usa `staff_search_patient_centers` mediante `callPatientRpc()` y cliente Supabase server de la sesión. No hay resolve, registro ni mutaciones.
+- Tests focalizados 47/47; suite completa 377/377 en 46 archivos; lint, typecheck, build, Prettier focalizado, `git diff --check` y guard de secretos del bundle cliente PASS. `next-env.d.ts` conserva SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, unstaged.
+- Zero delta de migrations, SQL, RLS, grants, RPCs y tipos generados. DEV no se consultó ni mutó para 007B; PROD fuera de alcance. E2E de Patients reservado a 007D.
 
 ## Remediación de review TASK-007A
 
@@ -187,7 +194,7 @@ El reviewer independiente cerró 007A-IR-1/IR-2 y aceptó evidencia live DEV cap
 
 ## Próximo
 
-La reanudación autorizada completó seis carreras reales bajo locks observados, matrices DB/RPC/RLS, cleanup exacto por UUID y comparación read-only final con el baseline V2 autoritativo: digest global `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`, 15/15 componentes y conteos, filas/campos exactos; sin fixtures residuales. Schema/API separado: 19 migrations locales/DEV, dry-run sin pendientes, lint y verificador de catálogo PASS. Focused 15/15, suite completa 323/323, lint, typecheck, build, guard de secretos, formato focalizado y E2E habitual 1/1 PASS. Las dos migrations aplicadas permanecen inmutables; tipos generados desde DEV y sin regeneración adicional. El gap histórico `72e4ff...` → `86b6cd...` sigue **E — evidencia insuficiente**, sin equivalencia retrospectiva. Pendiente review independiente de 007A; no PR, merge ni archivo y TASK-007 completa sigue abierta. PROD fuera de alcance. Evidencia detallada en `implementation-report.md`.
+Realizar review independiente de la implementación de TASK-007B. No iniciar 007C ni E2E de Patients antes del siguiente checkpoint autorizado. 007A conserva review independiente PASS y baseline V2 aprobado de 15/15 componentes, digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — evidencia insuficiente**. TASK-007 sigue abierta; PROD fuera de alcance.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
