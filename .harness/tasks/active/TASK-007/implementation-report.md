@@ -201,3 +201,11 @@ La autoridad es `20261013190000_add_patient_foundation.sql`, incluidos `RETURN Q
 - El **HISTORICAL VERIFICATION GAP** `72e4ff... → 86b6cd...` sigue categoría **E — insufficient evidence**. El riesgo de inferencia por resolve/create continúa `ACCEPTED RISK — MVP DEV`; abuso, rate limiting y monitoreo siguen **PRE-PROD REQUIRED**. PROD no se consultó ni modificó.
 
 **Veredicto de remediación:** `TASK-007A REVIEW FINDINGS REMEDIATED — READY FOR INDEPENDENT RE-REVIEW`. Sólo el reviewer puede cerrar 007A-IR-1/IR-2.
+
+## Checkpoint final TASK-007A — 2026-10-14
+
+El re-review independiente de `review.md` concluyó `007A-IR-1 CLOSED`, `007A-IR-2 CLOSED` y **`TASK-007A IMPLEMENTATION REVIEW PASS — READY FOR 007B`**. TASK-007A queda `IMPLEMENTATION COMPLETE — VERIFICATION COMPLETE — INDEPENDENT REVIEW PASS — CLOSED`; TASK-007 general permanece activa y 007B no se inició.
+
+El reviewer aceptó `HUMAN-CAPTURED LIVE DEV EVIDENCE` para su gate read-only final: 19/19 migrations, dry-run sin pendientes, DB lint y schema verifier PASS, y comparación Baseline V2 exacta con 15/15 componentes y digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. Esa evidencia fue ejecutada por la persona usuaria desde una terminal autenticada; no se atribuye al entorno aislado del reviewer ni implica nuevas mutaciones DEV en este checkpoint.
+
+Permanece el **HISTORICAL VERIFICATION GAP** `72e4ff... → 86b6cd...`, categoría **E — insufficient evidence**, sin reconciliación retrospectiva. La inferencia por resolve/create continúa como **ACCEPTED RISK — MVP DEV**; protección contra abuso, rate limiting y monitoreo siguen requeridos **PRE-PROD**. No se consultó ni modificó PROD.
