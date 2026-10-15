@@ -1,7 +1,7 @@
 # Estado actual
 
-**Fase:** TASK-007 — Pacientes `CLOSED`; TASK-007A, 007B y 007C+D cerradas. GATE C y GATE D automatizado PASS; integración a `main` pendiente mediante PR.
-**Tarea cerrada pendiente de integración:** TASK-007 en `task/007-patients`, `READY_FOR_MERGE`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2, 007B-IR-1/IR-2/IR-3 y TASK-007-FIR-1/FIR-2 `CLOSED`. Los artefactos permanecen en `active/` hasta el merge, según el patrón de TASK-006.
+**Fase:** `TASK-007 CLOSED`. Patients completado para el alcance actual del MVP; TASK-007A, 007B y 007C+D cerradas. GATE C y GATE D automatizado PASS. PR #8 integrado en `main` mediante squash merge (`38b02b7aac8d0f384af6f3065934b7a72eb6b234`).
+**Tarea archivada:** D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2, 007B-IR-1/IR-2/IR-3 y TASK-007-FIR-1/FIR-2 `CLOSED`. Artefactos en `.harness/tasks/archive/TASK-007/`, según el patrón de TASK-006.
 **Último veredicto independiente:** `TASK-007 FINAL IMPLEMENTATION REVIEW PASS — READY FOR TASK-007 CLOSURE`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
@@ -12,7 +12,7 @@
 - Run DEV exacto `c9818e40-2d4d-4c1b-a392-14a9404a5111`: integración DB y E2E PASS previos. Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se afirma smoke PASS.
 - Ownership por UUID exacto, cleanup y auditoría posterior PASS; inventario DEV restaurado. Sin nuevos fixtures ni E2E.
 - Paridad 19/19, dry-run sin pendientes, DB lint, schema/API y Baseline V2 exacto PASS (15/15 componentes; digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`).
-- `next-env.d.ts` M, unstaged y con SHA exacto. El re-review independiente posterior fue PASS; TASK-007 quedó cerrada documentalmente y lista para PR, sin merge.
+- `next-env.d.ts` M, unstaged y con SHA exacto. El re-review independiente posterior fue PASS; en ese checkpoint TASK-007 quedó cerrada documentalmente y lista para PR. PR #8 se integró después.
 <!-- TASK007_FINALIZER_STATUS_END -->
 
 ## TASK-007 — remediación del review final (2026-10-15)
@@ -23,7 +23,7 @@
 
 ## Cierre documental TASK-007 — 2026-10-15
 
-- `TASK-007 CLOSED`; `TASK-007-FIR-1 CLOSED`; `TASK-007-FIR-2 CLOSED`. El re-review independiente final fue **PASS**, sin findings nuevos. Integración a `main` pendiente; no hay merge.
+- `TASK-007 CLOSED`; `TASK-007-FIR-1 CLOSED`; `TASK-007-FIR-2 CLOSED`. El re-review independiente final fue **PASS**, sin findings nuevos. PR #8 integrado en `main`; Patients completado para el alcance actual del MVP.
 - Patients incluye listado/búsqueda tenant, registro staged con resolve exacto y caminos NOT_FOUND create, NOT_LINKED link, ACTIVE reuse e INACTIVE reactivate; panel de detalle/administración, edición de datos administrativos, desactivación/reactivación, CAS/stale protection y UI responsive consistente con módulos administrativos.
 - 007A foundation y 007B list/search están cerradas; 007C+D completó GATE C y GATE D automatizado. En C+D hubo **zero DB delta**. GATE D dejó ownership/cleanup exacto, inventario restaurado y Baseline V2 exacto PASS.
 - Smoke humano **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se cuenta como PASS. **HISTORICAL VERIFICATION GAP: Category E — insufficient evidence**, sin reconciliación. **PRE-PROD:** riesgo de inferencia por exact global resolve/create, rate limiting, protección contra abuso y monitoring/telemetry siguen pendientes.
@@ -50,7 +50,7 @@
 - Tras ampliar el timeout, Playwright pasó el escenario completo de RECEPTION desktop. El segundo llegó al último chequeo, PROFESSIONAL denied, y falló porque esperaba HTTP 404; la captura mostró la página 404 renderizada y ningún dato de pacientes, con respuesta HTTP 200 por streaming. El spec comprueba ahora el 404 visible y la ausencia de la pantalla/listado de pacientes. El test puntual de sólo lectura verificó esa denegación (1/1 PASS) sin repetir las mutaciones ya hechas; `cleanup-isolated` y `audit` posteriores pasaron. El ledger quedó `e2e_pass`, con ownership de 8 Persons y 8 PatientCenters. Smoke humano, cleanup y baseline final siguen pendientes; GATE D no es PASS.
 - Antes del smoke se comprobó por error la ruta antigua `test-results/task007-gate-d/fixture-ledger.json`, que Playwright debe limpiar. El ledger vigente sí existe en `.task007-gate-d/fixture-ledger.json`, SHA-256 `572f62a8875c25682437000df13be9ac5c129c86119677f951f2d2c53fc0297d`, runId/Center IDs exactos, `e2e_pass`, ownership 8/8 y credenciales presentes sin imprimir. `server-temp.json` pertenece sólo al servidor Next; el puerto 31007 estaba abierto y no se ejecutó su cleanup. Se añadieron checks SHA antes/después de `cleanup-isolated` y `audit` y comando local read-only `ledger-status.mjs`. Pruebas locales de ambos lifecycles PASS (2/2). El intento de audit desde Codex no consultó DEV por falta de auth CLI; el audit humano previo pasó y el archivo sigue presente. No hubo recuperación nueva ni escrituras DEV.
 - La persona usuaria aportó evidencia **HUMAN-CAPTURED LIVE DEV** de `ehllxymqyzrofydrvtzo`: 19/19 migrations exactas, `db push --dry-run` al día, `db lint` sin errores, schema/API verifier PASS y Baseline V2 exacto PASS (`24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`, estable, sin mismatches ni domain errors). **GATE D PREFLIGHT PASS**; no se repite GATE C.
-- Runner y runbook DEV preparados en `scripts/task007-gate-d*`, `tests/e2e/task-007-gate-d.spec.mjs` y `.harness/tasks/active/TASK-007/gate-d-runbook.md`: inventario/ownership antes de escribir, fixtures propios, integración DB/carreras/privacy, E2E, captura humana por UUID exacto, auditoría/cleanup y verificación final. En este entorno sólo se verificó sintaxis, lint, formato y arranque aislado de Next; la API de tablas responde `42501` con la clave de servicio y falta la sesión CLI de plataforma, por lo que **ningún fixture ni mutación DEV se ejecutó aquí**. La persona usuaria ejecutará el runner desde su terminal autenticado y aportará la evidencia de smoke/cleanup/final gate.
+- Runner y runbook DEV preparados en `scripts/task007-gate-d*`, `tests/e2e/task-007-gate-d.spec.mjs` y `.harness/tasks/archive/TASK-007/gate-d-runbook.md`: inventario/ownership antes de escribir, fixtures propios, integración DB/carreras/privacy, E2E, captura humana por UUID exacto, auditoría/cleanup y verificación final. En este entorno sólo se verificó sintaxis, lint, formato y arranque aislado de Next; la API de tablas responde `42501` con la clave de servicio y falta la sesión CLI de plataforma, por lo que **ningún fixture ni mutación DEV se ejecutó aquí**. La persona usuaria ejecutará el runner desde su terminal autenticado y aportará la evidencia de smoke/cleanup/final gate.
 - `next-env.d.ts` continúa `M`, unstaged, SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`. GATE D aún no es PASS; no stage, commit, push, PR, merge ni cierre de TASK-007.
 
 ## Cierre del review TASK-007B
@@ -248,7 +248,7 @@ El reviewer independiente cerró 007A-IR-1/IR-2 y aceptó evidencia live DEV cap
 
 ## Próximo
 
-Siguiente gate: review del PR de `task/007-patients` hacia `main`; no mergear en este cierre. Archivar TASK-007 después del merge, como TASK-006. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — insufficient evidence**, sin reconciliación retrospectiva. Los controles de inferencia/abuso siguen pendientes PRE-PROD; PROD fuera de alcance.
+TASK-007 está cerrada y archivada tras el merge del PR #8. Próximo paso: merge del PR documental `task/007-post-merge-archive` hacia `main`. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — insufficient evidence**, sin reconciliación retrospectiva. Los controles de inferencia/abuso siguen pendientes PRE-PROD; PROD fuera de alcance.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
