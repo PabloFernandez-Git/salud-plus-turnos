@@ -48,28 +48,35 @@ export function PatientsScreen({
         : "No hay pacientes activos";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <section className="mx-auto max-w-7xl space-y-6">
-        <header className="space-y-2">
-          <Link
-            className="text-sm font-semibold text-sky-700 hover:underline"
-            href={`/centers/${centerId}`}
-          >
-            Volver al centro
-          </Link>
-          <p className="text-sm text-slate-600">{centerName}</p>
-          <h1 className="text-3xl font-bold text-slate-950">Pacientes</h1>
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-[1400px] space-y-6">
+        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-950">Pacientes</h1>
+              <p className="text-lg font-medium text-slate-800">{centerName}</p>
+            </div>
+            <Link
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              href={`/centers/${centerId}`}
+            >
+              Volver al centro
+            </Link>
+          </div>
+        </header>
+        <div className="flex flex-col items-stretch gap-3 sm:items-end">
           <PatientWorkspace
             centerId={centerId}
             filters={filters}
             detail={detail}
             detailFailed={detailFailed}
           />
-        </header>
+        </div>
         <form
           action={baseUrl}
           aria-label="Búsqueda de pacientes"
-          className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-[minmax(0,1fr)_12rem_auto_auto] sm:items-end"
+          className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 md:grid-cols-[minmax(0,1fr)_12rem] md:items-end lg:grid-cols-[minmax(0,1fr)_12rem_auto_auto]"
           method="get"
         >
           <div className="space-y-1">
@@ -111,7 +118,7 @@ export function PatientsScreen({
           >
             Limpiar
           </Link>
-          <p className="text-sm text-slate-600 sm:col-span-4">
+          <p className="text-sm text-slate-600 md:col-span-2 lg:col-span-4">
             Buscá por documento, nombre, teléfono o email dentro de este centro.
           </p>
         </form>

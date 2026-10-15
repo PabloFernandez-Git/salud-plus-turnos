@@ -71,7 +71,26 @@ beforeEach(() => {
     this.dispatchEvent(new Event("close"));
   };
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+function openRegistrationDialog() {
+  render(
+    <PatientWorkspace centerId={centerId} filters={filters} detail={null} detailFailed={false} />,
+  );
+  const trigger = screen.getByRole("button", { name: "Registrar paciente" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: "Registrar paciente" }) as HTMLDialogElement;
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+    left: 400,
+    right: 900,
+    top: 0,
+    bottom: 800,
+  } as DOMRect);
+  return { dialog, trigger };
+}
 function renderRegistration() {
   render(
     <PatientWorkspace centerId={centerId} filters={filters} detail={null} detailFailed={false} />,
@@ -85,6 +104,47 @@ function renderRegistration() {
 }
 
 describe("patient staged dialogs", () => {
+  it("closes registration from the backdrop using the unsaved-data guard and restores focus", async () => {
+    const { dialog, trigger } = openRegistrationDialog();
+    fireEvent.change(screen.getByLabelText("Documento"), { target: { value: "123" } });
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(dialog).toBeInTheDocument();
+
+    confirm.mockReturnValue(true);
+    fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+    expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("keeps registration open for clicks inside the panel and closes with Cerrar", async () => {
+    const { dialog, trigger } = openRegistrationDialog();
+
+    fireEvent.click(screen.getByRole("heading", { name: "Registrar paciente" }));
+    fireEvent.click(dialog, { clientX: 500, clientY: 100 });
+    expect(dialog).toBeInTheDocument();
+
+    const closeButton = screen.getByRole("button", { name: "Cerrar" });
+    expect(closeButton).toHaveAttribute("aria-label", "Cerrar");
+    expect(closeButton.textContent).toBe("");
+    expect(closeButton.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    fireEvent.click(closeButton);
+    expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("keeps the native Escape cancel path and restores focus", async () => {
+    const { dialog, trigger } = openRegistrationDialog();
+
+    const cancelEvent = new Event("cancel", { cancelable: true });
+    if (dialog.dispatchEvent(cancelEvent)) dialog.close();
+
+    expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
   it("requires a second explicit confirmation before atomic creation", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
       status: "success",

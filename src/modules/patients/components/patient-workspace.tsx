@@ -40,12 +40,16 @@ function PatientDialog({
   children,
   onClose,
   canClose,
+  closeOnBackdrop = false,
+  iconClose = false,
   title,
   description,
 }: {
   children: React.ReactNode;
   onClose: () => void;
   canClose?: () => boolean;
+  closeOnBackdrop?: boolean;
+  iconClose?: boolean;
   title: string;
   description: string;
 }) {
@@ -64,6 +68,18 @@ function PatientDialog({
       onCancel={(event) => {
         if (canClose && !canClose()) event.preventDefault();
       }}
+      onClick={(event) => {
+        if (!closeOnBackdrop || event.target !== event.currentTarget) return;
+        const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
+        if (
+          event.clientX >= left &&
+          event.clientX < right &&
+          event.clientY >= top &&
+          event.clientY < bottom
+        )
+          return;
+        if (!canClose || canClose()) event.currentTarget.close();
+      }}
       className="m-0 ml-auto h-dvh max-h-dvh w-screen max-w-none overflow-y-auto border-0 bg-white p-0 shadow-2xl backdrop:bg-slate-950/50 md:w-[min(100%,38rem)]"
     >
       <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white p-4 sm:p-6">
@@ -77,12 +93,31 @@ function PatientDialog({
         </div>
         <button
           type="button"
+          aria-label={iconClose ? "Cerrar" : undefined}
           onClick={() => {
             if (!canClose || canClose()) ref.current?.close();
           }}
-          className="min-h-11 rounded px-3 font-semibold text-sky-700"
+          className={
+            iconClose
+              ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+              : "min-h-11 rounded px-3 font-semibold text-sky-700"
+          }
         >
-          Cerrar
+          {iconClose ? (
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2"
+              viewBox="0 0 20 20"
+            >
+              <path d="M5 5l10 10M15 5L5 15" />
+            </svg>
+          ) : (
+            "Cerrar"
+          )}
         </button>
       </div>
       <div className="space-y-5 p-4 pb-8 sm:p-6">{children}</div>
@@ -315,6 +350,8 @@ function Registration({
       title="Registrar paciente"
       description="Comprobá la identidad antes de crear o vincular un registro en este centro."
       onClose={onClose}
+      closeOnBackdrop
+      iconClose
       canClose={() =>
         (!identity.documentNumber &&
           !identity.birthDate &&
