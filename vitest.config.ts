@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -13,6 +13,12 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
+    exclude: [
+      ...configDefaults.exclude,
+      "scripts/task007-gate-d/audit-clean.test.mjs",
+      "scripts/task007-gate-d/finalize-core.test.mjs",
+      "scripts/task007-gate-d/ledger-lifecycle.test.mjs",
+    ],
     setupFiles: ["./vitest.setup.ts"],
   },
 });

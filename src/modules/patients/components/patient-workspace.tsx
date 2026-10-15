@@ -26,6 +26,11 @@ type Identity = {
   documentNumber: string;
   birthDate: string;
 };
+type ResolveIdentity = Pick<Identity, "nationalityCode" | "documentNumber" | "birthDate">;
+const sameResolveIdentity = (left: ResolveIdentity, right: ResolveIdentity) =>
+  left.nationalityCode === right.nationalityCode &&
+  left.documentNumber === right.documentNumber &&
+  left.birthDate === right.birthDate;
 type Details = { phone: string; email: string; insuranceName: string; administrativeNotes: string };
 const emptyIdentity: Identity = {
   firstName: "",
@@ -201,6 +206,9 @@ function Registration({
 }) {
   const router = useRouter();
   const [identity, setIdentity] = useState<Identity>(emptyIdentity);
+  const identityRef = useRef(identity);
+  const resolveGeneration = useRef(0);
+  const resolvedIdentity = useRef<ResolveIdentity | null>(null);
   const [details, setDetails] = useState<Details>(emptyDetails);
   const [resolution, setResolution] = useState<PatientResolveRow | null>(null);
   const [confirm, setConfirm] = useState(false);
@@ -224,9 +232,13 @@ function Registration({
     });
   }
   function changeIdentity(field: keyof Identity, value: string) {
-    setIdentity((previous) => ({ ...previous, [field]: value }));
+    const next = { ...identityRef.current, [field]: value };
+    identityRef.current = next;
+    setIdentity(next);
     setConfirm(false);
     if (field === "nationalityCode" || field === "documentNumber" || field === "birthDate") {
+      resolveGeneration.current += 1;
+      resolvedIdentity.current = null;
       setResolution(null);
       setConfirm(false);
     }
@@ -263,24 +275,43 @@ function Registration({
   function resolve(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    const requestGeneration = ++resolveGeneration.current;
+    const snapshot: ResolveIdentity = {
+      nationalityCode: identityRef.current.nationalityCode,
+      documentNumber: identityRef.current.documentNumber,
+      birthDate: identityRef.current.birthDate,
+    };
+    const isCurrent = () =>
+      requestGeneration === resolveGeneration.current &&
+      sameResolveIdentity(identityRef.current, snapshot);
     setFeedback(null);
     setResolution(null);
-    runSafely(async () => {
-      const result = await resolvePatientAction({
-        centerId,
-        nationalityCode: identity.nationalityCode,
-        documentNumber: identity.documentNumber,
-        birthDate: identity.birthDate,
-      });
-      if (
-        result.status === "success" &&
-        result.data &&
-        typeof result.data === "object" &&
-        "identity_status" in result.data
-      ) {
-        setResolution(result.data as PatientResolveRow);
+    resolvedIdentity.current = null;
+    startTransition(async () => {
+      try {
+        const result = await resolvePatientAction({ centerId, ...snapshot });
+        if (!isCurrent()) return;
+        if (
+          result.status === "success" &&
+          result.data &&
+          typeof result.data === "object" &&
+          "identity_status" in result.data
+        ) {
+          resolvedIdentity.current = snapshot;
+          setResolution(result.data as PatientResolveRow);
+          setConfirm(false);
+        } else setFeedback(result);
+      } catch {
+        if (!isCurrent()) return;
+        setResolution(null);
         setConfirm(false);
-      } else setFeedback(result);
+        setFeedback({
+          status: "error",
+          code: "unexpected",
+          message:
+            "No pudimos confirmar el resultado. Actualizá la página y revisá el estado antes de reintentar.",
+        });
+      }
     });
   }
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -288,6 +319,8 @@ function Registration({
     if (
       pending ||
       !resolution ||
+      !resolvedIdentity.current ||
+      !sameResolveIdentity(identityRef.current, resolvedIdentity.current) ||
       (resolution.identity_status === "FOUND" && !resolution.birth_date_matches)
     )
       return;

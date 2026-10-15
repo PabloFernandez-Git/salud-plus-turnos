@@ -1,8 +1,8 @@
 # Estado actual
 
-**Fase:** TASK-007A y TASK-007B `CLOSED`; TASK-007C+D `GATE C PASS — GATE D AUTOMATED PASS — READY FOR FINAL INDEPENDENT IMPLEMENTATION REVIEW`. TASK-007 general sigue `ACTIVE`.
+**Fase:** TASK-007A y TASK-007B `CLOSED`; TASK-007C+D con GATE C y GATE D automatizado PASS. FIR-1 y FIR-2 remediados, pendientes de re-review independiente. TASK-007 general sigue `ACTIVE`.
 **Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2 y 007B-IR-1/IR-2/IR-3 CLOSED. El plan C+D recibió `TASK-007C+D PLAN REVIEW PASS` y autorización humana de implementación conjunta.
-**Último veredicto independiente:** `TASK-007C+D PLAN REVIEW PASS — READY FOR IMPLEMENTATION AUTHORIZATION`; el implementation review final está pendiente de ambos gates. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Último veredicto independiente:** `TASK-007 FINAL IMPLEMENTATION REVIEW CHANGES_REQUESTED`; FIR-1 y FIR-2 siguen OPEN en el acta hasta re-review. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
@@ -14,6 +14,12 @@
 - Paridad 19/19, dry-run sin pendientes, DB lint, schema/API y Baseline V2 exacto PASS (15/15 componentes; digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`).
 - `next-env.d.ts` M, unstaged y con SHA exacto. Listo para review independiente final; TASK-007 sigue abierta, sin PR ni merge.
 <!-- TASK007_FINALIZER_STATUS_END -->
+
+## TASK-007 — remediación del review final (2026-10-15)
+
+- **FIR-1 remediated — pending independent re-review.** Vitest conserva sus exclusiones default y excluye sólo las tres suites `node:test` del finalizador. `pnpm test` ejecuta las 435 pruebas Vitest en 51 archivos y luego las 11 pruebas del finalizador con `node --test`; PASS, exit code 0.
+- **FIR-2 remediated — pending independent re-review.** Cada resolve se asocia al snapshot de nacionalidad, documento y fecha de nacimiento y a una generación. Editar cualquiera de los tres campos invalida la solicitud y limpia resolución/confirmación; respuestas tardías o fuera de orden se descartan. Submit vuelve a comparar el snapshot. Las tres carreras con promesa diferida y los 104 tests focalizados de Patients pasan.
+- Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**. El **HISTORICAL VERIFICATION GAP** sigue en categoría **E — insufficient evidence**. El riesgo de inferencia por resolve/create exacto y sus controles de abuso, rate limiting y monitoreo siguen pendientes **PRE-PROD**. No se ejecutaron DEV, Supabase, fixtures, E2E ni baseline en esta remediación; PROD fuera de alcance.
 
 ## Plan de la etapa restante TASK-007C+D (checkpoint histórico previo a implementación)
 

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createPatientAction,
@@ -60,6 +60,14 @@ const detail = {
   nationalityCode: "AR",
   documentNumber: "123",
 };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((fulfill) => {
+    resolve = fulfill;
+  });
+  return { promise, resolve };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -166,6 +174,47 @@ describe("patient staged dialogs", () => {
     expect(push).toHaveBeenCalledWith(
       `/centers/${centerId}/patients?q=Ana&state=ALL&page=2&patient=${patientCenterId}`,
     );
+  });
+  it.each([
+    ["Nacionalidad (código ISO de dos letras)", "UY", "nationalityCode"],
+    ["Documento", "456", "documentNumber"],
+    ["Fecha de nacimiento", "2001-01-02", "birthDate"],
+  ])("discards a late NOT_FOUND after %s changes", async (label, value, changedField) => {
+    const first = deferred<Awaited<ReturnType<typeof resolvePatientAction>>>();
+    vi.mocked(resolvePatientAction)
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValueOnce({ status: "success", data: notFound } as never);
+
+    renderRegistration();
+    await waitFor(() => expect(resolvePatientAction).toHaveBeenCalledOnce());
+    expect(vi.mocked(resolvePatientAction).mock.calls[0][0]).toEqual({
+      centerId,
+      nationalityCode: "AR",
+      documentNumber: "123",
+      birthDate: "2000-01-02",
+    });
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    expect(screen.getByRole("button", { name: "Comprobar identidad" })).toBeDisabled();
+    expect(resolvePatientAction).toHaveBeenCalledOnce();
+    await act(async () => first.resolve({ status: "success", data: notFound } as never));
+
+    expect(screen.queryByText("2. Datos del nuevo paciente")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Revisar alta" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
+    expect(createPatientAction).not.toHaveBeenCalled();
+    expect(linkPatientAction).not.toHaveBeenCalled();
+    expect(reactivatePatientAction).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Comprobar identidad" }));
+    await screen.findByText("2. Datos del nuevo paciente");
+    expect(resolvePatientAction).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(resolvePatientAction).mock.calls[1][0]).toEqual({
+      centerId,
+      nationalityCode: changedField === "nationalityCode" ? value : "AR",
+      documentNumber: changedField === "documentNumber" ? value : "123",
+      birthDate: changedField === "birthDate" ? value : "2000-01-02",
+    });
+    expect(createPatientAction).not.toHaveBeenCalled();
   });
   it("blocks mutation and stored DOB disclosure on mismatch", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
