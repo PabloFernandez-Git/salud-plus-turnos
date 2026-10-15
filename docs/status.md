@@ -1,8 +1,8 @@
 # Estado actual
 
-**Fase:** TASK-007A y TASK-007B `CLOSED`; TASK-007C+D con GATE C y GATE D automatizado PASS. FIR-1 y FIR-2 remediados, pendientes de re-review independiente. TASK-007 general sigue `ACTIVE`.
-**Tarea activa:** TASK-007 — Pacientes, en `task/007-patients`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2 y 007B-IR-1/IR-2/IR-3 CLOSED. El plan C+D recibió `TASK-007C+D PLAN REVIEW PASS` y autorización humana de implementación conjunta.
-**Último veredicto independiente:** `TASK-007 FINAL IMPLEMENTATION REVIEW CHANGES_REQUESTED`; FIR-1 y FIR-2 siguen OPEN en el acta hasta re-review. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Fase:** TASK-007 — Pacientes `CLOSED`; TASK-007A, 007B y 007C+D cerradas. GATE C y GATE D automatizado PASS; integración a `main` pendiente mediante PR.
+**Tarea cerrada pendiente de integración:** TASK-007 en `task/007-patients`, `READY_FOR_MERGE`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2, 007B-IR-1/IR-2/IR-3 y TASK-007-FIR-1/FIR-2 `CLOSED`. Los artefactos permanecen en `active/` hasta el merge, según el patrón de TASK-006.
+**Último veredicto independiente:** `TASK-007 FINAL IMPLEMENTATION REVIEW PASS — READY FOR TASK-007 CLOSURE`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
 **Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
@@ -12,14 +12,21 @@
 - Run DEV exacto `c9818e40-2d4d-4c1b-a392-14a9404a5111`: integración DB y E2E PASS previos. Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se afirma smoke PASS.
 - Ownership por UUID exacto, cleanup y auditoría posterior PASS; inventario DEV restaurado. Sin nuevos fixtures ni E2E.
 - Paridad 19/19, dry-run sin pendientes, DB lint, schema/API y Baseline V2 exacto PASS (15/15 componentes; digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`).
-- `next-env.d.ts` M, unstaged y con SHA exacto. Listo para review independiente final; TASK-007 sigue abierta, sin PR ni merge.
+- `next-env.d.ts` M, unstaged y con SHA exacto. El re-review independiente posterior fue PASS; TASK-007 quedó cerrada documentalmente y lista para PR, sin merge.
 <!-- TASK007_FINALIZER_STATUS_END -->
 
 ## TASK-007 — remediación del review final (2026-10-15)
 
-- **FIR-1 remediated — pending independent re-review.** Vitest conserva sus exclusiones default y excluye sólo las tres suites `node:test` del finalizador. `pnpm test` ejecuta las 435 pruebas Vitest en 51 archivos y luego las 11 pruebas del finalizador con `node --test`; PASS, exit code 0.
-- **FIR-2 remediated — pending independent re-review.** Cada resolve se asocia al snapshot de nacionalidad, documento y fecha de nacimiento y a una generación. Editar cualquiera de los tres campos invalida la solicitud y limpia resolución/confirmación; respuestas tardías o fuera de orden se descartan. Submit vuelve a comparar el snapshot. Las tres carreras con promesa diferida y los 104 tests focalizados de Patients pasan.
+- **FIR-1 CLOSED.** Vitest conserva sus exclusiones default y excluye sólo las tres suites `node:test` del finalizador. `pnpm test` ejecuta las 435 pruebas Vitest en 51 archivos y luego las 11 pruebas del finalizador con `node --test`; PASS, exit code 0.
+- **FIR-2 CLOSED.** Cada resolve se asocia al snapshot de nacionalidad, documento y fecha de nacimiento y a una generación. Editar cualquiera de los tres campos invalida la solicitud y limpia resolución/confirmación; respuestas tardías o fuera de orden se descartan. Submit vuelve a comparar el snapshot. Las tres carreras con promesa diferida y los 104 tests focalizados de Patients pasan.
 - Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**. El **HISTORICAL VERIFICATION GAP** sigue en categoría **E — insufficient evidence**. El riesgo de inferencia por resolve/create exacto y sus controles de abuso, rate limiting y monitoreo siguen pendientes **PRE-PROD**. No se ejecutaron DEV, Supabase, fixtures, E2E ni baseline en esta remediación; PROD fuera de alcance.
+
+## Cierre documental TASK-007 — 2026-10-15
+
+- `TASK-007 CLOSED`; `TASK-007-FIR-1 CLOSED`; `TASK-007-FIR-2 CLOSED`. El re-review independiente final fue **PASS**, sin findings nuevos. Integración a `main` pendiente; no hay merge.
+- Patients incluye listado/búsqueda tenant, registro staged con resolve exacto y caminos NOT_FOUND create, NOT_LINKED link, ACTIVE reuse e INACTIVE reactivate; panel de detalle/administración, edición de datos administrativos, desactivación/reactivación, CAS/stale protection y UI responsive consistente con módulos administrativos.
+- 007A foundation y 007B list/search están cerradas; 007C+D completó GATE C y GATE D automatizado. En C+D hubo **zero DB delta**. GATE D dejó ownership/cleanup exacto, inventario restaurado y Baseline V2 exacto PASS.
+- Smoke humano **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se cuenta como PASS. **HISTORICAL VERIFICATION GAP: Category E — insufficient evidence**, sin reconciliación. **PRE-PROD:** riesgo de inferencia por exact global resolve/create, rate limiting, protección contra abuso y monitoring/telemetry siguen pendientes.
 
 ## Plan de la etapa restante TASK-007C+D (checkpoint histórico previo a implementación)
 
@@ -241,7 +248,7 @@ El reviewer independiente cerró 007A-IR-1/IR-2 y aceptó evidencia live DEV cap
 
 ## Próximo
 
-TASK-007C+D espera **independent PLAN REVIEW**; implementación todavía no autorizada. Tras autorización futura, GATE C funcional/local precede obligatoriamente a GATE D DEV/E2E/smoke/cleanup/baseline y luego a un único review final. 007A conserva review independiente PASS y baseline V2 aprobado de 15/15 componentes, digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — evidencia insuficiente**, sin reconciliación retrospectiva. TASK-007 sigue abierta; PROD fuera de alcance.
+Siguiente gate: review del PR de `task/007-patients` hacia `main`; no mergear en este cierre. Archivar TASK-007 después del merge, como TASK-006. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — insufficient evidence**, sin reconciliación retrospectiva. Los controles de inferencia/abuso siguen pendientes PRE-PROD; PROD fuera de alcance.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 

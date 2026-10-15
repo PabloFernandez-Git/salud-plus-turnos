@@ -410,3 +410,30 @@ El diff de remediación y el rango final tienen **ZERO migrations, ZERO SQL, ZER
 - Permanecen abiertos fuera de TASK-007: **HISTORICAL VERIFICATION GAP**, categoría **E — insufficient evidence**; y **PRE-PROD**: riesgo de inferencia por global exact resolve/create, rate limiting, protección contra abuso y monitoreo/telemetría. TASK-007 no declara resueltos esos puntos. La mejora del Harness **remote-authenticated DEV gates must be orchestrated as one-shot workflows; user must not act as command-by-command relay** queda para proceso futuro, no como blocker funcional de Patients.
 
 **Veredicto: TASK-007 FINAL IMPLEMENTATION REVIEW CHANGES_REQUESTED.** Resolver FIR-1 y FIR-2 y verificar el commit resultante antes de cerrar TASK-007. No se hizo stage, commit, push ni PR en este review.
+
+## TASK-007 FINAL IMPLEMENTATION RE-REVIEW — 2026-10-15
+
+**Base/head y alcance.** Re-review independiente de `66ffcd5ab4f7baecb86ee0d4c8725652225f3c5a..727d026380fba15bcbaa0dda6028adeeb5795da1` en `task/007-patients`. `727d026` es un commit nuevo, con parent exacto `66ffcd5`, asunto `fix(patients): remediate final review findings`. Se inspeccionó el diff completo de la remediación, las suites afectadas y el código del diálogo; no se corrigió source ni se consultó DEV/Supabase/PROD, ejecutó E2E remoto, creó fixtures o repitió Baseline V2.
+
+### FIR-1 — CLOSED
+
+- `vitest.config.ts` conserva `...configDefaults.exclude` y agrega exclusivamente las tres suites `node:test`: `audit-clean.test.mjs`, `finalize-core.test.mjs` y `ledger-lifecycle.test.mjs`. El `include` sigue abarcando los tests de `src` y `scripts` de Vitest.
+- `package.json` ejecuta `vitest run && pnpm test:task007-tooling` en `pnpm test`; el segundo script ejecuta explícitamente los tres archivos con `node --test`. Las suites fueron inspeccionadas: contienen 2 + 7 + 2 = 11 tests locales, sin gates DEV vivos.
+- `pnpm test` literal: **exit code 0**; Vitest **51 archivos, 435/435 tests PASS**; `node:test` **11/11 PASS**, 0 fail. `pnpm check` literal también terminó **exit code 0**, pasando lint, typecheck y ambas partes de `pnpm test`. El bloqueo estructural del gate quedó eliminado sin dejar las suites fuera de ejecución.
+
+### FIR-2 — CLOSED
+
+- `Registration.resolve()` captura un snapshot de `nationalityCode`, `documentNumber` y `birthDate` y la generación del request. La respuesta, incluida la rama de error, sólo se aplica si `requestGeneration === resolveGeneration.current` **y** los tres campos actuales coinciden con el snapshot.
+- Editar cualquiera de los tres campos incrementa la generación y limpia `resolvedIdentity`, `resolution` y `confirm`. El siguiente resolve también limpia la resolución anterior antes de enviar su snapshot. `submit()` exige resolución, `resolvedIdentity` y coincidencia actual antes de entrar en create, link, reactivate o ACTIVE reuse.
+- Los tres casos parametrizados con promesa diferida simulan `resolve A` pendiente, edición de nacionalidad/documento/nacimiento hacia B y respuesta `NOT_FOUND` de A tardía. Comprueban ausencia de etapa 2, revisión y confirmación, ninguna llamada a create/link/reactivate, y luego exigen un segundo resolve con el valor B para habilitar la etapa. En `66ffcd5` la respuesta tardía ejecutaba `setResolution` sin validar snapshot/generación: la primera aserción de ausencia de etapa 2 habría fallado. En `727d026` pasan. El estado `pending` bloquea un segundo resolve simultáneo por UI; la edición durante el request sigue protegida.
+
+### Verificación local y sanity visual
+
+- Patients focalizados: **9 archivos, 104/104 PASS**. `pnpm lint` PASS; `pnpm typecheck` PASS; `git diff --check` PASS. `pnpm bootstrap` PASS. No se repitieron build ni client bundle secret guard: el diff de remediación no cambia el bundle server/client fuera del componente revisado y la verificación local requerida pasó.
+- El commit `66ffcd5` introdujo el encabezado y el comportamiento del diálogo. `727d026` no cambia `patients-screen.tsx` ni el markup/clases del diálogo o del botón Registrar. Revisión del código y tests de componente: encabezado Pacientes consistente con módulos administrativos; Registrar alineado a la derecha en desktop y adaptable en móvil; panel `w-screen` móvil / ancho acotado `md`; backdrop cierra, click interior no; cancel nativo de Escape cierra; botón X con `aria-label="Cerrar"`; confirmación de cambios sin guardar y restauración de foco conservadas. Los tests de dismissal/foco pasan dentro de los 104 focalizados. Sin regresión material observada; no se abrió finding cosmético.
+- Diff `66ffcd5..727d026`: sólo documentación de tarea/estado, `package.json`, `vitest.config.ts` y componente/test de Patients. **Zero DB delta**: sin migrations, SQL, RLS, grants, RPC, `database.types`, cambios de autorización ni contratos de Server Actions. D1–D8 no se reabren.
+- `next-env.d.ts` continúa `M`, unstaged, SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`; no se modificó. Sin stage, commit, push ni PR en este re-review. Findings nuevos: ninguno.
+
+**Estado histórico preservado:** smoke humano **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; **HISTORICAL VERIFICATION GAP** categoría **E — insufficient evidence**; **PRE-PROD** pendientes el riesgo de inferencia por resolve exacto, rate limiting, protección contra abuso y monitoring/telemetry. Este re-review no los declara resueltos.
+
+**Veredicto:** `TASK-007-FIR-1 CLOSED`; `TASK-007-FIR-2 CLOSED`; **TASK-007 FINAL IMPLEMENTATION REVIEW PASS — READY FOR TASK-007 CLOSURE**.
