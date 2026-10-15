@@ -1,9 +1,21 @@
+.loader {
+  opacity: 0;
+  visibility: hidden;
+  animation: app-loader-fade-in 210ms ease-out 140ms forwards;
+}
+
+.content {
+  opacity: 0;
+  animation: app-loader-content-enter 240ms ease-out 140ms forwards;
+}
+
 .symbol {
   position: relative;
   display: block;
   width: 40px;
   height: 40px;
-  animation: app-loader-pulse 1.4s ease-in-out infinite;
+  opacity: 0.75;
+  animation: app-loader-pulse 1.4s ease-in-out 380ms infinite;
 }
 
 .symbol::before,
@@ -27,6 +39,37 @@
   height: 38px;
 }
 
+@keyframes app-loader-fade-in {
+  from {
+    opacity: 0;
+    visibility: visible;
+  }
+
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes app-loader-reveal {
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@keyframes app-loader-content-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes app-loader-pulse {
   0%,
   100% {
@@ -41,7 +84,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .loader {
+    animation: app-loader-reveal 0s linear 140ms forwards;
+  }
+
+  .content,
   .symbol {
     animation: none;
+    opacity: 1;
   }
 }

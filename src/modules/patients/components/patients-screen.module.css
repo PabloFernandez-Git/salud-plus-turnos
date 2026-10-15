@@ -1,0 +1,21 @@
+.enter {
+  animation: patients-screen-enter 220ms ease-out both;
+}
+
+@keyframes patients-screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter {
+    animation: none;
+  }
+}
