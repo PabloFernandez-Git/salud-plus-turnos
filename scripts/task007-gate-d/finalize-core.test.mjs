@@ -325,7 +325,12 @@ test("final documentation keeps human smoke deferred without writing files", () 
     ".harness/tasks/active/TASK-007/plan.md",
     ".harness/knowledge/improvements.md",
   ];
-  const source = Object.fromEntries(paths.map((path) => [path, readFileSync(path, "utf8")]));
+  const source = Object.fromEntries(
+    paths.map((path) => [
+      path,
+      readFileSync(path.replace("tasks/active/TASK-007", "tasks/archive/TASK-007"), "utf8"),
+    ]),
+  );
   const result = renderFinalDocs(source, {
     migrations: { local: 19, remote: 19, exact: true },
     schema: { verdict: "PASS" },

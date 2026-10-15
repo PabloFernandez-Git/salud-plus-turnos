@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { compareBaselineV2 } from "./compare-task007a-baseline-v2.mjs";
 
 const reference = JSON.parse(
-  readFileSync(".harness/tasks/active/TASK-007/baseline-v2-manifest.json", "utf8"),
+  readFileSync(".harness/tasks/archive/TASK-007/baseline-v2-manifest.json", "utf8"),
 );
 function fresh() {
   return {
