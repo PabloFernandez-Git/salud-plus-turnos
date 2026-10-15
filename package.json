@@ -16,7 +16,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.{ts,mjs}\" \"*.{json,ts,mjs}\" \".github/**/*.yml\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.{ts,mjs}\" \"*.{json,ts,mjs}\" \".github/**/*.yml\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run && pnpm test:task007-tooling",
+    "test:task007-tooling": "node --test scripts/task007-gate-d/audit-clean.test.mjs scripts/task007-gate-d/finalize-core.test.mjs scripts/task007-gate-d/ledger-lifecycle.test.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:auth-access:dev": "playwright test tests/e2e/auth-access.spec.mjs --workers=1",
@@ -39,7 +40,8 @@
     "auth:bootstrap-platform-admin:dev": "node scripts/bootstrap-platform-admin.mjs",
     "auth:check:dev": "node scripts/check-auth-config-dev.mjs",
     "supabase:check:dev": "node scripts/check-supabase-dev.mjs",
-    "security:check:client-bundle": "node scripts/check-client-bundle-secrets.mjs"
+    "security:check:client-bundle": "node scripts/check-client-bundle-secrets.mjs",
+    "task007:finalize": "node scripts/task007-gate-d/finalize.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

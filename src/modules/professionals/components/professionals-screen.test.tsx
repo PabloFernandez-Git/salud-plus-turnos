@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CenterAdminNavigation } from "@/modules/access/components/center-admin-navigation";
+import { CenterNavigation } from "@/modules/access/components/center-navigation";
 import type { ProfessionalListItem } from "../server/professionals";
 import { ProfessionalsScreen } from "./professionals-screen";
 
@@ -70,14 +70,14 @@ describe("ProfessionalsScreen", () => {
       <ProfessionalsScreen centerId={centerId} centerName="Centro" professionals={[]} loadFailed />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent(/No pudimos cargar/);
-    view.rerender(<CenterAdminNavigation centerId={centerId} role="ADMIN" />);
+    view.rerender(<CenterNavigation centerId={centerId} role="ADMIN" />);
     expect(screen.getByRole("link", { name: "Profesionales" })).toHaveAttribute(
       "href",
       `/centers/${centerId}/professionals`,
     );
     expect(screen.getByRole("link", { name: "Usuarios" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Especialidades" })).toBeVisible();
-    view.rerender(<CenterAdminNavigation centerId={centerId} role="RECEPTION" />);
+    view.rerender(<CenterNavigation centerId={centerId} role="RECEPTION" />);
     expect(screen.queryByRole("link", { name: "Profesionales" })).not.toBeInTheDocument();
   });
   it("resolves existing global identity with minimal disclosure, then confirms link", async () => {

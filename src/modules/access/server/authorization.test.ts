@@ -236,3 +236,51 @@ describe("requireRole for Center user administration", () => {
     ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
   });
 });
+
+describe("requireRole for Patients listing", () => {
+  const allowedRoles = ["ADMIN", "RECEPTION"] as const;
+
+  it.each(allowedRoles)("allows an active %s membership", async (role) => {
+    await expect(
+      requireRole(
+        "center-a",
+        allowedRoles,
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [{ ...activeMembershipA, role }],
+        }),
+      ),
+    ).resolves.toMatchObject({ membership: { role } });
+  });
+
+  it("rejects PROFESSIONAL", async () => {
+    await expect(
+      requireRole(
+        "center-a",
+        allowedRoles,
+        fakeClient({
+          centers: [activeCenterA],
+          memberships: [{ ...activeMembershipA, role: "PROFESSIONAL" }],
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "ROLE_FORBIDDEN" });
+  });
+
+  it.each([
+    ["inactive membership", [activeCenterA], [{ ...activeMembershipA, is_active: false }]],
+    ["inactive Center", [{ ...activeCenterA, is_active: false }], [activeMembershipA]],
+    [
+      "cross-center membership",
+      [activeCenterA, activeCenterB],
+      [{ ...activeMembershipA, center_id: "center-b" }],
+    ],
+  ] as const)("rejects %s", async (_label, centers, memberships) => {
+    await expect(
+      requireRole(
+        "center-a",
+        allowedRoles,
+        fakeClient({ centers: [...centers], memberships: [...memberships] }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
+  });
+});

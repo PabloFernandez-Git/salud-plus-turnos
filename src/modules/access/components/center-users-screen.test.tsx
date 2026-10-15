@@ -10,7 +10,7 @@ vi.mock("../actions/center-user-actions", () => ({
 }));
 
 import type { CenterUserListItem } from "../server/center-users";
-import { CenterAdminNavigation } from "./center-admin-navigation";
+import { CenterNavigation } from "./center-navigation";
 import { CenterUsersScreen } from "./center-users-screen";
 
 const centerId = "11111111-1111-4111-8111-111111111111";
@@ -47,13 +47,13 @@ afterEach(cleanup);
 
 describe("Center user navigation", () => {
   it("shows Center → Usuarios only to ADMIN", () => {
-    const { rerender } = render(<CenterAdminNavigation centerId={centerId} role="ADMIN" />);
+    const { rerender } = render(<CenterNavigation centerId={centerId} role="ADMIN" />);
     expect(screen.getByRole("link", { name: "Usuarios" })).toHaveAttribute(
       "href",
       `/centers/${centerId}/users`,
     );
 
-    rerender(<CenterAdminNavigation centerId={centerId} role="RECEPTION" />);
+    rerender(<CenterNavigation centerId={centerId} role="RECEPTION" />);
     expect(screen.queryByRole("link", { name: "Usuarios" })).not.toBeInTheDocument();
   });
 

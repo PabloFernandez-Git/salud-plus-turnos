@@ -1,0 +1,815 @@
+{
+  "baseline_version": "TASK-007A-DEV-STABLE-DATA-V2",
+  "generated_at": "2026-10-13T22:23:49.678Z",
+  "dev_project_ref": "ehllxymqyzrofydrvtzo",
+  "verifier_script_sha256": "f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c",
+  "serialization": "Fixed component and included-field order; rows sorted by SHA-256 of ordered key tuple; JSONB scalars and recursively key-sorted objects; explicit null marker; timestamptz rendered by PostgreSQL JSONB in UTC with its full stored precision; JSON.stringify UTF-8; SHA-256 lowercase hex. generated_at is outside stable digest.",
+  "stable_data": {
+    "components": {
+      "auth.users": {
+        "row_count": 1,
+        "included_fields": [
+          "instance_id",
+          "id",
+          "aud",
+          "role",
+          "email",
+          "email_confirmed_at",
+          "invited_at",
+          "raw_app_meta_data",
+          "raw_user_meta_data",
+          "is_super_admin",
+          "created_at",
+          "phone",
+          "phone_confirmed_at",
+          "phone_change",
+          "confirmed_at",
+          "email_change",
+          "email_change_confirm_status",
+          "banned_until",
+          "is_sso_user",
+          "deleted_at",
+          "is_anonymous"
+        ],
+        "excluded_fields": {
+          "encrypted_password": {
+            "semantic_purpose": "Password verifier",
+            "exclusion_justification": "Credential material; a password rotation does not change account identity."
+          },
+          "confirmation_token": {
+            "semantic_purpose": "Email confirmation token",
+            "exclusion_justification": "One-time credential; renewal does not change account identity."
+          },
+          "confirmation_sent_at": {
+            "semantic_purpose": "Confirmation delivery timestamp",
+            "exclusion_justification": "Auth delivery activity; does not change confirmation state or identity."
+          },
+          "recovery_token": {
+            "semantic_purpose": "Password recovery token",
+            "exclusion_justification": "One-time credential; renewal does not change account identity."
+          },
+          "recovery_sent_at": {
+            "semantic_purpose": "Recovery delivery timestamp",
+            "exclusion_justification": "Auth delivery activity; does not change account identity."
+          },
+          "email_change_token_new": {
+            "semantic_purpose": "Pending email change token",
+            "exclusion_justification": "One-time credential; the pending address and state are included separately."
+          },
+          "email_change_sent_at": {
+            "semantic_purpose": "Email change delivery timestamp",
+            "exclusion_justification": "Auth delivery activity; pending address/state remain included."
+          },
+          "last_sign_in_at": {
+            "semantic_purpose": "Last successful sign-in timestamp",
+            "exclusion_justification": "Login activity; does not change persistent user identity or product role."
+          },
+          "updated_at": {
+            "semantic_purpose": "Auth row maintenance timestamp",
+            "exclusion_justification": "Auth service writes can advance it without changing included identity/state fields."
+          },
+          "phone_change_token": {
+            "semantic_purpose": "Pending phone change token",
+            "exclusion_justification": "One-time credential; pending phone value is included separately."
+          },
+          "phone_change_sent_at": {
+            "semantic_purpose": "Phone change delivery timestamp",
+            "exclusion_justification": "Auth delivery activity; pending phone value remains included."
+          },
+          "email_change_token_current": {
+            "semantic_purpose": "Current email change token",
+            "exclusion_justification": "One-time credential; pending address/state remain included."
+          },
+          "reauthentication_token": {
+            "semantic_purpose": "Reauthentication token",
+            "exclusion_justification": "One-time credential; renewal does not change account identity."
+          },
+          "reauthentication_sent_at": {
+            "semantic_purpose": "Reauthentication delivery timestamp",
+            "exclusion_justification": "Auth delivery activity; does not change account identity."
+          }
+        },
+        "field_types": {
+          "instance_id": "uuid",
+          "id": "uuid",
+          "aud": "character varying",
+          "role": "character varying",
+          "email": "character varying",
+          "email_confirmed_at": "timestamp with time zone",
+          "invited_at": "timestamp with time zone",
+          "email_change": "character varying",
+          "raw_app_meta_data": "jsonb",
+          "raw_user_meta_data": "jsonb",
+          "is_super_admin": "boolean",
+          "created_at": "timestamp with time zone",
+          "phone": "text",
+          "phone_confirmed_at": "timestamp with time zone",
+          "phone_change": "text",
+          "confirmed_at": "timestamp with time zone",
+          "email_change_confirm_status": "smallint",
+          "banned_until": "timestamp with time zone",
+          "is_sso_user": "boolean",
+          "deleted_at": "timestamp with time zone",
+          "is_anonymous": "boolean"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "6f42274b0a8d89fcb2697a25503b34f4191fabcb74a44acae73e758da5aa3ae9",
+            "field_sha256": {
+              "instance_id": "1f1ba282473f567db90276bd4a68e569c638b59c8d4c2c49dd1a3647472e8019",
+              "id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "aud": "7c6f1cd4094608985f5fb31266f852eca024387d1ee5039fed91e0607a8b7b5f",
+              "role": "7c6f1cd4094608985f5fb31266f852eca024387d1ee5039fed91e0607a8b7b5f",
+              "email": "aa79d2fd324bb3c2efd467337fb8cffd67dd660401db0f5a0863104819f7f241",
+              "email_confirmed_at": "d9d28d3ffccc3ac12a5ff0a3e43ed20f21d71153dc0b407abc888f59bc350f3e",
+              "invited_at": "5a1ea80ab3cf5dff507a73a2b3fbecc849317097a8d943e2f11a913aee226eda",
+              "raw_app_meta_data": "a2dcbc8c03287af805123121863d7c07543e031db1f544921235349b1436af2f",
+              "raw_user_meta_data": "25aabd681b4be4778429a2702e901fb5bcf90cc98383dbab7bbbd0c4dd2accac",
+              "is_super_admin": "85a5f36d27a235d6c6cc9b4bbe61e2bdfea828bf4204a8caafa6a2e295b281c9",
+              "created_at": "db2406d9ead654e27676f1a67a5c7ae5277b288d9e5e9ed5e98bf9958a473ef0",
+              "phone": "4dcf59a7b1b7e80e604a03fef2001e63ea76cee3b050f61a08e3e555bafd4d43",
+              "phone_confirmed_at": "5a1ea80ab3cf5dff507a73a2b3fbecc849317097a8d943e2f11a913aee226eda",
+              "phone_change": "f8d5b19ca418cb3adb81507570fff15cd1b67c2ea55fe1112c35a032582b1216",
+              "confirmed_at": "d9d28d3ffccc3ac12a5ff0a3e43ed20f21d71153dc0b407abc888f59bc350f3e",
+              "email_change": "1fe38411cdf416d7d2719475f47f9811f180a8439316e424784778fb18d5b53c",
+              "email_change_confirm_status": "a68aaba61bca627cd0cdaeb4398ce314e151de1e5e5b7f94818c2c09246137b0",
+              "banned_until": "5a1ea80ab3cf5dff507a73a2b3fbecc849317097a8d943e2f11a913aee226eda",
+              "is_sso_user": "64d2b92235f349c98d0309ea8e0f8175937ca7d09abde7f216dc64fe33b86b00",
+              "deleted_at": "5a1ea80ab3cf5dff507a73a2b3fbecc849317097a8d943e2f11a913aee226eda",
+              "is_anonymous": "64d2b92235f349c98d0309ea8e0f8175937ca7d09abde7f216dc64fe33b86b00"
+            }
+          }
+        ],
+        "component_sha256": "a51f7fc9834c45eed3da1bda85f40e0352a37b588127d8ee0977ebae66f81146"
+      },
+      "auth.identities": {
+        "row_count": 1,
+        "included_fields": [
+          "id",
+          "provider_id",
+          "user_id",
+          "provider",
+          "created_at",
+          "email"
+        ],
+        "excluded_fields": {
+          "identity_data": {
+            "semantic_purpose": "Provider supplied profile/claim payload",
+            "exclusion_justification": "Provider profile claims can refresh independently; provider_id, user_id, provider and email preserve identity topology."
+          },
+          "last_sign_in_at": {
+            "semantic_purpose": "Last provider sign-in timestamp",
+            "exclusion_justification": "Login activity; does not change identity association or provider."
+          },
+          "updated_at": {
+            "semantic_purpose": "Provider identity maintenance timestamp",
+            "exclusion_justification": "Auth service writes can advance it without changing included topology fields."
+          }
+        },
+        "field_types": {
+          "provider_id": "text",
+          "user_id": "uuid",
+          "provider": "text",
+          "created_at": "timestamp with time zone",
+          "email": "text",
+          "id": "uuid"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "dcdcb9705c3f109c2afdf2020373e7aad8986f3b2904618b2d9aa3c96a7213bb",
+            "field_sha256": {
+              "id": "2b5a46e25bc9a072bef0e2dc2ec4def56db005e091d20a86d19cc9a16b5e35e7",
+              "provider_id": "be45059ec0d4736e35a6b26ea4e8a5edf7e7d80a442bd6a9a2edad48dcbf5564",
+              "user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "provider": "07b6688de84d2593c5a0047fffaf17bf9b4289e1640185f3c0b72a542ec737f3",
+              "created_at": "890add0fcd5260ee3ad2150b9cd0e439a391698894ebf0775d3db228b3660f38",
+              "email": "9dce14ed02ac02c0817877a3f8c47aa88a098b9d22b2a6002bce4c07653d15aa"
+            }
+          }
+        ],
+        "component_sha256": "78225ce2820c779b504fc121414129fbd48a5e3af92ee5e179595896a26da1b8"
+      },
+      "public.users": {
+        "row_count": 1,
+        "included_fields": [
+          "id",
+          "first_name",
+          "last_name",
+          "created_at",
+          "updated_at",
+          "email"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "first_name": "text",
+          "last_name": "text",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone",
+          "email": "text"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "6f42274b0a8d89fcb2697a25503b34f4191fabcb74a44acae73e758da5aa3ae9",
+            "field_sha256": {
+              "id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "first_name": "73a5a2323c6938c06631fc3444428d344ddfc8a14030277d8ef67124fa8f1048",
+              "last_name": "f22648fc6d5135ae02ba845698a4c8c349852dc981e030b75e23e76595c7b79e",
+              "created_at": "188f9b1d30d3ef63ced73554ee452adb74bcd57289aa4c20adaec031b34c6624",
+              "updated_at": "188f9b1d30d3ef63ced73554ee452adb74bcd57289aa4c20adaec031b34c6624",
+              "email": "9dce14ed02ac02c0817877a3f8c47aa88a098b9d22b2a6002bce4c07653d15aa"
+            }
+          }
+        ],
+        "component_sha256": "ef14f9fae67a1d5aede5694702d0a4c1b72793760350a907b29c3b3f27b0aa90"
+      },
+      "public.platform_admins": {
+        "row_count": 1,
+        "included_fields": [
+          "user_id",
+          "created_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "user_id": "uuid",
+          "created_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "user_id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "9ee13a7738bb74f0e068bd38816c3c6c767eaf7fd1664fd625bf88467dd3ab62",
+            "field_sha256": {
+              "user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "created_at": "188f9b1d30d3ef63ced73554ee452adb74bcd57289aa4c20adaec031b34c6624"
+            }
+          }
+        ],
+        "component_sha256": "8bc19ce6a8dafcb5cb473d6c683ebe82ee9d137e43427b5fea7c1e07bef17878"
+      },
+      "public.centers": {
+        "row_count": 1,
+        "included_fields": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "address",
+          "logo_path",
+          "timezone",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "name": "text",
+          "phone": "text",
+          "email": "text",
+          "address": "text",
+          "logo_path": "text",
+          "timezone": "text",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "f176d8e85ec02f895dd444fc3e3214d10370c253ddd3d5355a985751689444dd",
+            "field_sha256": {
+              "id": "79e288ead5c250c823d7c80b8272bf33936c042f751c84d7405112340b9781c5",
+              "name": "d7549c4736ef5dba134b357452d9b00b9bb38e44e6433bfb896a693c922d31ff",
+              "phone": "67106edfc06895d0a9f97ef48ee6d96aa6d11eef4d279e64196ef1bf6de24dd4",
+              "email": "0d305411eaf47c234e894f280e4f986adac51b06ad8dcadabd09349ac27c2f32",
+              "address": "be1b84b743ba2980047ff214e9bea875013e6ee2f4adfe37c51c6198eb4a44a2",
+              "logo_path": "4dcf59a7b1b7e80e604a03fef2001e63ea76cee3b050f61a08e3e555bafd4d43",
+              "timezone": "457741023a5c5a8fe57bbed8a128e02518cb381727f492808afd4dfeb5dc63e4",
+              "is_active": "8bd477d8be7901520dd7d31099019d601a8c82a618c0215a6b7cac92cafeeb88",
+              "created_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145",
+              "updated_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145"
+            }
+          }
+        ],
+        "component_sha256": "4a6a9a963e225b5dc1aae2d5b1299ed19e8b393a47a6da52f3697a38620df915"
+      },
+      "public.center_memberships": {
+        "row_count": 1,
+        "included_fields": [
+          "id",
+          "center_id",
+          "user_id",
+          "role",
+          "professional_center_id",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "center_id": "uuid",
+          "user_id": "uuid",
+          "role": "USER-DEFINED",
+          "professional_center_id": "uuid",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "de32e0266ec17d2b39f04f6099db867168b6e172bb6c1589d5bb72d7e67974b8",
+            "field_sha256": {
+              "id": "32064e124367192f85965f04fa4ddaa50bbf2bacf2d93a9a6b4e68091b7e184b",
+              "center_id": "79e288ead5c250c823d7c80b8272bf33936c042f751c84d7405112340b9781c5",
+              "user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "role": "aefc63c60234244329974946844d458948e141cfabc409bab8ccbf703757b5cd",
+              "professional_center_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "is_active": "8bd477d8be7901520dd7d31099019d601a8c82a618c0215a6b7cac92cafeeb88",
+              "created_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145",
+              "updated_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145"
+            }
+          }
+        ],
+        "component_sha256": "faf6d6aae943aa836de055e9d225a06e80db2e97f2c0057b4e225833d121f491"
+      },
+      "public.professionals": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "first_name",
+          "last_name",
+          "nationality_code",
+          "document_number",
+          "normalized_document",
+          "email",
+          "phone",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "first_name": "text",
+          "last_name": "text",
+          "nationality_code": "text",
+          "document_number": "text",
+          "normalized_document": "text",
+          "email": "text",
+          "phone": "text",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_centers": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "professional_id",
+          "center_id",
+          "license_number",
+          "usual_appointment_duration_minutes",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "professional_id": "uuid",
+          "center_id": "uuid",
+          "license_number": "text",
+          "usual_appointment_duration_minutes": "integer",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.specialties": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "center_id",
+          "name",
+          "description",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "center_id": "uuid",
+          "name": "text",
+          "description": "text",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_center_specialties": {
+        "row_count": 0,
+        "included_fields": [
+          "professional_center_id",
+          "specialty_id",
+          "center_id",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "professional_center_id": "uuid",
+          "specialty_id": "uuid",
+          "center_id": "uuid",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "professional_center_id",
+          "specialty_id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.persons": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "first_name",
+          "last_name",
+          "birth_date",
+          "nationality_code",
+          "document_number",
+          "normalized_document",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "first_name": "text",
+          "last_name": "text",
+          "birth_date": "date",
+          "nationality_code": "text",
+          "document_number": "text",
+          "normalized_document": "text",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.patient_centers": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "person_id",
+          "center_id",
+          "phone",
+          "email",
+          "insurance_name",
+          "administrative_notes",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "person_id": "uuid",
+          "center_id": "uuid",
+          "phone": "text",
+          "email": "text",
+          "insurance_name": "text",
+          "administrative_notes": "text",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.availabilities": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "professional_center_id",
+          "center_id",
+          "weekday",
+          "start_time",
+          "end_time",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "professional_center_id": "uuid",
+          "center_id": "uuid",
+          "weekday": "smallint",
+          "start_time": "time without time zone",
+          "end_time": "time without time zone",
+          "is_active": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.appointments": {
+        "row_count": 0,
+        "included_fields": [
+          "id",
+          "center_id",
+          "patient_center_id",
+          "professional_center_id",
+          "specialty_id",
+          "starts_at",
+          "ends_at",
+          "status",
+          "administrative_note",
+          "created_at",
+          "updated_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "center_id": "uuid",
+          "patient_center_id": "uuid",
+          "professional_center_id": "uuid",
+          "specialty_id": "uuid",
+          "starts_at": "timestamp with time zone",
+          "ends_at": "timestamp with time zone",
+          "status": "USER-DEFINED",
+          "administrative_note": "text",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [],
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "private.provisioning_operations": {
+        "row_count": 2,
+        "included_fields": [
+          "id",
+          "operation_type",
+          "payload_hash",
+          "actor_user_id",
+          "scope_center_id",
+          "auth_user_id",
+          "auth_user_was_created",
+          "status",
+          "result_user_id",
+          "result_center_id",
+          "result_membership_id",
+          "result_application_user_created",
+          "created_at",
+          "updated_at",
+          "completed_at"
+        ],
+        "excluded_fields": {},
+        "field_types": {
+          "id": "uuid",
+          "operation_type": "text",
+          "payload_hash": "text",
+          "actor_user_id": "uuid",
+          "scope_center_id": "uuid",
+          "auth_user_id": "uuid",
+          "auth_user_was_created": "boolean",
+          "status": "text",
+          "result_user_id": "uuid",
+          "result_center_id": "uuid",
+          "result_membership_id": "uuid",
+          "result_application_user_created": "boolean",
+          "created_at": "timestamp with time zone",
+          "updated_at": "timestamp with time zone",
+          "completed_at": "timestamp with time zone"
+        },
+        "row_key_fields": [
+          "id"
+        ],
+        "rows": [
+          {
+            "row_key_sha256": "4e2e62f858642b0f0780e02f5c74eb1ca0f3e6d378a1f1bc6143aca71635d5b3",
+            "field_sha256": {
+              "id": "934b048711d07ac4489448fd38f971f8f60e8e8436ce8270491ea3b57fe21b17",
+              "operation_type": "6914831084164e67a47f15053cc67ad17a3ded35333c02fe41f77eb6cadbe8a3",
+              "payload_hash": "30c8037b9b2d612f3a682f358da6eb0a6c1d7d94fd3a622f092c50acb80615e8",
+              "actor_user_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "scope_center_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "auth_user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "auth_user_was_created": "8bd477d8be7901520dd7d31099019d601a8c82a618c0215a6b7cac92cafeeb88",
+              "status": "c607b6af04cd587338326c18fd445ed2fc601f8f17b00290c51c949e07477582",
+              "result_user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "result_center_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "result_membership_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "result_application_user_created": "85a5f36d27a235d6c6cc9b4bbe61e2bdfea828bf4204a8caafa6a2e295b281c9",
+              "created_at": "ced66e2a76178472883ff3fc4e31e35fdcaeaf255b4eb6360079ced702af630a",
+              "updated_at": "188f9b1d30d3ef63ced73554ee452adb74bcd57289aa4c20adaec031b34c6624",
+              "completed_at": "188f9b1d30d3ef63ced73554ee452adb74bcd57289aa4c20adaec031b34c6624"
+            }
+          },
+          {
+            "row_key_sha256": "4ebad310bf0a0c1425da041e864504ccb896fe0665b713e0209cd8eb8df03b59",
+            "field_sha256": {
+              "id": "247a892eccf8f0b060bbae8d0539a520dcd26b21abef78770daa13946c34580e",
+              "operation_type": "89b462c35f5859145278d3cb322e7db9ebead0d4d1d22029ba063c164fb9a6aa",
+              "payload_hash": "35ac131cc15362132497e7c2d05d259caeb228abf24d1b2acaedb9921501775e",
+              "actor_user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "scope_center_id": "74c0a99a5f87ddef24afb4b6c99ab16f27254b33d908a4023c7280a85466ad67",
+              "auth_user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "auth_user_was_created": "64d2b92235f349c98d0309ea8e0f8175937ca7d09abde7f216dc64fe33b86b00",
+              "status": "c607b6af04cd587338326c18fd445ed2fc601f8f17b00290c51c949e07477582",
+              "result_user_id": "240033c5bac6b879e64017766fdada50f888d7e6a8f622b1e7fcdb3d742d7ca4",
+              "result_center_id": "79e288ead5c250c823d7c80b8272bf33936c042f751c84d7405112340b9781c5",
+              "result_membership_id": "32064e124367192f85965f04fa4ddaa50bbf2bacf2d93a9a6b4e68091b7e184b",
+              "result_application_user_created": "64d2b92235f349c98d0309ea8e0f8175937ca7d09abde7f216dc64fe33b86b00",
+              "created_at": "5bc4e9949bf5644684cf2eeb36f911b1df20c5dd6345e3d10ce5075ba6d49b11",
+              "updated_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145",
+              "completed_at": "6bceebb123fae4867e28aab82af2a8a59fccc59aa43fde143e4971637872b145"
+            }
+          }
+        ],
+        "component_sha256": "afd29c8042d2e0b2f2dc0d9d4942149147cee7d5f093fff9fb29a4c2abb564cb"
+      }
+    },
+    "global_sha256": "24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359",
+    "read_1": {
+      "auth.users": {
+        "row_count": 1,
+        "component_sha256": "a51f7fc9834c45eed3da1bda85f40e0352a37b588127d8ee0977ebae66f81146"
+      },
+      "auth.identities": {
+        "row_count": 1,
+        "component_sha256": "78225ce2820c779b504fc121414129fbd48a5e3af92ee5e179595896a26da1b8"
+      },
+      "public.users": {
+        "row_count": 1,
+        "component_sha256": "ef14f9fae67a1d5aede5694702d0a4c1b72793760350a907b29c3b3f27b0aa90"
+      },
+      "public.platform_admins": {
+        "row_count": 1,
+        "component_sha256": "8bc19ce6a8dafcb5cb473d6c683ebe82ee9d137e43427b5fea7c1e07bef17878"
+      },
+      "public.centers": {
+        "row_count": 1,
+        "component_sha256": "4a6a9a963e225b5dc1aae2d5b1299ed19e8b393a47a6da52f3697a38620df915"
+      },
+      "public.center_memberships": {
+        "row_count": 1,
+        "component_sha256": "faf6d6aae943aa836de055e9d225a06e80db2e97f2c0057b4e225833d121f491"
+      },
+      "public.professionals": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_centers": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.specialties": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_center_specialties": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.persons": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.patient_centers": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.availabilities": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.appointments": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "private.provisioning_operations": {
+        "row_count": 2,
+        "component_sha256": "afd29c8042d2e0b2f2dc0d9d4942149147cee7d5f093fff9fb29a4c2abb564cb"
+      }
+    },
+    "read_2": {
+      "auth.users": {
+        "row_count": 1,
+        "component_sha256": "a51f7fc9834c45eed3da1bda85f40e0352a37b588127d8ee0977ebae66f81146"
+      },
+      "auth.identities": {
+        "row_count": 1,
+        "component_sha256": "78225ce2820c779b504fc121414129fbd48a5e3af92ee5e179595896a26da1b8"
+      },
+      "public.users": {
+        "row_count": 1,
+        "component_sha256": "ef14f9fae67a1d5aede5694702d0a4c1b72793760350a907b29c3b3f27b0aa90"
+      },
+      "public.platform_admins": {
+        "row_count": 1,
+        "component_sha256": "8bc19ce6a8dafcb5cb473d6c683ebe82ee9d137e43427b5fea7c1e07bef17878"
+      },
+      "public.centers": {
+        "row_count": 1,
+        "component_sha256": "4a6a9a963e225b5dc1aae2d5b1299ed19e8b393a47a6da52f3697a38620df915"
+      },
+      "public.center_memberships": {
+        "row_count": 1,
+        "component_sha256": "faf6d6aae943aa836de055e9d225a06e80db2e97f2c0057b4e225833d121f491"
+      },
+      "public.professionals": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_centers": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.specialties": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.professional_center_specialties": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.persons": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.patient_centers": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.availabilities": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "public.appointments": {
+        "row_count": 0,
+        "component_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "private.provisioning_operations": {
+        "row_count": 2,
+        "component_sha256": "afd29c8042d2e0b2f2dc0d9d4942149147cee7d5f093fff9fb29a4c2abb564cb"
+      }
+    }
+  },
+  "verification": {
+    "stable": true,
+    "mismatched_components": [],
+    "domain_invariants_pass": true,
+    "domain_errors": [],
+    "task007a_residual_fixtures": 0
+  }
+}

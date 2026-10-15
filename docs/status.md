@@ -1,10 +1,79 @@
 # Estado actual
 
-**Fase:** TASK-006 completada y archivada; PR #6 se integró en `main` mediante squash merge.
-**Tarea activa:** ninguna. El próximo trabajo aún no se inició.
-**Último veredicto:** `TASK-006 FINAL REVIEW PASS` · `PR #6 REVIEW PASS` · `PR #6 MERGED`.
-**Squash commit / main:** `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
+**Fase:** TASK-007 — Pacientes `CLOSED`; TASK-007A, 007B y 007C+D cerradas. GATE C y GATE D automatizado PASS; integración a `main` pendiente mediante PR.
+**Tarea cerrada pendiente de integración:** TASK-007 en `task/007-patients`, `READY_FOR_MERGE`. D1–D8 aprobadas; P007-R1/R2/R3, 007A-IR-1/IR-2, 007B-IR-1/IR-2/IR-3 y TASK-007-FIR-1/FIR-2 `CLOSED`. Los artefactos permanecen en `active/` hasta el merge, según el patrón de TASK-006.
+**Último veredicto independiente:** `TASK-007 FINAL IMPLEMENTATION REVIEW PASS — READY FOR TASK-007 CLOSURE`. El gap histórico entre los digests ampliados sigue en categoría E, inconcluso y no reconciliado. TASK-006 sigue completada y archivada.
+**Main al iniciar TASK-007:** `ea620655ee9f75f903dbce2d94bf820e298b7218` (igual a `origin/main` en el preflight). El squash funcional de TASK-006 fue `c127d3b81f73aba5c47d9ecf462529c73df79fcb`.
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
+
+<!-- TASK007_FINALIZER_STATUS_START -->
+## TASK-007C+D — finalización automatizada
+
+- Run DEV exacto `c9818e40-2d4d-4c1b-a392-14a9404a5111`: integración DB y E2E PASS previos. Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se afirma smoke PASS.
+- Ownership por UUID exacto, cleanup y auditoría posterior PASS; inventario DEV restaurado. Sin nuevos fixtures ni E2E.
+- Paridad 19/19, dry-run sin pendientes, DB lint, schema/API y Baseline V2 exacto PASS (15/15 componentes; digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`).
+- `next-env.d.ts` M, unstaged y con SHA exacto. El re-review independiente posterior fue PASS; TASK-007 quedó cerrada documentalmente y lista para PR, sin merge.
+<!-- TASK007_FINALIZER_STATUS_END -->
+
+## TASK-007 — remediación del review final (2026-10-15)
+
+- **FIR-1 CLOSED.** Vitest conserva sus exclusiones default y excluye sólo las tres suites `node:test` del finalizador. `pnpm test` ejecuta las 435 pruebas Vitest en 51 archivos y luego las 11 pruebas del finalizador con `node --test`; PASS, exit code 0.
+- **FIR-2 CLOSED.** Cada resolve se asocia al snapshot de nacionalidad, documento y fecha de nacimiento y a una generación. Editar cualquiera de los tres campos invalida la solicitud y limpia resolución/confirmación; respuestas tardías o fuera de orden se descartan. Submit vuelve a comparar el snapshot. Las tres carreras con promesa diferida y los 104 tests focalizados de Patients pasan.
+- Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**. El **HISTORICAL VERIFICATION GAP** sigue en categoría **E — insufficient evidence**. El riesgo de inferencia por resolve/create exacto y sus controles de abuso, rate limiting y monitoreo siguen pendientes **PRE-PROD**. No se ejecutaron DEV, Supabase, fixtures, E2E ni baseline en esta remediación; PROD fuera de alcance.
+
+## Cierre documental TASK-007 — 2026-10-15
+
+- `TASK-007 CLOSED`; `TASK-007-FIR-1 CLOSED`; `TASK-007-FIR-2 CLOSED`. El re-review independiente final fue **PASS**, sin findings nuevos. Integración a `main` pendiente; no hay merge.
+- Patients incluye listado/búsqueda tenant, registro staged con resolve exacto y caminos NOT_FOUND create, NOT_LINKED link, ACTIVE reuse e INACTIVE reactivate; panel de detalle/administración, edición de datos administrativos, desactivación/reactivación, CAS/stale protection y UI responsive consistente con módulos administrativos.
+- 007A foundation y 007B list/search están cerradas; 007C+D completó GATE C y GATE D automatizado. En C+D hubo **zero DB delta**. GATE D dejó ownership/cleanup exacto, inventario restaurado y Baseline V2 exacto PASS.
+- Smoke humano **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se cuenta como PASS. **HISTORICAL VERIFICATION GAP: Category E — insufficient evidence**, sin reconciliación. **PRE-PROD:** riesgo de inferencia por exact global resolve/create, rate limiting, protección contra abuso y monitoring/telemetry siguen pendientes.
+
+## Plan de la etapa restante TASK-007C+D (checkpoint histórico previo a implementación)
+
+- Se unificó el workflow de 007C (Patient Management) y 007D (Integration/E2E/Final Verification) sin reducir alcance ni borrar el historial. **GATE C** exige flujo funcional completo y verificación local; **GATE D** sólo empieza tras C PASS e incluye preflight DEV, E2E/integración, smoke humano, cleanup y Baseline V2 exacto. Habrá un plan review independiente y un implementation review final para C+D, seguidos del cierre integral de TASK-007.
+- El plan reutiliza exclusivamente las siete RPCs de 007A por `callPatientRpc()`/`patient-rpc-contracts.ts` y propone panel adaptable dentro de `/centers/[centerId]/patients`. ADMIN/RECEPTION administran PatientCenter del Center; PROFESSIONAL no accede y PLATFORM_ADMIN-only no obtiene bypass. La identidad global sigue readonly. Notas administrativas se leen sólo en panel mediante SELECT tenant filtrado por Center e ID con RLS existente.
+- El análisis del contrato versionado sostiene **ZERO DB CHANGE**: sin migrations, SQL, RLS, grants, RPCs ni tipos generados. Si preflight/implementación demuestra lo contrario, STOP antes de cambiar DB. Esta instancia no implementó ni consultó/mutó DEV; PROD fuera de alcance.
+- Preflight local: rama `task/007-patients`, HEAD `76206deca44853215f666d6bc4dd327ba611e977`, `pnpm bootstrap` PASS. Único cambio inicial `M next-env.d.ts`, unstaged, SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, ajeno e intacto. Baseline V2 fijo `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`; el gap histórico sigue categoría E. Riesgo de inferencia global aceptado sólo para MVP DEV; abuso/rate limiting y monitoreo siguen pendientes PRE-PROD. No hay decisión humana de producto abierta identificada en el plan.
+
+## TASK-007C+D — checkpoint de implementación GATE C
+
+- Preflight de implementación exacto: rama y HEAD/base remota `76206deca44853215f666d6bc4dd327ba611e977`; sólo `plan.md`, `review.md`, `docs/status.md` y `next-env.d.ts` modificados. Los tres primeros eran artefactos legítimos del plan/review; `next-env.d.ts` sigue ajeno, unstaged y con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`. `pnpm bootstrap` y `git diff --check` PASS.
+- `/centers/[centerId]/patients` conserva búsqueda tenant y añade `patient=<UUID>` canónico para panel, acción Administrar en tabla/tarjeta y Registrar explícito. El detalle se obtiene con SELECT tenant filtrado por `center_id` e `id`, join de Person vinculada y proyección acotada. Las notas sólo aparecen en el panel. El panel muestra identidad readonly, edita datos administrativos, desactiva y permite reactivar tras resolve y confirmación con CAS. El diálogo nativo es adaptable a móvil y usa foco inicial, Escape, labels, errores asociados, confirmaciones y pending.
+- Las seis Server Actions de resolve/create/link/reactivate/update/deactivate crean cliente de sesión, validan con Zod, reautorizan ADMIN/RECEPTION y delegan al servicio mediante `callPatientRpc()`. Las mutaciones exitosas revalidan la ruta. El flujo staged distingue NOT_FOUND, mismatch, NOT_LINKED, ACTIVE e INACTIVE; no ejecuta resolve por miss de SEARCH. Errores SQL se mapean por par exacto sin exponer texto SQL; stale exige recarga sin retry automático. No hay RPC directa adicional ni DML genérico.
+- **GATE C PASS:** 429/429 tests en 51 archivos; `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm security:check:client-bundle`, Prettier focalizado y `git diff --check` PASS. Build y guard se ejecutaron en copia física aislada para no alterar `next-env.d.ts`. Zero migrations, SQL, RLS, grants, RPC definitions o tipos generados modificados.
+- **GATE D bloqueado antes de toda escritura DEV:** ref local `ehllxymqyzrofydrvtzo`, 19 migrations locales y SHA del verificador `f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c` confirmados. El CLI en este entorno devolvió `LegacyPlatformAuthRequiredError` por falta de autenticación de plataforma; no se pudo obtener paridad viva, dry-run, lint, schema verifier ni Baseline V2. Se requiere evidencia live DEV capturada por la persona en terminal autenticada. No hay fixture manifest ni fixture creado, E2E/smoke/cleanup DEV ni baseline final; no se declara implementación completa ni se stagea/commitea/pushea. PROD fuera de alcance.
+- El **HISTORICAL VERIFICATION GAP** permanece categoría **E — insufficient evidence**; el riesgo de inferencia global exacta y los controles de abuso, rate limiting y monitoreo continúan pendientes **PRE-PROD**. El digest V2 `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359` es expectativa fija, no nueva medición DEV en este checkpoint.
+
+## TASK-007C+D — continuación GATE D (2026-10-14)
+
+- En la ejecución DEV `c9818e40-2d4d-4c1b-a392-14a9404a5111`, `setup` creó fixtures y la integración DB reportó PASS. Playwright falló al cargar el spec porque eliminó `test-results` antes de leer el ledger ubicado allí; `No tests found` fue secundario. El inventario read-only humano identificó 6 Auth/Public users, 3 Centers, 6 memberships, 7 Persons, 6 PatientCenters y sus vínculos exactos; las cantidades corresponden al baseline y las referencias externas consultadas son cero. `recover-ledger.mjs` volvió a comparar DEV y reconstruyó el ledger local; `audit` confirmó ownership exacto. El ledger vive ahora fuera de `test-results` y su prueba local de supervivencia pasó. `recover-credentials.mjs` reasignó una contraseña temporal a los seis Auth UUID verificados y el segundo `audit` pasó. El primer E2E reanudado quedó en login por un `expect` de 5 s: Auth aceptó la credencial exacta y una prueba UI aislada completó redirección en 5,226 ms; se amplió a 60 s para login y 30 s para otras aserciones. El audit posterior siguió pasando sin nuevas filas de pacientes. E2E corregido, smoke y cleanup siguen pendientes; GATE D no es PASS.
+- Tras ampliar el timeout, Playwright pasó el escenario completo de RECEPTION desktop. El segundo llegó al último chequeo, PROFESSIONAL denied, y falló porque esperaba HTTP 404; la captura mostró la página 404 renderizada y ningún dato de pacientes, con respuesta HTTP 200 por streaming. El spec comprueba ahora el 404 visible y la ausencia de la pantalla/listado de pacientes. El test puntual de sólo lectura verificó esa denegación (1/1 PASS) sin repetir las mutaciones ya hechas; `cleanup-isolated` y `audit` posteriores pasaron. El ledger quedó `e2e_pass`, con ownership de 8 Persons y 8 PatientCenters. Smoke humano, cleanup y baseline final siguen pendientes; GATE D no es PASS.
+- Antes del smoke se comprobó por error la ruta antigua `test-results/task007-gate-d/fixture-ledger.json`, que Playwright debe limpiar. El ledger vigente sí existe en `.task007-gate-d/fixture-ledger.json`, SHA-256 `572f62a8875c25682437000df13be9ac5c129c86119677f951f2d2c53fc0297d`, runId/Center IDs exactos, `e2e_pass`, ownership 8/8 y credenciales presentes sin imprimir. `server-temp.json` pertenece sólo al servidor Next; el puerto 31007 estaba abierto y no se ejecutó su cleanup. Se añadieron checks SHA antes/después de `cleanup-isolated` y `audit` y comando local read-only `ledger-status.mjs`. Pruebas locales de ambos lifecycles PASS (2/2). El intento de audit desde Codex no consultó DEV por falta de auth CLI; el audit humano previo pasó y el archivo sigue presente. No hubo recuperación nueva ni escrituras DEV.
+- La persona usuaria aportó evidencia **HUMAN-CAPTURED LIVE DEV** de `ehllxymqyzrofydrvtzo`: 19/19 migrations exactas, `db push --dry-run` al día, `db lint` sin errores, schema/API verifier PASS y Baseline V2 exacto PASS (`24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`, estable, sin mismatches ni domain errors). **GATE D PREFLIGHT PASS**; no se repite GATE C.
+- Runner y runbook DEV preparados en `scripts/task007-gate-d*`, `tests/e2e/task-007-gate-d.spec.mjs` y `.harness/tasks/active/TASK-007/gate-d-runbook.md`: inventario/ownership antes de escribir, fixtures propios, integración DB/carreras/privacy, E2E, captura humana por UUID exacto, auditoría/cleanup y verificación final. En este entorno sólo se verificó sintaxis, lint, formato y arranque aislado de Next; la API de tablas responde `42501` con la clave de servicio y falta la sesión CLI de plataforma, por lo que **ningún fixture ni mutación DEV se ejecutó aquí**. La persona usuaria ejecutará el runner desde su terminal autenticado y aportará la evidencia de smoke/cleanup/final gate.
+- `next-env.d.ts` continúa `M`, unstaged, SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`. GATE D aún no es PASS; no stage, commit, push, PR, merge ni cierre de TASK-007.
+
+## Cierre del review TASK-007B
+
+- 007B-IR-1 **CLOSED — cookie refresh verificado por re-review independiente**: cada `NextResponse.next` recibe un snapshot fresco de `request.headers` y sobrescribe `x-salud-plus-original-search` con `NextRequest.nextUrl.search`. Después de `setAll`, el nuevo snapshot incluye las cookies renovadas y conserva las demás. La prueba con clases reales de Next falló en `1c214bad` por reenviar `session=old` y pasa tras el fix; cubre dos cookies renovadas, una conservada, spoofing y respuesta `Set-Cookie`. Sin refresh, la cookie original y la query real se conservan. La página sigue leyendo el header tras `requireRole`.
+- 007B-IR-2 **CLOSED**: la denegación RPC se reconoce sólo con `code=42501` y `message=PATIENT_ACCESS_DENIED` exactos. Subcadenas y otros errores siguen siendo fallos técnicos recuperables.
+- 007B-IR-3 **CLOSED**: el test de ruta verifica el contrato `ADMIN`/`RECEPTION`; una prueba separada ejecuta `requireRole` real con roles permitidos y rechazos de PROFESSIONAL, membership/Center inactivos y cross-center.
+- Verificación local de la remediación actual: proxy 2/2; IR-1 focalizados 44/44 en 3 archivos; 007B focalizados 86/86 en 7 archivos; suite completa 400/400 en 47 archivos; lint y typecheck PASS. `pnpm build` y `pnpm security:check:client-bundle` PASS en copia física aislada con `pnpm_config_verify_deps_before_run=false`; Prettier focalizado y `git diff --check` PASS. `next-env.d.ts` ajeno conserva SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, unstaged. Zero DB/schema delta; DEV y PROD no consultados ni mutados. TASK-007C no iniciado.
+
+## Implementación TASK-007B
+
+- `/centers/[centerId]/patients` ofrece búsqueda tenant con `q/state/page` canónicos, filtros ACTIVE/INACTIVE/ALL, paginación 25+1 sin COUNT, tabla desktop, tarjetas móviles, loading y estados vacíos/error. ADMIN y RECEPTION acceden; PROFESSIONAL y PLATFORM_ADMIN-only no acceden. La home muestra navegación según rol.
+- La única lectura de Patients usa `staff_search_patient_centers` mediante `callPatientRpc()` y cliente Supabase server de la sesión. No hay resolve, registro ni mutaciones.
+- Tests focalizados 47/47; suite completa 377/377 en 46 archivos; lint, typecheck, build, Prettier focalizado, `git diff --check` y guard de secretos del bundle cliente PASS. `next-env.d.ts` conserva SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`, unstaged.
+- Zero delta de migrations, SQL, RLS, grants, RPCs y tipos generados. DEV no se consultó ni mutó para 007B; PROD fuera de alcance. E2E de Patients reservado a 007D.
+
+## Remediación de review TASK-007A
+
+El reviewer independiente cerró 007A-IR-1/IR-2 y aceptó evidencia live DEV capturada por la persona usuaria para el gate read-only final. El historial y los resultados técnicos de la remediación se conservan abajo.
+
+- 007A-IR-1: contrato app-facing derivado de Zod y adapter único para las siete RPCs; resolve modela cinco variantes, search conserva email/cobertura NULL y create/link/update aceptan argumentos administrativos NULL. Los tipos de transporte generados siguen intactos. Tests de tipo y payload, guard de firmas/nombres y checks locales PASS.
+- 007A-IR-2: comparador V2 comprueba inventario y metadata exacta (`included_fields`, `excluded_fields`, `field_types`, `row_key_fields`) además de filas y digests. Tests sintéticos de columna agregada con `persons` vacía, tipo, clave, exclusión Auth y componente extra PASS. Manifest y verificador V2 intactos; SHA del verificador `f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c`.
+- DEV read-only final: 19 migrations locales == 19 DEV, dry-run sin pendientes, lint de DB y schema verifier PASS. Baseline V2 exacto 15/15 componentes y metadata, digest global `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. Suite 330/330, lint, typecheck, build, formato y guard de secretos PASS. PROD fuera de alcance.
 
 ## Verificación final TASK-006
 
@@ -179,7 +248,7 @@
 
 ## Próximo
 
-No hay tarea activa. El próximo trabajo no fue diseñado ni autorizado.
+Siguiente gate: review del PR de `task/007-patients` hacia `main`; no mergear en este cierre. Archivar TASK-007 después del merge, como TASK-006. El gap histórico `72e4ff...` → `86b6cd...` permanece **E — insufficient evidence**, sin reconciliación retrospectiva. Los controles de inferencia/abuso siguen pendientes PRE-PROD; PROD fuera de alcance.
 
 ## Estado operativo al cierre de TASK-005 (histórico)
 
@@ -244,14 +313,14 @@ No hay tarea activa. El próximo trabajo no fue diseñado ni autorizado.
 ## Decisiones postergadas
 
 - Email/recovery provider definitivo.
-- Rate limiting concreto antes de producción pública.
+- Control concreto de abuso/rate limiting y monitoreo antes de producción pública, incluido el resolve exacto de Person y el create/error de identidad existente de TASK-007.
 - Playwright completo en CI cuando E2E tenga entorno aislado.
 - Sentry si el producto llega a necesitarlo.
 
 ## Pendientes pre-PROD
 
 - Custom SMTP para recuperación/email.
-- Rate limiting definitivo para exposición pública.
+- Control definitivo de abuso/rate limiting y monitoreo del resolve exacto de Person **y** create/error de identidad existente antes de exposición pública. Riesgo residual de inferencia global `ACCEPTED RISK` sólo para MVP DEV; no se implementa rate limiting en TASK-007.
 - Leaked-password protection de Auth.
 
 Estos puntos continúan separados de los findings DEV del Integration Review y no se clasifican como
