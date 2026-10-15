@@ -1,26 +1,61 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { readLedger } from "./fixture-core.mjs";
 import { auditClean } from "./audit-clean.mjs";
 
 function cleanedLedger() {
-  const ledger = structuredClone(readLedger());
-  ledger.stage = "cleaned";
-  ledger.authDeleted = [...ledger.owned.authUsers];
-  return ledger;
+  const ownedKeys = [
+    "authUsers",
+    "publicUsers",
+    "centers",
+    "memberships",
+    "professionals",
+    "professionalCenters",
+    "platformAdmins",
+    "persons",
+    "patientCenters",
+  ];
+  const uuid = (number) => `00000000-0000-4000-8000-${number.toString(16).padStart(12, "0")}`;
+  const owned = Object.fromEntries(ownedKeys.map((key, index) => [key, [uuid(index + 1)]]));
+  const before = Object.fromEntries(
+    [
+      "auth.users",
+      "public.users",
+      "public.centers",
+      "public.center_memberships",
+      "public.persons",
+      "public.patient_centers",
+      "public.professionals",
+      "public.professional_centers",
+      "public.platform_admins",
+      "public.appointments",
+    ].map((table, index) => [table, index < 4 || index === 8 ? [uuid(index + 20)] : []]),
+  );
+  return { stage: "cleaned", owned, before, authDeleted: [...owned.authUsers] };
 }
 
 test("post-clean audit reads only exact owned UUIDs and verifies original inventory", async () => {
   const ledger = cleanedLedger();
   const queries = [];
+  const ownedByTable = {
+    "auth.users": ledger.owned.authUsers,
+    "public.users": ledger.owned.publicUsers,
+    "public.centers": ledger.owned.centers,
+    "public.center_memberships": ledger.owned.memberships,
+    "public.professionals": ledger.owned.professionals,
+    "public.professional_centers": ledger.owned.professionalCenters,
+    "public.platform_admins": ledger.owned.platformAdmins,
+    "public.persons": ledger.owned.persons,
+    "public.patient_centers": ledger.owned.patientCenters,
+  };
   const database = {
     async query(sql, parameters = []) {
       queries.push({ sql, parameters });
       assert.match(sql, /^select /);
       if (sql.includes("count(*)")) {
+        const table = sql.match(/from ([a-z_.]+)/)?.[1];
+        assert.ok(table);
         assert.equal(parameters.length, 1);
-        assert.ok(Array.isArray(parameters[0]));
-        assert.ok(parameters[0].length > 0);
+        assert.deepEqual(parameters[0], ownedByTable[table]);
         assert.match(sql, /where (?:id|user_id)=any\(\$1::uuid\[\]\)/);
         return { rows: [{ count: 0 }] };
       }

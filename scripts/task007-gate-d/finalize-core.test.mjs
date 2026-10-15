@@ -1,11 +1,11 @@
 import { strict as assert } from "node:assert";
 import { readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
-import { readLedger } from "./fixture-core.mjs";
 import {
   assertDbLint,
   assertDryRun,
   finalizerDigest,
+  finalizerRunId,
   finalizerVerifierSha256,
   parseBaselineVerdict,
   parseMigrationParity,
@@ -15,9 +15,68 @@ import {
   validateFinalizerLedger,
 } from "./finalize-core.mjs";
 import { renderFinalDocs, smokeDisposition } from "./finalize-docs.mjs";
+import { expectedOwned, knownRecovery } from "./recovery-known.mjs";
+
+function cleanedFinalizerLedger() {
+  const owned = expectedOwned();
+  owned.persons.push("528bbf95-4b09-4300-9f7e-16f23e01cdfc");
+  owned.patientCenters.push(
+    "51cac708-049e-4b14-9788-693dd76b61a5",
+    "e9a98766-2772-43f0-99c1-6313067d0c44",
+  );
+  const before = Object.fromEntries(
+    [
+      "auth.users",
+      "public.users",
+      "public.centers",
+      "public.center_memberships",
+      "public.persons",
+      "public.patient_centers",
+      "public.professionals",
+      "public.professional_centers",
+      "public.platform_admins",
+      "public.appointments",
+    ].map((table, index) => [
+      table,
+      index < 4 || index === 8
+        ? [`00000000-0000-4000-8000-${(index + 1).toString(16).padStart(12, "0")}`]
+        : [],
+    ]),
+  );
+  return {
+    runId: finalizerRunId,
+    projectRef: knownRecovery.projectRef,
+    expectedDigest: finalizerDigest,
+    stage: "cleaned",
+    ids: { ...knownRecovery.ids },
+    actors: Object.fromEntries(
+      Object.entries(knownRecovery.actorIds).map(([name, id]) => [
+        name,
+        { id, email: `task007d-${finalizerRunId}-${name.toLowerCase()}@example.test` },
+      ]),
+    ),
+    owned,
+    before,
+    generated: {
+      uiDocument: `UI-${finalizerRunId}`,
+      smokeDocument: `SMOKE-${finalizerRunId}`,
+      manualUnlinkedDocument: `MANUAL-LINK-${finalizerRunId}`,
+    },
+    authDeleted: [...owned.authUsers],
+    evidence: [
+      "ownership_recovered_from_exact_live_inventory",
+      "recovered_fixture_auth_password_assigned_by_exact_user_id",
+      "e2e_pass_composite_recovery",
+      "ownership_and_references_pass",
+      "db_cleanup_pass",
+      "inventory_restored_pass",
+    ].map((event) => ({ event })),
+    password: "test-only-password",
+  };
+}
 
 test("one-shot finalizer accepts only this run's exact owned UUID graph", () => {
-  const ledger = readLedger();
+  const ledger = cleanedFinalizerLedger();
   assert.equal(validateFinalizerLedger(ledger).stage, "cleaned");
   const wrongRun = structuredClone(ledger);
   wrongRun.runId = "00000000-0000-4000-8000-000000000000";
@@ -274,5 +333,9 @@ test("final documentation keeps human smoke deferred without writing files", () 
   });
   assert.ok(paths.slice(0, 4).every((path) => result[path].includes(smokeDisposition)));
   assert.match(result[paths[4]], /one-shot workflows/);
-  assert.ok(!Object.values(result).some((body) => body.includes(readLedger().password)));
+  assert.ok(
+    !Object.values(result).some((body) =>
+      body.includes("TASK007_TEST_ONLY_PASSWORD_DO_NOT_RENDER"),
+    ),
+  );
 });
