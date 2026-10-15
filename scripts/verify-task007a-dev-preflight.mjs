@@ -3,20 +3,21 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import pg from "pg";
-import {
-  assertLinkedSupabaseProject,
-  loadSupabaseDevConfig,
-} from "./lib/supabase-dev-env.mjs";
+import { assertLinkedSupabaseProject, loadSupabaseDevConfig } from "./lib/supabase-dev-env.mjs";
 
 const dev = loadSupabaseDevConfig();
 assertLinkedSupabaseProject();
 const cli = resolve("node_modules/supabase/dist/supabase.js");
-const output = execFileSync(process.execPath, [cli, "db", "dump", "--linked", "--dry-run", "--schema", "public"], {
-  encoding: "utf8",
-  env: { ...process.env, CI: "true", DO_NOT_TRACK: "1", SUPABASE_TELEMETRY_DISABLED: "1" },
-  stdio: ["ignore", "pipe", "pipe"],
-  windowsHide: true,
-});
+const output = execFileSync(
+  process.execPath,
+  [cli, "db", "dump", "--linked", "--dry-run", "--schema", "public"],
+  {
+    encoding: "utf8",
+    env: { ...process.env, CI: "true", DO_NOT_TRACK: "1", SUPABASE_TELEMETRY_DISABLED: "1" },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  },
+);
 const config = Object.fromEntries(
   [...output.matchAll(/^export (PG[A-Z]+)="([^"]*)"$/gm)].map((match) => [match[1], match[2]]),
 );
@@ -39,10 +40,20 @@ const client = new pg.Client({
   application_name: "task007a-readonly-preflight",
 });
 const tables = [
-  "auth.users", "auth.identities", "public.users", "public.platform_admins",
-  "public.centers", "public.center_memberships", "public.professionals",
-  "public.professional_centers", "public.specialties", "public.professional_center_specialties",
-  "public.persons", "public.patient_centers", "public.availabilities", "public.appointments",
+  "auth.users",
+  "auth.identities",
+  "public.users",
+  "public.platform_admins",
+  "public.centers",
+  "public.center_memberships",
+  "public.professionals",
+  "public.professional_centers",
+  "public.specialties",
+  "public.professional_center_specialties",
+  "public.persons",
+  "public.patient_centers",
+  "public.availabilities",
+  "public.appointments",
   "private.provisioning_operations",
 ];
 
@@ -52,12 +63,15 @@ try {
   await client.query("set local role postgres");
   const snapshot = {};
   for (const table of tables) {
-    const result = await client.query(`select pg_catalog.to_jsonb(record) as value from ${table} as record`);
+    const result = await client.query(
+      `select pg_catalog.to_jsonb(record) as value from ${table} as record`,
+    );
     snapshot[table] = result.rows.map((row) => JSON.stringify(row.value)).sort();
   }
   const digest = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
   const counts = Object.fromEntries(tables.map((table) => [table, snapshot[table].length]));
-  const catalog = await client.query(`
+  const catalog = await client.query(
+    `
     select c.relname as table_name,
       c.relrowsecurity as rls,
       pg_catalog.array_agg(a.attname || ':' || pg_catalog.format_type(a.atttypid,a.atttypmod) || ':' || a.attnotnull || ':' || a.attgenerated::text order by a.attnum) filter (where a.attnum > 0 and not a.attisdropped) as columns,
@@ -76,9 +90,13 @@ try {
     [["persons", "patient_centers", "centers", "center_memberships"]],
   );
   await client.query("commit");
-  console.log(JSON.stringify({ projectRef: dev.projectRef, digest, counts, catalog: catalog.rows }, null, 2));
+  console.log(
+    JSON.stringify({ projectRef: dev.projectRef, digest, counts, catalog: catalog.rows }, null, 2),
+  );
 } catch (error) {
-  try { await client.query("rollback"); } catch {}
+  try {
+    await client.query("rollback");
+  } catch {}
   throw error;
 } finally {
   await client.end();
