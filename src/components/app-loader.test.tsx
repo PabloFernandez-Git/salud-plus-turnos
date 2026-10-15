@@ -14,18 +14,20 @@ describe("AppLoader", () => {
     expect(screen.getByText("Salud Plus, cargando")).toHaveClass("sr-only");
   });
 
-  it("fills the viewport by default", () => {
+  it("uses viewport positioning by default", () => {
     render(<AppLoader />);
 
-    expect(screen.getByRole("status")).toHaveClass("min-h-dvh");
+    const status = screen.getByRole("status");
+    expect(status).toHaveClass("fixed", "inset-0");
+    expect(status).not.toHaveClass("h-full");
   });
 
-  it("fills only its parent when fullScreen is false", () => {
+  it("uses container positioning when fullScreen is false", () => {
     render(<AppLoader fullScreen={false} />);
 
     const status = screen.getByRole("status");
     expect(status).toHaveClass("h-full");
-    expect(status).not.toHaveClass("min-h-dvh");
+    expect(status).not.toHaveClass("fixed", "inset-0");
   });
 
   it("keeps the plus decorative", () => {
