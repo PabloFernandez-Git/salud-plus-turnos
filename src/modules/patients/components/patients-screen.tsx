@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { patientSearchUrl, type PatientFilters } from "../search/patient-search-params";
 import type { PatientPage } from "../server/patients";
+import type { PatientDetail } from "../server/patient-management";
+import { PatientWorkspace } from "./patient-workspace";
 
 export function formatPatientBirthDate(value: string): string {
   const [year, month, day] = value.split("-");
@@ -23,12 +25,16 @@ export function PatientsScreen({
   filters,
   result,
   loadFailed = false,
+  detail = null,
+  detailFailed = false,
 }: {
   centerId: string;
   centerName: string;
   filters: PatientFilters;
   result: PatientPage | null;
   loadFailed?: boolean;
+  detail?: PatientDetail | null;
+  detailFailed?: boolean;
 }) {
   const baseUrl = patientSearchUrl(centerId, { query: "", state: "ACTIVE", page: 1 });
   const currentUrl = patientSearchUrl(centerId, filters);
@@ -53,6 +59,12 @@ export function PatientsScreen({
           </Link>
           <p className="text-sm text-slate-600">{centerName}</p>
           <h1 className="text-3xl font-bold text-slate-950">Pacientes</h1>
+          <PatientWorkspace
+            centerId={centerId}
+            filters={filters}
+            detail={detail}
+            detailFailed={detailFailed}
+          />
         </header>
         <form
           action={baseUrl}
@@ -149,6 +161,9 @@ export function PatientsScreen({
                     <th className="p-3" scope="col">
                       Estado
                     </th>
+                    <th className="p-3" scope="col">
+                      Acción
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -166,6 +181,14 @@ export function PatientsScreen({
                       <td className="p-3">{row.insurance_name ?? "—"}</td>
                       <td className="p-3">
                         <Status active={row.is_active} />
+                      </td>
+                      <td className="p-3">
+                        <Link
+                          className="font-semibold text-sky-700 underline"
+                          href={patientSearchUrl(centerId, filters, row.patient_center_id)}
+                        >
+                          Administrar
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -197,6 +220,12 @@ export function PatientsScreen({
                     <dt>Obra social / prepaga</dt>
                     <dd>{row.insurance_name ?? "—"}</dd>
                   </dl>
+                  <Link
+                    className="mt-3 inline-block font-semibold text-sky-700 underline"
+                    href={patientSearchUrl(centerId, filters, row.patient_center_id)}
+                  >
+                    Administrar
+                  </Link>
                 </article>
               ))}
             </div>

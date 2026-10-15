@@ -336,3 +336,51 @@ El diff de remediación y el rango final tienen **ZERO migrations, ZERO SQL, ZER
 - **Preflight/final:** `next-env.d.ts` continúa `M`, unstaged, SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`; no se modificó. Sin stage, commit, push, PR ni 007C. No se hallaron findings nuevos.
 
 **Veredicto:** `007B-IR-1 CLOSED`, `007B-IR-2 CLOSED`, `007B-IR-3 CLOSED`. **TASK-007B IMPLEMENTATION REVIEW PASS — READY FOR 007B CLOSURE.**
+
+## TASK-007C+D PLAN REVIEW — 2026-10-14
+
+**Alcance:** review independiente del plan combinado de `plan.md:264-324`, contrastado con `brief.md`, este historial de review, `implementation-report.md`, `docs/modules/patients.md`, `docs/status.md`, el código 007B, los contratos TypeScript y las migrations versionadas de 007A. Es un review de diseño; no se implementó ni se consultó o mutó DEV/PROD.
+
+### Resultado por contrato
+
+| # | Aspecto | Resultado |
+| --- | --- | --- |
+| 1 | Reorganización C+D | Conforme. `plan.md:268,308,310-322` conserva alcance y dos gates: C funcional/local PASS antes de D DEV/E2E/smoke/cleanup/baseline; un único review final de implementación. |
+| 2 | D1–D8 | Intactas: ADMIN/RECEPTION, PROFESSIONAL denegado, identidad global readonly, resolve mínimo y DOB exacta, búsqueda tenant, confirmación, CAS y panel adaptable (`plan.md:9-79,273,279-306`). |
+| 3 | Foundation RPC | Las siete operaciones están en `patient-rpc-contracts.ts:119-172` y en la migration 007A. El plan exige `callPatientRpc()` con cliente server; no propone DML frontend, `supabase.rpc` directo ni API paralela (`plan.md:274-275,299`). |
+| 4 | Zero DB delta | Viable según contrato versionado: policies/grants, siete RPC, trigger CAS y FK existen (`20261013190000_add_patient_foundation.sql:137-158,210-542`; `database.types.ts:213-265,886-1007`). La migration siguiente sólo reemplaza SEARCH/UPDATE/DEACTIVATE para quitar variables sin cambiar el contrato. El plan ordena STOP si DEV desmiente la hipótesis; este review no certifica DEV vivo. |
+| 5 | Detalle/RLS | Viable. `getPatientCenter` filtra `center_id` e `id`, proyecta sólo campos necesarios y une `persons!patient_centers_person_fk` (`plan.md:280-282`). RLS de PatientCenter exige rol activo en su Center y RLS de Person exige relación visible (`migration:142-158`); no permite leer notas de otro Center ni Person global sin vínculo autorizado. La policy concede SELECT de notas a ADMIN/RECEPTION conforme a D1, aunque la UI sólo las renderiza en panel. |
+| 6 | Registrar staged | Identidad → resolve → datos administrativos según rama → revisión/confirmación → RPC → panel/resultado definidos (`plan.md:286-293`). Nacionalidad/documento/DOB son obligatorios para resolve; nombres son borrador opcional hasta NOT_FOUND; teléfono y opcionales se piden cuando se crea/vincula, conservando el borrador. Cambiar clave o DOB invalida tokens y confirmaciones. |
+| 7 | Cinco ramas | NOT_FOUND, mismatch, NOT_LINKED, ACTIVE e INACTIVE tienen UI, datos técnicos, confirmación, RPC y destino explícitos (`plan.md:287-293`). |
+| 8 | NOT_FOUND | Sólo `staff_create_patient_with_center`; Person y PatientCenter se insertan en la misma llamada transaccional (`migration:256-320`). Nombres del alta sólo son autoridad en esta rama. |
+| 9 | DOB mismatch | Bloquea create/link/reactivate y no muestra DOB almacenada ni IDs/tokens; la migration anula IDs/token aunque devuelve estado/nombres mínimos (`migration:244-252`), y el plan no los renderiza ni carga detalle (`plan.md:288,293`). |
+| 10 | NOT_LINKED | Muestra identidad mínima, requiere confirmación literal y `staff_link_person_to_center`; `LINKED` y `ALREADY_ACTIVE` abren relación tenant, sin renderizar `person_id` (`plan.md:289`). |
+| 11 | ACTIVE | Abre relación existente por query tenant sin create/link/reactivate; conserva filtros y ofrece enlace de vuelta al listado (`plan.md:290,300`). |
+| 12 | INACTIVE | Confirma, revalida identidad/DOB y usa token CAS en `staff_reactivate_patient_center`; SQL sólo cambia `is_active`, por lo que conserva teléfono, email, cobertura y notas (`plan.md:291`; `migration:384-438`). |
+| 13 | Edición | Sólo cuatro campos administrativos por `staff_update_patient_center`; `UPDATED` y `UNCHANGED` son éxito, con NULL opcional y CAS (`plan.md:297,301`; migration de lint: UPDATE). |
+| 14 | Desactivación | `staff_deactivate_patient_center` con token y `p_confirmed=true`; `DEACTIVATED`/`UNCHANGED` y stale definidos, sin DELETE (`plan.md:298,301`; migration de lint: DEACTIVATE). |
+| 15 | Notas | ADMIN/RECEPTION pueden leer/escribir sólo notas administrativas del Center. Proyección de detalle y label explícitos; excluidas de SEARCH, tabla/tarjetas y otros Centers (`plan.md:281,297`). |
+| 16 | Server Actions | `plan.md:299` exige cliente de sesión, Zod, `requireRole` server, servicio `server-only`, adapter RPC, confirmaciones server, errores estables y revalidación. No toma `centerId`, rol ni hidden fields como autorización. |
+| 17 | Client/server | El cliente sólo maneja etapas, diálogo/foco, confirmaciones y pending UX; autorización, Supabase, CAS y DTO quedan en servidor/DB (`plan.md:275,279,299,301,306`). |
+| 18 | Error mapping exacto | Los pares SQLSTATE/mensaje de `plan.md:302` coinciden con los `raise exception` de 007A: `42501/PATIENT_ACCESS_DENIED`, `22023/INVALID_PATIENT_INPUT`, `P0001` para mismatch/stale/identidad/relación y `P0002/PATIENT_CENTER_NOT_FOUND`. Las dos constraints citadas existen en schema inicial. `23505` sólo se clasifica con metadata inequívoca; resto genérico sin SQL/PII. |
+| 19 | CAS/stale | DB compara `expected_updated_at` bajo lock antes de no-op o UPDATE (`migration:414-436,466-485,505-520`). UI refresca token/detalle o repite resolve, exige revisión humana y no reintenta escritura stale automáticamente (`plan.md:301`). |
+| 20 | Refresh | Conserva `q/state/page` y selección `patient`, revalida ruta, refresca datos server. Desactivación bajo ACTIVE cierra panel y explica desaparición; página vacía >1 vuelve a 1; reactivación bajo INACTIVE y cambio de coincidencia de `q` están contemplados (`plan.md:299-300`). |
+| 21 | Accesibilidad/responsive | Desktop panel, móvil pantalla completa, foco inicial/restaurado, trampa de foco, Escape, labels, errores ARIA, cancelación y confirmación definidos; sin dependencia obligatoria nueva (`plan.md:279,306`). |
+| 22 | Gate C | Tests de ramas, privacidad, autorización, acciones, notas, no-op, stale y accesibilidad; suite, lint, tipos, build, guard de secretos, formato focalizado y diff check obligatorios. D bloqueado si falla C (`plan.md:307-308`). |
+| 23 | DEV preflight | Ref DEV, 19/19 migrations, dry-run, DB lint, schema verifier y V2 exacto antes de fixtures. SHA del verifier `f00b3f711549c259617de48881c7a7864b8c80479ca014f184863fcfd50f555c` verificado localmente; digest fijo `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`. Evidencia humana se distingue y no se piden secretos (`plan.md:312`). |
+| 24 | Fixture ownership | Ledger/run UUID para Auth, memberships, Persons, PatientCenters y demás filas; inventario previo y no reutilización del baseline (`plan.md:313`). |
+| 25 | E2E/integration split | Playwright recorre UI y casos separados; integración DB cubre carreras/CAS/RLS; unit/component cubre ramas deterministas. Incluye Reception, ADMIN, PROFESSIONAL, mismatch, ACTIVE reuse, NOT_LINKED y SEARCH miss (`plan.md:307,314-315`). |
+| 26 | Multi-center | Prueba explícita A/B de invisibilidad en SEARCH B, resolve mínimo, link confirmado y no copia de los cuatro datos administrativos (`plan.md:315`). |
+| 27 | Smoke | Desktop/móvil, alta, confirmación, edición, desactivar/reactivar, mismatch y stale; evidencia humana separada de la automatizada (`plan.md:316`). |
+| 28 | Cleanup | Ownership e IDs exactos, referencias previas, orden FK inverso y STOP ante duda; sin LIKE, wildcard, reset, truncate ni borrado amplio (`plan.md:320`). |
+| 29 | Baseline final | Repite parity, dry-run, lint, schema verifier y V2 exacto 15/15 tras cleanup; drift impide cierre, sin regenerar referencia (`plan.md:321`). |
+| 30 | Gap histórico | Categoría E `72e4ff... → 86b6cd...` permanece inconclusa; C+D no la declara resuelta (`plan.md:321`). |
+| 31 | Riesgo PRE-PROD | Inferencia global por resolve/create aceptada sólo en MVP DEV; abuso/rate limiting y monitoreo/telemetría siguen pendientes PRE-PROD (`plan.md:322`). |
+| 32 | Archivos del plan | Preflight: sólo `M plan.md`, `M docs/status.md`, `M next-env.d.ts`; diff de los dos primeros exclusivamente documental. Sin source/tests/migrations ocultos, staged changes, commit, push o PR en este review. |
+| 33 | `next-env.d.ts` | Sigue unstaged, con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`; este review no lo modificó. |
+
+### Findings y límite de evidencia
+
+**Findings abiertos: ninguno.** No hay contrato material pendiente ni contradicción con D1–D8. La viabilidad DB se juzgó contra migrations, tipos y código versionados; GATE D debe comprobar el estado DEV vivo antes de cualquier mutación. No se ejecutaron tests de implementación ni comandos live DEV porque todavía no existe implementación C+D y esta instancia está limitada al plan review. `pnpm bootstrap` y `git diff --check` pasaron localmente.
+
+**Veredicto:** **TASK-007C+D PLAN REVIEW PASS — READY FOR IMPLEMENTATION AUTHORIZATION.** Este PASS no autoriza implementar ni iniciar GATE D; se requiere autorización posterior de implementación y luego GATE C PASS antes de DEV. TASK-007 permanece abierta.

@@ -11,6 +11,7 @@ import {
   type PatientSearchParams,
 } from "@/modules/patients/search/patient-search-params";
 import { listPatientCenters, type PatientPage } from "@/modules/patients/server/patients";
+import { getPatientCenter, type PatientDetail } from "@/modules/patients/server/patient-management";
 
 function handleAuthorization(error: AuthorizationError): never {
   if (error.code === "UNAUTHENTICATED") redirect("/login");
@@ -48,7 +49,17 @@ export default async function PatientsPage({
     loadFailed = true;
   }
   if (result && filters.page > 1 && result.rows.length === 0) {
-    redirect(patientSearchUrl(centerId.data, { ...filters, page: 1 }));
+    redirect(patientSearchUrl(centerId.data, { ...filters, page: 1 }, parsed.patientId));
+  }
+  let detail: PatientDetail | null = null;
+  let detailFailed = false;
+  if (parsed.patientId) {
+    try {
+      detail = await getPatientCenter(centerId.data, parsed.patientId, supabase);
+    } catch (error) {
+      if (error instanceof AuthorizationError) handleAuthorization(error);
+      detailFailed = true;
+    }
   }
   return (
     <PatientsScreen
@@ -57,6 +68,8 @@ export default async function PatientsPage({
       filters={filters}
       result={result}
       loadFailed={loadFailed}
+      detail={detail}
+      detailFailed={detailFailed || Boolean(parsed.patientId && !detail)}
     />
   );
 }

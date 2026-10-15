@@ -1,4 +1,5 @@
 import { patientCodePointLength, trimPatientInput } from "../schemas/patient-input";
+import { z } from "zod";
 
 export type PatientState = "ACTIVE" | "INACTIVE" | "ALL";
 export type PatientFilters = { query: string; state: PatientState; page: number };
@@ -8,11 +9,16 @@ export const PATIENT_PAGE_SIZE = 25;
 export const PATIENT_RPC_LIMIT = 26;
 export const PATIENT_MAX_PAGE = 401;
 
-export function patientSearchUrl(centerId: string, filters: PatientFilters): string {
+export function patientSearchUrl(
+  centerId: string,
+  filters: PatientFilters,
+  patientId?: string,
+): string {
   const params = new URLSearchParams();
   if (filters.query) params.set("q", filters.query);
   if (filters.state !== "ACTIVE") params.set("state", filters.state);
   if (filters.page !== 1) params.set("page", String(filters.page));
+  if (patientId) params.set("patient", patientId);
   const search = params.toString();
   const path = `/centers/${centerId}/patients`;
   return search ? `${path}?${search}` : path;
@@ -55,7 +61,16 @@ export function parsePatientSearchParams(
   originalSearch: string,
 ) {
   const filters = parsePatientFilters(input);
-  const canonicalUrl = patientSearchUrl(centerId, filters);
+  const patientId =
+    typeof input.patient === "string" && z.uuid().safeParse(input.patient).success
+      ? input.patient
+      : undefined;
+  const canonicalUrl = patientSearchUrl(centerId, filters, patientId);
   const actualUrl = `/centers/${centerId}/patients${originalSearch}`;
-  return { ...filters, canonicalUrl, needsRedirect: actualUrl !== canonicalUrl };
+  return {
+    ...filters,
+    ...(patientId ? { patientId } : {}),
+    canonicalUrl,
+    needsRedirect: actualUrl !== canonicalUrl,
+  };
 }

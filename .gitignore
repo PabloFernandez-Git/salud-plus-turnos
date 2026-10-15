@@ -8,6 +8,7 @@ out/
 # tests
 playwright-report/
 test-results/
+.task007-gate-d/
 coverage/
 
 # env / secrets

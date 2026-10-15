@@ -39,7 +39,8 @@
     "auth:bootstrap-platform-admin:dev": "node scripts/bootstrap-platform-admin.mjs",
     "auth:check:dev": "node scripts/check-auth-config-dev.mjs",
     "supabase:check:dev": "node scripts/check-supabase-dev.mjs",
-    "security:check:client-bundle": "node scripts/check-client-bundle-secrets.mjs"
+    "security:check:client-bundle": "node scripts/check-client-bundle-secrets.mjs",
+    "task007:finalize": "node scripts/task007-gate-d/finalize.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

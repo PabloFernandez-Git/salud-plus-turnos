@@ -118,4 +118,20 @@ describe("patient search URL", () => {
       needsRedirect: false,
     });
   });
+  it("keeps one valid selected patient across filters and drops invalid IDs", () => {
+    const patient = "22222222-2222-4222-8222-222222222222";
+    expect(parse({ q: "Ana", state: "ALL", page: "2", patient })).toMatchObject({
+      patientId: patient,
+      canonicalUrl: `${base}?q=Ana&state=ALL&page=2&patient=${patient}`,
+      needsRedirect: false,
+    });
+    expect(parse({ patient: "invalid" })).toMatchObject({
+      canonicalUrl: base,
+      needsRedirect: true,
+    });
+    expect(parse({ patient: [patient, patient] })).toMatchObject({
+      canonicalUrl: base,
+      needsRedirect: true,
+    });
+  });
 });
