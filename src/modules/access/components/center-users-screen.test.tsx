@@ -93,6 +93,11 @@ describe("CenterUsersScreen", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Usuarios" })).toBeVisible();
     expect(screen.getByText("Centro Norte")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas memberships sin modificar identidades existentes.",
+      ),
+    ).toHaveClass("max-w-5xl", "text-sm", "leading-6", "text-slate-600");
 
     const adminRow = screen.getByRole("row", { name: /Ana Admin/ });
     expect(within(adminRow).getByText("ana@example.test")).toBeVisible();

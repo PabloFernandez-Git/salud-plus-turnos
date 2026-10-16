@@ -56,7 +56,7 @@ export function PatientsScreen({
               <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
               <h1 className="text-3xl font-bold tracking-tight text-slate-950">Pacientes</h1>
               <p className="text-lg font-medium text-slate-800">{centerName}</p>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
+              <p className="max-w-5xl text-sm leading-6 text-slate-600">
                 Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y
                 mantené actualizados sus datos administrativos.
               </p>

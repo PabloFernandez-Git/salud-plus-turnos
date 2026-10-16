@@ -172,7 +172,7 @@ export function ProfessionalsScreen({
             <div>
               <h1 className="text-3xl font-bold text-slate-950">Profesionales</h1>
               <p className="mt-1 text-slate-700">{centerName}</p>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
                 Consultá y administrá los profesionales vinculados a este centro, sus datos y las
                 especialidades asociadas.
               </p>

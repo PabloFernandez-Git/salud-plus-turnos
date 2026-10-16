@@ -95,7 +95,7 @@ export function SpecialtiesScreen({
             <div>
               <h1 className="text-3xl font-bold text-slate-950">Especialidades</h1>
               <p className="mt-1 text-slate-700">{centerName}</p>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
                 Consultá y administrá las especialidades de este centro, y definí cuáles están
                 disponibles para asociar a sus profesionales.
               </p>
