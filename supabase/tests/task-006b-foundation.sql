@@ -3,8 +3,11 @@ begin;
 do $test$
 declare
   expected_policies constant text[] := array[
+    'availabilities_select_active_tenant',
     'center_memberships_select_self_or_center_admin',
     'centers_select_active_members',
+    'patient_centers_select_tenant_staff',
+    'persons_select_linked_tenant_staff',
     'platform_admins_select_self',
     'professional_center_specialties_select_center_admin',
     'professional_centers_select_admin_or_linked_professional',
@@ -13,8 +16,11 @@ declare
     'users_select_self_or_center_admin'
   ];
   expected_select_tables constant text[] := array[
+    'availabilities',
     'center_memberships',
     'centers',
+    'patient_centers',
+    'persons',
     'platform_admins',
     'professional_center_specialties',
     'professional_centers',
@@ -249,9 +255,13 @@ begin
 
   if exists (
     select 1
-    from information_schema.routines
-    where routine_schema = 'public'
-      and routine_name like '%list%professional%'
+    from pg_catalog.pg_proc as list_function
+    join pg_catalog.pg_namespace as function_namespace
+      on function_namespace.oid = list_function.pronamespace
+    where function_namespace.nspname = 'public'
+      and list_function.proname like '%list%professional%'
+      and list_function.oid <>
+        'public.staff_list_availability_professional_centers(uuid)'::regprocedure
   ) then
     raise exception 'TASK-006B exposed an unapproved global Professional listing routine';
   end if;

@@ -6,10 +6,11 @@ const centerId = "11111111-1111-4111-8111-111111111111";
 afterEach(cleanup);
 
 describe("center navigation", () => {
-  it("shows all four destinations to ADMIN", () => {
+  it("shows all five destinations to ADMIN", () => {
     render(<CenterNavigation centerId={centerId} role="ADMIN" />);
     expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
       "Pacientes",
+      "Disponibilidad",
       "Usuarios",
       "Especialidades",
       "Profesionales",
@@ -19,12 +20,15 @@ describe("center navigation", () => {
       `/centers/${centerId}/patients`,
     );
   });
-  it("shows only Patients to RECEPTION", () => {
+  it("shows Patients and Availability to RECEPTION", () => {
     render(<CenterNavigation centerId={centerId} role="RECEPTION" />);
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Pacientes"]);
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Pacientes",
+      "Disponibilidad",
+    ]);
   });
-  it("shows no management links to PROFESSIONAL", () => {
+  it("shows only own Availability entry to PROFESSIONAL", () => {
     render(<CenterNavigation centerId={centerId} role="PROFESSIONAL" />);
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["Disponibilidad"]);
   });
 });

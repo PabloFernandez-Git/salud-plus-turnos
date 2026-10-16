@@ -883,6 +883,24 @@ export type Database = {
           scope_center_id: string;
         }[];
       };
+      staff_create_availability: {
+        Args: {
+          p_center_id: string;
+          p_end_time: string;
+          p_professional_center_id: string;
+          p_start_time: string;
+          p_weekday: number;
+        };
+        Returns: {
+          availability_id: string;
+          end_time: string;
+          has_future_outside_availability: boolean;
+          is_active: boolean;
+          start_time: string;
+          updated_at: string;
+          weekday: number;
+        }[];
+      };
       staff_create_patient_with_center: {
         Args: {
           p_administrative_notes: string;
@@ -901,6 +919,23 @@ export type Database = {
           patient_center_id: string;
           person_id: string;
           updated_at: string;
+        }[];
+      };
+      staff_deactivate_availability: {
+        Args: {
+          p_availability_id: string;
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_professional_center_id: string;
+        };
+        Returns: {
+          availability_id: string;
+          end_time: string;
+          has_future_outside_availability: boolean;
+          is_active: boolean;
+          start_time: string;
+          updated_at: string;
+          weekday: number;
         }[];
       };
       staff_deactivate_patient_center: {
@@ -934,6 +969,16 @@ export type Database = {
           patient_center_id: string;
           person_id: string;
           updated_at: string;
+        }[];
+      };
+      staff_list_availability_professional_centers: {
+        Args: { p_center_id: string };
+        Returns: {
+          first_name: string;
+          last_name: string;
+          professional_center_id: string;
+          professional_center_updated_at: string;
+          usual_appointment_duration_minutes: number;
         }[];
       };
       staff_reactivate_patient_center: {
@@ -993,6 +1038,25 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      staff_update_availability: {
+        Args: {
+          p_availability_id: string;
+          p_center_id: string;
+          p_end_time: string;
+          p_expected_updated_at: string;
+          p_professional_center_id: string;
+          p_start_time: string;
+        };
+        Returns: {
+          availability_id: string;
+          end_time: string;
+          has_future_outside_availability: boolean;
+          is_active: boolean;
+          start_time: string;
+          updated_at: string;
+          weekday: number;
+        }[];
+      };
       staff_update_patient_center: {
         Args: {
           p_administrative_notes: string;
@@ -1007,6 +1071,19 @@ export type Database = {
           outcome: string;
           patient_center_id: string;
           updated_at: string;
+        }[];
+      };
+      staff_update_usual_appointment_duration: {
+        Args: {
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_minutes: number;
+          p_professional_center_id: string;
+        };
+        Returns: {
+          professional_center_id: string;
+          updated_at: string;
+          usual_appointment_duration_minutes: number;
         }[];
       };
     };

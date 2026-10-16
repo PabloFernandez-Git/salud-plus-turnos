@@ -3,8 +3,11 @@ begin;
 do $test$
 declare
   expected_policies constant text[] := array[
+    'availabilities_select_active_tenant',
     'center_memberships_select_self_or_center_admin',
     'centers_select_active_members',
+    'patient_centers_select_tenant_staff',
+    'persons_select_linked_tenant_staff',
     'platform_admins_select_self',
     'professional_center_specialties_select_center_admin',
     'professional_centers_select_admin_or_linked_professional',
@@ -13,8 +16,11 @@ declare
     'users_select_self_or_center_admin'
   ];
   expected_select_tables constant text[] := array[
+    'availabilities',
     'center_memberships',
     'centers',
+    'patient_centers',
+    'persons',
     'platform_admins',
     'professional_center_specialties',
     'professional_centers',
@@ -117,7 +123,7 @@ begin
     from pg_catalog.pg_policies
     where schemaname = 'public'
   ) is distinct from expected_policies then
-    raise exception 'The public RLS policy set differs from the approved eight policies';
+    raise exception 'The public RLS policy set differs from the approved eleven policies';
   end if;
 
   if (

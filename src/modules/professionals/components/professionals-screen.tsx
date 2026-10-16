@@ -466,6 +466,14 @@ export function ProfessionalsScreen({
                         <td className="p-4">{professional.usualAppointmentDurationMinutes} min</td>
                         <td className="p-4">{professional.isActive ? "Activo" : "Inactivo"}</td>
                         <td className="flex flex-wrap gap-2 p-4">
+                          {professional.isActive && (
+                            <Link
+                              href={`/centers/${centerId}/professionals/${professional.id}/availability`}
+                              className="inline-flex min-h-11 items-center rounded-md border px-3 py-2 text-sky-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-700"
+                            >
+                              Disponibilidad
+                            </Link>
+                          )}
                           <button
                             type="button"
                             disabled={
