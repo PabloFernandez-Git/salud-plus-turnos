@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { PageReveal } from "@/components/page-reveal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { ProfessionalsScreen } from "@/modules/professionals/components/professionals-screen";
@@ -51,13 +52,15 @@ export default async function ProfessionalsPage({
     loadFailed = true;
   }
   return (
-    <ProfessionalsScreen
-      centerId={centerId.data}
-      centerName={context.center.name}
-      professionals={professionals}
-      specialties={specialties}
-      associations={associations}
-      loadFailed={loadFailed}
-    />
+    <PageReveal>
+      <ProfessionalsScreen
+        centerId={centerId.data}
+        centerName={context.center.name}
+        professionals={professionals}
+        specialties={specialties}
+        associations={associations}
+        loadFailed={loadFailed}
+      />
+    </PageReveal>
   );
 }

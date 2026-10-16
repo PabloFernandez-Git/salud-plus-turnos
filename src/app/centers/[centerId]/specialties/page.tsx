@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { PageReveal } from "@/components/page-reveal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { SpecialtiesScreen } from "@/modules/specialties/components/specialties-screen";
@@ -41,11 +42,13 @@ export default async function SpecialtiesPage({
   }
 
   return (
-    <SpecialtiesScreen
-      centerId={centerId.data}
-      centerName={context.center.name}
-      loadFailed={loadFailed}
-      specialties={specialties}
-    />
+    <PageReveal>
+      <SpecialtiesScreen
+        centerId={centerId.data}
+        centerName={context.center.name}
+        loadFailed={loadFailed}
+        specialties={specialties}
+      />
+    </PageReveal>
   );
 }

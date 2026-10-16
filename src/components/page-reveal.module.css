@@ -1,0 +1,21 @@
+.reveal {
+  animation: page-reveal-enter 220ms ease-out both;
+}
+
+@keyframes page-reveal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+}

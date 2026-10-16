@@ -45,6 +45,11 @@ describe("SpecialtiesScreen", () => {
   it("shows title, list, empty and failed states", () => {
     const view = show([{ ...specialty, description: "Atención de adultos" }]);
     expect(screen.getByRole("heading", { level: 1, name: "Especialidades" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "Consultá y administrá las especialidades de este centro, y definí cuáles están disponibles para asociar a sus profesionales.",
+      ),
+    ).toHaveClass("mt-2", "max-w-5xl", "text-sm", "leading-6", "text-slate-600");
     expect(screen.getByText("Cardiología")).toBeVisible();
     expect(screen.getByText("Activa")).toBeVisible();
     expect(screen.getByText("Atención de adultos")).toBeVisible();

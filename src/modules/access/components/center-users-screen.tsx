@@ -34,7 +34,7 @@ export function CenterUsersScreen({
               <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
               <h1 className="text-3xl font-bold tracking-tight text-slate-950">Usuarios</h1>
               <p className="text-lg font-medium text-slate-800">{centerName}</p>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
+              <p className="max-w-5xl text-sm leading-6 text-slate-600">
                 Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas
                 memberships sin modificar identidades existentes.
               </p>

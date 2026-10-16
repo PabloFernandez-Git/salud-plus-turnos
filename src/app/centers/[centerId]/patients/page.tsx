@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { PageReveal } from "@/components/page-reveal";
 import { ORIGINAL_SEARCH_HEADER } from "@/lib/original-search-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
@@ -62,14 +63,16 @@ export default async function PatientsPage({
     }
   }
   return (
-    <PatientsScreen
-      centerId={centerId.data}
-      centerName={context.center.name}
-      filters={filters}
-      result={result}
-      loadFailed={loadFailed}
-      detail={detail}
-      detailFailed={detailFailed || Boolean(parsed.patientId && !detail)}
-    />
+    <PageReveal>
+      <PatientsScreen
+        centerId={centerId.data}
+        centerName={context.center.name}
+        filters={filters}
+        result={result}
+        loadFailed={loadFailed}
+        detail={detail}
+        detailFailed={detailFailed || Boolean(parsed.patientId && !detail)}
+      />
+    </PageReveal>
   );
 }
