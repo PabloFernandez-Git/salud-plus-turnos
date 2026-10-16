@@ -61,6 +61,10 @@ describe("ProfessionalsScreen", () => {
     ).toHaveClass("mt-2", "max-w-5xl", "text-sm", "leading-6", "text-slate-600");
     expect(screen.getByText("Ana Pérez")).toBeVisible();
     expect(screen.getByText("M-1")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Disponibilidad" })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/professionals/${professional.id}/availability`,
+    );
     expect(screen.queryByText(/ana@example.com/)).not.toBeInTheDocument();
     view.rerender(
       <ProfessionalsScreen

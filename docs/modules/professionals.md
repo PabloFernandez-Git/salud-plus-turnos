@@ -34,6 +34,12 @@ normalizado y conserva el original. `Person` y `Professional` son entidades sepa
 
 La duración habitual es un default operativo y no obliga a que todos los turnos tengan esa duración.
 
+TASK-008 agrega una pantalla de disponibilidad por `ProfessionalCenter` activo. ADMIN y RECEPTION
+pueden cambiar allí la duración habitual mediante una RPC limitada a ese campo; Profesionales
+conserva su edición ADMIN sobre la misma fila y el mismo `updated_at` monotónico. La disponibilidad
+separada por centro admite varias franjas semanales activas no solapadas por día. Al reactivar un
+vínculo, sus franjas que seguían activas vuelven a ser operativas y pueden revisarse en la pantalla.
+
 Desactivar en un centro no afecta otros centros y preserva historia.
 
 ## Administración tenant (TASK-006)

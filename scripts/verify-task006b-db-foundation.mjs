@@ -1731,6 +1731,7 @@ try {
   }
 
   if (control) {
+    await control.query("rollback").catch((error) => cleanupErrors.push(error));
     try {
       await cleanup(control);
     } catch (error) {

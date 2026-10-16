@@ -170,7 +170,7 @@ test("migration failure reports only stage and sanitized diagnostics", async () 
 test("migration parser accepts the 19-version CLI table and human-observed final rows", () => {
   const versions = readdirSync("supabase/migrations")
     .map((file) => file.match(/^(\d{14})_.*\.sql$/)?.[1])
-    .filter(Boolean)
+    .filter((version) => version && version <= "20261013200000")
     .sort();
   // The final two rows are verbatim from the human DEV evidence. Earlier versions
   // come from the checked-in migration filenames; the wrapper exercises CLI noise.
@@ -229,7 +229,7 @@ ${versions
 test("final DEV gates parse strict parity, schema and exact baseline evidence", () => {
   const versions = readdirSync("supabase/migrations")
     .map((file) => file.match(/^(\d{14})_.*\.sql$/)?.[1])
-    .filter(Boolean)
+    .filter((version) => version && version <= "20261013200000")
     .sort();
   const listing = versions.map((version) => `  ${version} | ${version} | 2026-10-14`).join("\n");
   assert.deepEqual(parseMigrationParity(listing, versions), { local: 19, remote: 19, exact: true });
