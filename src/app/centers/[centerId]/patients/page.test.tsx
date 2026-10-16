@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { headers } from "next/headers";
 import { ORIGINAL_SEARCH_HEADER } from "@/lib/original-search-header";
+import { PageReveal } from "@/components/page-reveal";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { listPatientCenters } from "@/modules/patients/server/patients";
 import PatientsPage from "./page";
@@ -60,7 +61,8 @@ beforeEach(() => {
 describe("patients route", () => {
   it("requests ADMIN and RECEPTION from the tenant guard", async () => {
     const result = await page();
-    expect(result.props.centerId).toBe(centerId);
+    expect(result.type).toBe(PageReveal);
+    expect(result.props.children.props.centerId).toBe(centerId);
     expect(requireRole).toHaveBeenCalledWith(centerId, ["ADMIN", "RECEPTION"], expect.anything());
     expect(listPatientCenters).toHaveBeenCalledWith(
       centerId,
@@ -105,6 +107,6 @@ describe("patients route", () => {
     await expect(page()).rejects.toThrow("NOT_FOUND");
     vi.mocked(listPatientCenters).mockRejectedValueOnce(new Error("transport"));
     const result = await page();
-    expect(result.props.loadFailed).toBe(true);
+    expect(result.props.children.props.loadFailed).toBe(true);
   });
 });

@@ -1,8 +1,8 @@
-.enter {
-  animation: patients-screen-enter 220ms ease-out both;
+.reveal {
+  animation: page-reveal-enter 220ms ease-out both;
 }
 
-@keyframes patients-screen-enter {
+@keyframes page-reveal-enter {
   from {
     opacity: 0;
     transform: translateY(3px);
@@ -15,7 +15,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .enter {
+  .reveal {
     animation: none;
   }
 }

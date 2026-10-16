@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
+import { PageReveal } from "@/components/page-reveal";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CenterUsersScreen } from "@/modules/access/components/center-users-screen";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
@@ -58,14 +59,16 @@ export default async function CenterUsersPage({
   }
 
   return (
-    <CenterUsersScreen
-      actorUserId={context.user.id}
-      centerId={context.center.id}
-      centerName={context.center.name}
-      loadFailed={loadFailed}
-      manageableProfessionalCenters={manageableProfessionalCenters}
-      professionalCenters={professionalCenters}
-      users={users}
-    />
+    <PageReveal>
+      <CenterUsersScreen
+        actorUserId={context.user.id}
+        centerId={context.center.id}
+        centerName={context.center.name}
+        loadFailed={loadFailed}
+        manageableProfessionalCenters={manageableProfessionalCenters}
+        professionalCenters={professionalCenters}
+        users={users}
+      />
+    </PageReveal>
   );
 }

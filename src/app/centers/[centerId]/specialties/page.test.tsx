@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { PageReveal } from "@/components/page-reveal";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { listSpecialties } from "@/modules/specialties/server/specialties";
 import SpecialtiesPage from "./page";
@@ -32,7 +33,8 @@ describe("Specialties route authorization", () => {
       center: { id: centerId, name: "Centro Salud" },
     } as never);
     const result = await page();
-    expect(result.props.centerId).toBe(centerId);
+    expect(result.type).toBe(PageReveal);
+    expect(result.props.children.props.centerId).toBe(centerId);
     expect(requireRole).toHaveBeenCalledWith(centerId, ["ADMIN"], expect.anything());
     expect(listSpecialties).toHaveBeenCalledWith(centerId, expect.anything());
   });

@@ -3,7 +3,6 @@ import { patientSearchUrl, type PatientFilters } from "../search/patient-search-
 import type { PatientPage } from "../server/patients";
 import type { PatientDetail } from "../server/patient-management";
 import { PatientWorkspace } from "./patient-workspace";
-import styles from "./patients-screen.module.css";
 
 export function formatPatientBirthDate(value: string): string {
   const [year, month, day] = value.split("-");
@@ -49,7 +48,7 @@ export function PatientsScreen({
         : "No hay pacientes activos";
 
   return (
-    <main className={`${styles.enter} min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8`}>
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-[1400px] space-y-6">
         <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">

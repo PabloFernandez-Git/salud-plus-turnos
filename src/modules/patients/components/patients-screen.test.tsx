@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }));
 import type { PatientPage } from "../server/patients";
 import { formatPatientBirthDate, PatientsScreen } from "./patients-screen";
-import styles from "./patients-screen.module.css";
 
 const centerId = "11111111-1111-4111-8111-111111111111";
 const row = {
@@ -31,13 +30,6 @@ const filters = { query: "Ana", state: "ALL" as const, page: 2 };
 afterEach(cleanup);
 
 describe("patients presentation", () => {
-  it("marks only the Patients screen for its subtle entrance", () => {
-    render(
-      <PatientsScreen centerId={centerId} centerName="Centro" filters={filters} result={result} />,
-    );
-    expect(screen.getByRole("main")).toHaveClass(styles.enter);
-  });
-
   it("formats civil dates without timezone conversion", () => {
     expect(formatPatientBirthDate("2000-01-02")).toBe("02/01/2000");
   });
