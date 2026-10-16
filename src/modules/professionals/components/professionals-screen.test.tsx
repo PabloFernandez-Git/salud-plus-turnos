@@ -54,6 +54,11 @@ describe("ProfessionalsScreen", () => {
   it("shows minimal list, empty, error and ADMIN navigation", () => {
     const view = show();
     expect(screen.getByRole("heading", { level: 1, name: "Profesionales" })).toBeVisible();
+    expect(
+      screen.getByText(
+        "Consultá y administrá los profesionales vinculados a este centro, sus datos y las especialidades asociadas.",
+      ),
+    ).toHaveClass("mt-2", "max-w-3xl", "text-sm", "leading-6", "text-slate-600");
     expect(screen.getByText("Ana Pérez")).toBeVisible();
     expect(screen.getByText("M-1")).toBeVisible();
     expect(screen.queryByText(/ana@example.com/)).not.toBeInTheDocument();
