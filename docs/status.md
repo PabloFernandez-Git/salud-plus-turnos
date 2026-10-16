@@ -1,6 +1,6 @@
 # Estado actual
 
-**Tarea activa:** TASK-008 — Availability / Disponibilidad de profesionales. `IMPLEMENTATION REVIEW PASS — PR READY`; TASK008-IR-01 y TASK008-IR-02 `CLOSED`. Rama `task/008-availability` desde `6e5e4f46fe7871966557ee1822ac08e2575ac22b`. Contrato, plan, reviews y evidencia en `.harness/tasks/active/TASK-008/`. Migration `20261016160000_add_availability_foundation.sql` aplicada sólo a DEV; PROD fuera de alcance. PR aún no abierto. El estado de TASK-007 descrito debajo es histórico.
+**Tarea activa:** TASK-008 — Availability / Disponibilidad de profesionales. `PR OPEN — CI PASS — READY FOR FINAL MERGE REVIEW`; TASK008-IR-01 y TASK008-IR-02 `CLOSED`. PR #11 desde `task/008-availability` hacia `main`; el primer run de CI del PR pasó. Contrato, plan, reviews y evidencia en `.harness/tasks/active/TASK-008/`. Migration `20261016160000_add_availability_foundation.sql` aplicada sólo a DEV; PROD fuera de alcance. Sin merge. El estado de TASK-007 descrito debajo es histórico.
 
 ## TASK-008 — implementación y verificación (2026-10-16)
 
