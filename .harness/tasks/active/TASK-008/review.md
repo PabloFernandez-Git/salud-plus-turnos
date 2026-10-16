@@ -272,3 +272,25 @@ Los siguientes 183 paths son los avisados; todos son diferencias de fin de líne
 - `src/proxy.ts`
 - `vitest.config.ts`
 - `vitest.provisioning-integration.config.ts`
+
+---
+
+# TASK008-IR-01 Re-review — 2026-10-16
+
+**Base/head:** `490dfae47f0dd0fb3be798ae3ef6f42bddc33cca` → `817a181c8792a4168f0e6a0ad3613fea976ec8a4`, rama `task/008-availability`; `HEAD == origin/task/008-availability`. El delta contiene exactamente `implementation-report.md`, `review.md`, `scripts/task008-ir01-professional-list.regression.mjs` y `supabase/tests/task-006b-foundation.sql`. No hay cambios de migration, RPC/RLS runtime, aplicación o DEV. Se revisaron esos cuatro archivos, el gate histórico anterior y el review original. Una comparación de prefijo confirmó que el plan review, el implementation review original y el finding IR-01 permanecen íntegros.
+
+## Evidencia focalizada
+
+- **Excepción exacta:** el gate histórico ahora consulta `pg_catalog.pg_proc` unido a `pg_catalog.pg_namespace`, exige `nspname = 'public'` y el patrón original `proname like '%list%professional%'`, y excluye sólo `list_function.oid = 'public.staff_list_availability_professional_centers(uuid)'::regprocedure`. Un overload `(uuid,text)` tiene otro OID y conserva el error histórico `TASK-006B exposed an unapproved global Professional listing routine`. El resto de las aserciones SQL no cambió; no se amplió la allowlist ni se ocultó drift de otra firma.
+- **Regresión real:** el script extrae el bloque `IF EXISTS` del archivo SQL histórico y lo ejecuta contra PostgreSQL local efímero; no reimplementa el predicado en JavaScript. Crea `(uuid)` y `(uuid,text)` dentro de una transacción. El subtest de `(uuid)` pasa y el de `(uuid,text)` recibe exactamente `P0001` y el mensaje histórico. Hace ROLLBACK, comprueba que ambas firmas desaparecieron, elimina/audita el contenedor propio. La repetición con Docker operativo dio **3/3 PASS**; `docker ps --all --filter name=task008-ir01-` no mostró residuos. El primer intento en sandbox fue denegado por Docker; un intento elevado recibió 500 al crear el contenedor; ninguno llegó a ejecutar SQL. Esos fallos permitieron detectar IR-02.
+- **Tooling y full verification:** `pnpm bootstrap` PASS; `pnpm check` PASS con 492 Vitest (63 archivos) y tooling histórico **11/11 PASS**; `pnpm lint` PASS; `pnpm typecheck` PASS; `git diff --check` del delta y working tree PASS. Build `next build --webpack` en copia aislada PASS, incluidas ambas rutas de Availability. No se necesitó ni tocó DEV.
+- **Formato:** Prettier focalizado de `scripts/task008-ir01-professional-list.regression.mjs` PASS. SQL no tiene parser Prettier configurado y los Markdown no integran el glob de `format:check`. El check global sigue con 183 avisos de CRLF locales; ninguno corresponde al test nuevo. No se reformatearon archivos ajenos.
+- **Documentación:** `implementation-report.md` agrega causa, corrección, regresión y resultados sin sustituir la evidencia previa. `review.md` conserva el review histórico y añade esta sección.
+
+## Estado de findings y veredicto
+
+**TASK008-IR-01 CLOSED.** La corrección por OID exacto cierra el bypass original y el test de overload lo demuestra con SQL ejecutado.
+
+**TASK008-IR-02 — MEDIUM — `scripts/task008-ir01-professional-list.regression.mjs:41`.** El password aleatorio de PostgreSQL se interpola en el argumento `--env POSTGRES_PASSWORD=...` de `docker run`. **Escenario reproducido:** cuando Docker rechazó `docker run`, `execFile` incluyó el comando completo en su error y `node:test` imprimió el password temporal en la salida sin redacción. **Impacto:** un fallo del runner puede dejar una credencial de prueba en logs; si el contenedor llegara a quedar activo tras un fallo parcial, esa credencial permitiría acceso al PostgreSQL temporal publicado en localhost. Esto incumple la exigencia explícita de que la regresión no imprima secretos en failure paths. **Corrección mínima recomendada:** entregar el valor mediante el entorno del proceso hijo con `--env POSTGRES_PASSWORD` sin valor en argv, y sanitizar cualquier error del subprocess antes de pasarlo a `node:test`; comprobar el camino de fallo con un test que no exponga credenciales. Los intentos de este review no dejaron contenedores. No se corrigió código en esta conversación.
+
+**Veredicto:** el único finding original está cerrado, pero el nuevo IR-02 MEDIUM impide aprobar el delta. `TASK-008 IMPLEMENTATION REVIEW CHANGES_REQUESTED`. No hubo stage, commit, push ni PR. `next-env.d.ts` permanece `M`, unstaged e intacto con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`; TASK-009–012 permanecen ajenos. El único cambio de esta conversación es esta sección de `review.md`.
