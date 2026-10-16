@@ -255,10 +255,13 @@ begin
 
   if exists (
     select 1
-    from information_schema.routines
-    where routine_schema = 'public'
-      and routine_name like '%list%professional%'
-      and routine_name <> 'staff_list_availability_professional_centers'
+    from pg_catalog.pg_proc as list_function
+    join pg_catalog.pg_namespace as function_namespace
+      on function_namespace.oid = list_function.pronamespace
+    where function_namespace.nspname = 'public'
+      and list_function.proname like '%list%professional%'
+      and list_function.oid <>
+        'public.staff_list_availability_professional_centers(uuid)'::regprocedure
   ) then
     raise exception 'TASK-006B exposed an unapproved global Professional listing routine';
   end if;

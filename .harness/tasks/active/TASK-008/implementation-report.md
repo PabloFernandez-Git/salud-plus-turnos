@@ -28,3 +28,10 @@
 
 - La advertencia habitual no reemplaza reglas de Agenda/slots ni resuelve DST o turnos fuera de horario; TASK-009 deberá definir esos comportamientos. No se reactiva ni lista historia de franjas inactivas.
 - Review independiente de implementación pendiente. No cerrar/archivar TASK-008 hasta ese veredicto. No abrir PR en esta fase.
+
+## Remediación TASK008-IR-01 — 2026-10-16
+
+- **Causa:** el gate histórico `task-006b-foundation.sql` exceptuaba la RPC de Availability por `routine_name`; cualquier overload con ese nombre también quedaba exceptuado.
+- **Corrección:** la consulta conserva el patrón original de detección de listados públicos, pero lee `pg_catalog.pg_proc` unido a `pg_catalog.pg_namespace` y exceptúa sólo el OID que resuelve `'public.staff_list_availability_professional_centers(uuid)'::regprocedure`. Una firma distinta, incluido `(uuid,text)`, vuelve a hacer fallar el gate. No se modificaron migration, runtime ni DEV.
+- **Regresión:** `scripts/task008-ir01-professional-list.regression.mjs` extrae el bloque real del gate y lo ejecuta en PostgreSQL local efímero. La firma `(uuid)` pasa; al crear el overload `(uuid,text)` el mismo bloque devuelve la excepción esperada. Ambas funciones se crean dentro de una transacción con `ROLLBACK`; el test verifica su ausencia y elimina/audita el contenedor propio.
+- **Verificación:** regresión local 3/3 y tooling histórico 11/11 PASS. `pnpm bootstrap`, `pnpm check` (492 Vitest + 11 `node:test`), `pnpm lint`, `pnpm typecheck`, `git diff --check` y build webpack de producción en copia aislada PASS. `pnpm format:check` mantiene los 183 avisos históricos de CRLF; Prettier focalizado del test nuevo PASS, sin reformateo masivo. `next-env.d.ts` sigue unstaged con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`. El `review.md` del reviewer se preservó íntegro para el re-review.
