@@ -516,34 +516,38 @@ export function AddCenterUserPanel({
           No pudimos preparar una intención segura. No se habilitó el alta.
         </p>
       ) : !resolved ? (
-        <form className="max-w-xl space-y-3" onSubmit={resolveEmail}>
+        <form className="max-w-xl" onSubmit={resolveEmail}>
           <input name="operationId" type="hidden" value={operationId} />
           <input name="centerId" type="hidden" value={centerId} />
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-800">Email</span>
-            <input
-              aria-describedby={
-                resolution.fieldErrors?.email ? "center-user-email-error" : undefined
-              }
-              aria-invalid={Boolean(resolution.fieldErrors?.email)}
-              autoComplete="email"
-              className="min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
-              name="email"
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              type="email"
-              value={email}
-            />
-          </label>
-          <FieldError errors={resolution.fieldErrors?.email} id="center-user-email-error" />
-          <ActionMessage state={resolution} />
-          <button
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isPending}
-            type="submit"
-          >
-            {isPending ? "Verificando…" : "Continuar"}
-          </button>
+          <div className="space-y-3">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-800">Email</span>
+              <input
+                aria-describedby={
+                  resolution.fieldErrors?.email ? "center-user-email-error" : undefined
+                }
+                aria-invalid={Boolean(resolution.fieldErrors?.email)}
+                autoComplete="email"
+                className="min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+                name="email"
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                type="email"
+                value={email}
+              />
+            </label>
+            <FieldError errors={resolution.fieldErrors?.email} id="center-user-email-error" />
+            <ActionMessage state={resolution} />
+          </div>
+          <div className="mt-4">
+            <button
+              className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isPending}
+              type="submit"
+            >
+              {isPending ? "Verificando…" : "Continuar"}
+            </button>
+          </div>
         </form>
       ) : resolution.membershipExists ? (
         <div className="max-w-2xl space-y-4">
