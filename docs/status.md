@@ -1,8 +1,8 @@
 # Estado actual
 
-**Tarea activa:** TASK-008 — Availability / Disponibilidad de profesionales. `PR OPEN — CI PASS — READY FOR FINAL MERGE REVIEW`; TASK008-IR-01 y TASK008-IR-02 `CLOSED`. PR #11 desde `task/008-availability` hacia `main`; el primer run de CI del PR pasó. Contrato, plan, reviews y evidencia en `.harness/tasks/active/TASK-008/`. Migration `20261016160000_add_availability_foundation.sql` aplicada sólo a DEV; PROD fuera de alcance. Sin merge. El estado de TASK-007 descrito debajo es histórico.
+**Última tarea cerrada:** TASK-008 — Availability / Disponibilidad de profesionales. `MERGED / ARCHIVED`; TASK008-IR-01 y TASK008-IR-02 `CLOSED`. PR #11 integrado en `main` mediante squash merge `c2857308ebf144fd69020636f8021ece4eb258cd`, con CI y final merge review PASS. Contrato, plan, reviews, evidencia y retrospectiva en `.harness/tasks/archive/TASK-008/`. Migration `20261016160000_add_availability_foundation.sql` aplicada sólo a DEV; PROD fuera de alcance. El estado de TASK-007 descrito debajo es histórico.
 
-## TASK-008 — implementación y verificación (2026-10-16)
+## TASK-008 — cierre, implementación y verificación (2026-10-16)
 
 - Gate A pasó tras preflight read-only: DEV `salud-plus-turnos-dev` (`ehllxymqyzrofydrvtzo`, `sa-east-1`), 19/19 migrations iniciales, dry-run limpio, health y DB lint. El catálogo vivo de Availability, ProfessionalCenter, Center, membership y appointments coincidió con migrations; no apareció policy, grant, RPC ni constraint inesperado. El único `centers.timezone` existente fue `America/Argentina/Buenos_Aires`, válido. El diff de shadow incluyó ruido de privilegios default del entorno y funciones reemitidas con cuerpo idéntico, sin drift material del contrato.
 - Migration incremental aditiva aplicada a DEV: SELECT activo tenant bajo RLS; contexto mínimo de profesionales; RPCs estrechas para alta, edición, retiro lógico y duración; advertencia booleana read-only sobre turnos futuros; trigger CAS monotónico de Availability. No se alteró el esquema ni los datos de appointments. Tipos `database.types.ts` regenerados desde DEV.
