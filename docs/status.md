@@ -1,5 +1,7 @@
 # Estado actual
 
+**Tarea activa:** TASK-009 — Appointments / Turnos, fase `IMPLEMENTATION / GATE A1`. Rama `task/009-appointments` desde `f82ace0f6f2514441ea95c7c1fa39ec5591517f4`. Decisiones de producto y Gates A–E en `.harness/tasks/active/TASK-009/brief.md` y `plan.md`. El review original pidió cambios por R1 HIGH y R2 MEDIUM; el re-review independiente cerró ambos y concluyó `TASK-009 PLAN REVIEW PASS — READY FOR IMPLEMENTATION`. Gate A1 comprende preflight DEV de sólo lectura, validación condicionante de tzdata, migration local, pruebas y review SQL/security; no autoriza aplicar la migration a DEV. TASK-009 entrega listado/alta/detalle/acciones; Agenda visual y React Big Calendar quedan en TASK-010. `next-env.d.ts` ajeno permanece M unstaged con SHA-256 `0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC`.
+
 **Última tarea cerrada:** TASK-008 — Availability / Disponibilidad de profesionales. `MERGED / ARCHIVED`; TASK008-IR-01 y TASK008-IR-02 `CLOSED`. PR #11 integrado en `main` mediante squash merge `c2857308ebf144fd69020636f8021ece4eb258cd`, con CI y final merge review PASS. Contrato, plan, reviews, evidencia y retrospectiva en `.harness/tasks/archive/TASK-008/`. Migration `20261016160000_add_availability_foundation.sql` aplicada sólo a DEV; PROD fuera de alcance. El estado de TASK-007 descrito debajo es histórico.
 
 ## TASK-008 — cierre, implementación y verificación (2026-10-16)
