@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { PasswordInput } from "@/components/password-input";
 import { loginAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
 import { SubmitButton } from "./submit-button";
@@ -47,14 +48,12 @@ export function LoginForm({ callbackError = false }: { callbackError?: boolean }
         <label className="text-sm font-medium text-slate-800" htmlFor="password">
           Contraseña
         </label>
-        <input
+        <PasswordInput
           aria-describedby={state.fieldErrors?.password ? "password-error" : undefined}
           aria-invalid={Boolean(state.fieldErrors?.password)}
           autoComplete="current-password"
-          className="min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
           id="password"
           name="password"
-          type="password"
         />
         {state.fieldErrors?.password ? (
           <p className="text-sm text-red-700" id="password-error">

@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PasswordInput } from "@/components/password-input";
 import {
   createPlatformCenterAction,
   resolvePlatformIdentityAction,
@@ -348,7 +349,7 @@ function CenterDetailsForm({
             </label>
             <label className="space-y-2 sm:col-span-2">
               <span className="text-sm font-medium text-slate-800">Contraseña inicial</span>
-              <input
+              <PasswordInput
                 aria-describedby={
                   state.fieldErrors?.adminInitialPassword ? "admin-password-error" : undefined
                 }
@@ -360,7 +361,6 @@ function CenterDetailsForm({
                 onChange={(event) => updateValue("adminInitialPassword", event.target.value)}
                 ref={passwordInput}
                 required={!locksIntent || Boolean(state.fieldErrors?.adminInitialPassword)}
-                type="password"
                 value={values.adminInitialPassword}
               />
               <p className="text-xs text-slate-500">

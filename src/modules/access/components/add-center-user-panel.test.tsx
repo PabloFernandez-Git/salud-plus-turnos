@@ -256,6 +256,10 @@ describe("AddCenterUserPanel", () => {
     await openAndResolve("new@example.test");
     const form = await completeNewIdentity(password);
     const passwordInput = screen.getByLabelText(/Contraseña inicial/);
+    expect(passwordInput).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    expect(passwordInput).toHaveValue(password);
 
     fireEvent.submit(form);
 

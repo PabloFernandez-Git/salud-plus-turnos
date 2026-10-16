@@ -79,6 +79,10 @@ describe("CreateCenterPanel password lifecycle", () => {
     const passwordInput = document.querySelector<HTMLInputElement>(
       'input[name="adminInitialPassword"]',
     )!;
+    expect(passwordInput).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    expect(passwordInput).toHaveValue(password);
 
     fireEvent.submit(form);
 

@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 
+import { PasswordInput } from "@/components/password-input";
 import {
   provisionCenterUserAction,
   resolveCenterIdentityAction,
@@ -285,7 +286,7 @@ function UserDetailsForm({
           </label>
           <label className="space-y-2 sm:col-span-2">
             <span className="text-sm font-medium text-slate-800">Contraseña inicial</span>
-            <input
+            <PasswordInput
               aria-label="Contraseña inicial"
               aria-describedby={
                 state.fieldErrors?.initialPassword ? "center-user-password-error" : undefined
@@ -298,7 +299,6 @@ function UserDetailsForm({
               onChange={(event) => updateValue("initialPassword", event.target.value)}
               ref={passwordInput}
               required={!locksIntent || Boolean(state.fieldErrors?.initialPassword)}
-              type="password"
               value={values.initialPassword}
             />
             <p className="text-xs text-slate-500">
