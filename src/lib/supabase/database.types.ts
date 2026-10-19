@@ -927,6 +927,22 @@ export type Database = {
           usual_appointment_duration_minutes: number;
         }[];
       };
+      staff_create_appointment: {
+        Args: {
+          p_administrative_note?: string;
+          p_center_id: string;
+          p_local_date: string;
+          p_local_start_time: string;
+          p_patient_center_id: string;
+          p_professional_center_id: string;
+          p_specialty_id: string;
+        };
+        Returns: {
+          appointment_id: string;
+          status: Database["public"]["Enums"]["appointment_status"];
+          updated_at: string;
+        }[];
+      };
       staff_create_availability: {
         Args: {
           p_center_id: string;
@@ -1093,6 +1109,26 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      staff_reschedule_appointment: {
+        Args: {
+          p_appointment_id: string;
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_local_date: string;
+          p_local_start_time: string;
+          p_professional_center_id: string;
+          p_specialty_id: string;
+        };
+        Returns: {
+          appointment_id: string;
+          ends_at: string;
+          professional_center_id: string;
+          specialty_id: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["appointment_status"];
+          updated_at: string;
+        }[];
+      };
       staff_resolve_patient_identity: {
         Args: {
           p_birth_date: string;
@@ -1143,6 +1179,31 @@ export type Database = {
           patient_center_id: string;
           person_id: string;
           phone: string;
+          updated_at: string;
+        }[];
+      };
+      staff_transition_appointment_status: {
+        Args: {
+          p_appointment_id: string;
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_requested_status: string;
+        };
+        Returns: {
+          appointment_id: string;
+          status: Database["public"]["Enums"]["appointment_status"];
+          updated_at: string;
+        }[];
+      };
+      staff_update_appointment_note: {
+        Args: {
+          p_administrative_note: string;
+          p_appointment_id: string;
+          p_center_id: string;
+          p_expected_updated_at: string;
+        };
+        Returns: {
+          appointment_id: string;
           updated_at: string;
         }[];
       };
