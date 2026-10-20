@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { Database } from "@/lib/supabase/database.types";
 import {
   appointmentIdSchema,
+  localDateSchema,
+  localStartTimeSchema,
   appointmentStatusSchema,
   appointmentTimestampSchema,
 } from "../schemas/appointment-input";
@@ -53,7 +55,14 @@ const professionalChoiceSchema = z.object({
   professional_last_name: z.string(),
   usual_appointment_duration_minutes: z.number().int(),
 });
-const slotSchema = z.object({ starts_at: timestamp, ends_at: timestamp });
+const slotSchema = z.object({
+  starts_at: timestamp,
+  ends_at: timestamp,
+  local_date: localDateSchema,
+  local_start_time: localStartTimeSchema,
+  local_end_date: localDateSchema,
+  local_end_time: localStartTimeSchema,
+});
 const createdSchema = z.object({
   appointment_id: id,
   status: z.literal("PENDING"),
@@ -80,6 +89,11 @@ function rows<T>(value: unknown, schema: z.ZodType<T>): T[] {
   const parsed = z.array(schema).safeParse(value);
   if (!parsed.success) throw new AppointmentRpcContractError();
   return parsed.data;
+}
+function optionalDetail<T>(value: unknown, schema: z.ZodType<T>): T | null {
+  const parsed = rows(value, schema);
+  if (parsed.length > 1) throw new AppointmentRpcContractError();
+  return parsed[0] ?? null;
 }
 function one<T>(value: unknown, schema: z.ZodType<T>): T {
   const parsed = z.array(schema).safeParse(value);
@@ -141,7 +155,7 @@ export async function getStaffAppointment(
 ) {
   const { data, error } = await client.rpc("staff_get_appointment", args);
   if (error) throw error;
-  return rows(data, staffAppointmentSchema)[0] ?? null;
+  return optionalDetail(data, staffAppointmentSchema);
 }
 export async function listProfessionalAppointments(
   client: AppointmentClient,
@@ -157,7 +171,7 @@ export async function getProfessionalAppointment(
 ) {
   const { data, error } = await client.rpc("professional_get_own_appointment", args);
   if (error) throw error;
-  return rows(data, professionalAppointmentSchema)[0] ?? null;
+  return optionalDetail(data, professionalAppointmentSchema);
 }
 export async function createAppointment(
   client: AppointmentClient,

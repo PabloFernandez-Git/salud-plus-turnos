@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parsePatientSearchParams,
+  patientRegistrationDestination,
   patientSearchUrl,
   type PatientSearchParams,
 } from "./patient-search-params";
@@ -27,6 +28,46 @@ function parseOriginal(originalSearch: string) {
 }
 
 describe("patient search URL", () => {
+  it("returns only to the same Center appointment form and discards external redirects", () => {
+    const patient = "22222222-2222-4222-8222-222222222222";
+    const otherCenter = "33333333-3333-4333-8333-333333333333";
+    expect(parseOriginal("?from=appointment")).toMatchObject({
+      returnToAppointments: true,
+      canonicalUrl: `${base}?from=appointment`,
+      needsRedirect: false,
+    });
+    expect(
+      patientRegistrationDestination(id, patient, { query: "", state: "ACTIVE", page: 1 }, true),
+    ).toBe(`/centers/${id}/appointments/new?patientCenterId=${patient}`);
+    expect(
+      parseOriginal(
+        `?from=appointment&returnTo=https%3A%2F%2Fevil.test%2Fcenters%2F${otherCenter}`,
+      ),
+    ).toMatchObject({
+      canonicalUrl: `${base}?from=appointment`,
+      needsRedirect: true,
+    });
+    expect(parseOriginal(`?from=/centers/${otherCenter}/appointments/new`)).toMatchObject({
+      canonicalUrl: base,
+      needsRedirect: true,
+    });
+    expect(
+      patientRegistrationDestination(id, patient, { query: "", state: "ACTIVE", page: 1 }, false),
+    ).toBe(`${base}?patient=${patient}`);
+  });
+  it("propagates only the canonical boolean intent in internal URLs", () => {
+    const filters = { query: "Ana", state: "ALL" as const, page: 2 };
+    expect(patientSearchUrl(id, filters, undefined, true)).toBe(
+      `${base}?q=Ana&state=ALL&page=2&from=appointment`,
+    );
+    expect(
+      parseOriginal(`${base}?q=Ana&state=ALL&page=2&from=appointment`.slice(base.length))
+        .returnToAppointments,
+    ).toBe(true);
+    expect(parseOriginal(`?from=https%3A%2F%2Fevil.test`)).not.toHaveProperty(
+      "returnToAppointments",
+    );
+  });
   it.each([
     ["?q=Ana", "Ana", `${base}?q=Ana`, false],
     ["?q=%41na", "Ana", `${base}?q=Ana`, true],

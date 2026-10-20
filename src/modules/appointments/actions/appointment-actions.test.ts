@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
+import { getAvailabilityForProfessionalCenter } from "@/modules/availability/server/availability";
 import {
   createAppointmentAction,
+  getAppointmentAvailabilityAction,
   rescheduleAppointmentAction,
   updateAppointmentNoteAction,
 } from "./appointment-actions";
@@ -12,6 +14,9 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/access/server/authorization")>();
   return { ...original, requireRole: vi.fn() };
 });
+vi.mock("@/modules/availability/server/availability", () => ({
+  getAvailabilityForProfessionalCenter: vi.fn(),
+}));
 const centerId = "11111111-1111-4111-8111-111111111111";
 const appointmentId = "22222222-2222-4222-8222-222222222222";
 const patientCenterId = "33333333-3333-4333-8333-333333333333";
@@ -34,6 +39,29 @@ beforeEach(() => {
 });
 
 describe("appointment mutation actions", () => {
+  it("limits the Availability classification read to staff in the same Center", async () => {
+    vi.mocked(getAvailabilityForProfessionalCenter).mockResolvedValue({
+      intervals: [{ id: "a", weekday: 2, startTime: "09:00", endTime: "10:00", updatedAt: token }],
+    } as never);
+    expect(
+      await getAppointmentAvailabilityAction({ centerId, professionalCenterId }),
+    ).toMatchObject({
+      status: "SUCCESS",
+      data: { intervals: [{ weekday: 2 }] },
+    });
+    expect(requireRole).toHaveBeenCalledWith(centerId, ["ADMIN", "RECEPTION"], expect.anything());
+    expect(getAvailabilityForProfessionalCenter).toHaveBeenCalledWith(
+      centerId,
+      professionalCenterId,
+      expect.anything(),
+    );
+    vi.mocked(requireRole).mockRejectedValueOnce(new AuthorizationError("ROLE_FORBIDDEN"));
+    expect(await getAppointmentAvailabilityAction({ centerId, professionalCenterId })).toEqual({
+      status: "AUTH_ERROR",
+      code: "ACCESS_DENIED",
+    });
+    expect(getAvailabilityForProfessionalCenter).toHaveBeenCalledTimes(1);
+  });
   it("rejects manipulated CREATE before creating a client or calling RPC", async () => {
     expect(await createAppointmentAction({ ...create, status: "ATTENDED" })).toMatchObject({
       status: "VALIDATION_ERROR",

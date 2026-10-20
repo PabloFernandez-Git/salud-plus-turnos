@@ -12,7 +12,11 @@ import {
   type PatientActionResult,
 } from "../actions/patient-actions";
 import type { PatientResolveRow } from "../api/patient-rpc-contracts";
-import { patientSearchUrl, type PatientFilters } from "../search/patient-search-params";
+import {
+  patientRegistrationDestination,
+  patientSearchUrl,
+  type PatientFilters,
+} from "../search/patient-search-params";
 import type { PatientDetail } from "../server/patient-management";
 const formatPatientBirthDate = (value: string) => {
   const [year, month, day] = value.split("-");
@@ -199,10 +203,12 @@ function Registration({
   centerId,
   filters,
   onClose,
+  returnToAppointments,
 }: {
   centerId: string;
   filters: PatientFilters;
   onClose: () => void;
+  returnToAppointments: boolean;
 }) {
   const router = useRouter();
   const [identity, setIdentity] = useState<Identity>(emptyIdentity);
@@ -268,7 +274,14 @@ function Registration({
       typeof data.patient_center_id === "string"
     ) {
       onClose();
-      router.push(patientSearchUrl(centerId, filters, data.patient_center_id));
+      router.push(
+        patientRegistrationDestination(
+          centerId,
+          data.patient_center_id,
+          filters,
+          returnToAppointments,
+        ),
+      );
       router.refresh();
     }
   }
@@ -368,7 +381,14 @@ function Registration({
         });
       } else {
         onClose();
-        router.push(patientSearchUrl(centerId, filters, resolution.patient_center_id));
+        router.push(
+          patientRegistrationDestination(
+            centerId,
+            resolution.patient_center_id,
+            filters,
+            returnToAppointments,
+          ),
+        );
         return;
       }
       acceptResult(result);
@@ -554,6 +574,7 @@ function Administration({
   detailFailed,
   onClose,
   onNotice,
+  returnToAppointments,
 }: {
   centerId: string;
   filters: PatientFilters;
@@ -561,6 +582,7 @@ function Administration({
   detailFailed: boolean;
   onClose: () => void;
   onNotice: (message: string) => void;
+  returnToAppointments: boolean;
 }) {
   const router = useRouter();
   const [feedback, setFeedback] = useState<PatientActionResult | null>(null);
@@ -604,6 +626,16 @@ function Administration({
       result.data && typeof result.data === "object" && "outcome" in result.data
         ? result.data.outcome
         : "";
+    if (
+      returnToAppointments &&
+      (outcome === "REACTIVATED" || outcome === "UNCHANGED") &&
+      !deactivate &&
+      detail &&
+      !detail.isActive
+    ) {
+      router.push(patientRegistrationDestination(centerId, detail.patientCenterId, filters, true));
+      return;
+    }
     onNotice(
       deactivate
         ? outcome === "UNCHANGED"
@@ -885,11 +917,16 @@ function Administration({
           )}
           <a
             className="font-semibold text-sky-700 underline"
-            href={patientSearchUrl(centerId, {
-              query: detail.documentNumber,
-              state: detail.isActive ? "ACTIVE" : "INACTIVE",
-              page: 1,
-            })}
+            href={patientSearchUrl(
+              centerId,
+              {
+                query: detail.documentNumber,
+                state: detail.isActive ? "ACTIVE" : "INACTIVE",
+                page: 1,
+              },
+              undefined,
+              returnToAppointments,
+            )}
           >
             Ver en listado
           </a>
@@ -904,23 +941,25 @@ export function PatientWorkspace({
   filters,
   detail,
   detailFailed,
+  returnToAppointments = false,
 }: {
   centerId: string;
   filters: PatientFilters;
   detail: PatientDetail | null;
   detailFailed: boolean;
+  returnToAppointments?: boolean;
 }) {
   const router = useRouter();
-  const [registerOpen, setRegisterOpen] = useState(false);
+  const selected = detail || detailFailed;
+  const [registerOpen, setRegisterOpen] = useState(returnToAppointments && !selected);
   const [notice, setNotice] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
-  const selected = detail || detailFailed;
   function closeRegister() {
     setRegisterOpen(false);
     requestAnimationFrame(() => trigger.current?.focus());
   }
   function closeDetail() {
-    router.push(patientSearchUrl(centerId, filters));
+    router.push(patientSearchUrl(centerId, filters, undefined, returnToAppointments));
     requestAnimationFrame(() => {
       const link = Array.from(
         document.querySelectorAll<HTMLAnchorElement>("a[href*='patient=']"),
@@ -950,7 +989,12 @@ export function PatientWorkspace({
         </p>
       )}
       {registerOpen && (
-        <Registration centerId={centerId} filters={filters} onClose={closeRegister} />
+        <Registration
+          centerId={centerId}
+          filters={filters}
+          onClose={closeRegister}
+          returnToAppointments={returnToAppointments}
+        />
       )}
       {selected && (
         <Administration
@@ -961,6 +1005,7 @@ export function PatientWorkspace({
           detailFailed={detailFailed}
           onClose={closeDetail}
           onNotice={setNotice}
+          returnToAppointments={returnToAppointments}
         />
       )}
     </>

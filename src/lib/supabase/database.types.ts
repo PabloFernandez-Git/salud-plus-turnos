@@ -1156,6 +1156,10 @@ export type Database = {
         };
         Returns: {
           ends_at: string;
+          local_date: string;
+          local_start_time: string;
+          local_end_date: string;
+          local_end_time: string;
           starts_at: string;
         }[];
       };

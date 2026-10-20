@@ -10,8 +10,10 @@ import {
   changeAppointmentStatus,
   editAppointmentNote,
   getAppointment,
+  getAppointmentSlots,
   listAppointments,
   moveAppointment,
+  reconcileAppointmentCreate,
   searchAppointmentPatients,
 } from "./appointments";
 import type { AppointmentClient } from "./appointment-rpc";
@@ -59,6 +61,155 @@ beforeEach(() => {
 });
 
 describe("appointments server contracts", () => {
+  it("requires PostgreSQL civil coordinates in slot rows", async () => {
+    const request = { centerId, professionalCenterId, specialtyId, localDate: "2026-12-20" };
+    calls.mockResolvedValueOnce({
+      data: [{ starts_at: "2026-12-20T12:00:00+00:00", ends_at: "2026-12-20T12:30:00+00:00" }],
+      error: null,
+    });
+    await expect(getAppointmentSlots(request, client)).rejects.toThrow();
+    calls.mockResolvedValueOnce({
+      data: [
+        {
+          starts_at: "2026-12-20T12:00:00+00:00",
+          ends_at: "2026-12-20T12:30:00+00:00",
+          local_date: "2026-12-20",
+          local_start_time: "09:00",
+          local_end_date: "2026-12-20",
+          local_end_time: "09:30",
+        },
+      ],
+      error: null,
+    });
+    expect(await getAppointmentSlots(request, client)).toEqual([
+      expect.objectContaining({ local_date: "2026-12-20", local_start_time: "09:00" }),
+    ]);
+  });
+  it("reconciles a future CREATE beyond a full first page by exact authorized detail", async () => {
+    const date = "2026-12-20";
+    const startsAt = "2026-12-20T12:00:00+00:00";
+    const endsAt = "2026-12-20T12:30:00+00:00";
+    const firstPage = Array.from({ length: 50 }, (_, index) => ({
+      ...baseRow,
+      appointment_id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, "0")}`,
+      starts_at: "2026-12-20T10:00:00+00:00",
+      professional_center_id: professionalCenterId,
+      professional_first_name: "Dr",
+      professional_last_name: "Sol",
+      has_more: true,
+    }));
+    calls.mockResolvedValueOnce({ data: firstPage, error: null });
+    calls.mockResolvedValueOnce({
+      data: [
+        {
+          ...firstPage[0],
+          appointment_id: appointmentId,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          has_more: false,
+        },
+      ],
+      error: null,
+    });
+    calls.mockResolvedValueOnce({
+      data: [
+        {
+          ...baseRow,
+          appointment_id: appointmentId,
+          starts_at: startsAt,
+          ends_at: endsAt,
+          patient_center_id: patientCenterId,
+          specialty_id: specialtyId,
+          administrative_note: null,
+          professional_center_id: professionalCenterId,
+          professional_first_name: "Dr",
+          professional_last_name: "Sol",
+        },
+      ],
+      error: null,
+    });
+    expect(
+      await reconcileAppointmentCreate(
+        {
+          centerId,
+          patientCenterId,
+          professionalCenterId,
+          specialtyId,
+          localDate: date,
+          startsAt,
+          endsAt,
+        },
+        client,
+      ),
+    ).toEqual({ kind: "MATCH", appointmentId });
+    expect(calls).toHaveBeenCalledWith(
+      "staff_list_appointments",
+      expect.objectContaining({
+        p_from_date: date,
+        p_to_date: date,
+        p_professional_center_id: professionalCenterId,
+        p_limit: 50,
+        p_cursor_id: firstPage.at(-1)!.appointment_id,
+      }),
+    );
+    expect(calls).toHaveBeenCalledWith(
+      "staff_get_appointment",
+      expect.objectContaining({ p_appointment_id: appointmentId }),
+    );
+    expect(calls).not.toHaveBeenCalledWith("staff_create_appointment", expect.anything());
+  });
+  it("keeps a missing or mismatched CREATE result inconclusive", async () => {
+    calls.mockResolvedValueOnce({ data: [], error: null });
+    expect(
+      await reconcileAppointmentCreate(
+        {
+          centerId,
+          patientCenterId,
+          professionalCenterId,
+          specialtyId,
+          localDate: "2026-12-20",
+          startsAt: "2026-12-20T12:00:00+00:00",
+          endsAt: "2026-12-20T12:30:00+00:00",
+        },
+        client,
+      ),
+    ).toEqual({ kind: "INCONCLUSIVE" });
+  });
+  it.each(["ADMIN", "PROFESSIONAL"] as const)(
+    "rejects multiple %s detail rows without exposing either record",
+    async (membershipRole) => {
+      role(membershipRole);
+      const staffFields = {
+        professional_center_id: professionalCenterId,
+        professional_first_name: "Dr",
+        professional_last_name: "Old",
+        patient_center_id: patientCenterId,
+        specialty_id: specialtyId,
+        administrative_note: "private",
+      };
+      const row = membershipRole === "ADMIN" ? { ...baseRow, ...staffFields } : baseRow;
+      calls.mockResolvedValueOnce({
+        data: [row, { ...row, patient_first_name: "Other" }],
+        error: null,
+      });
+      await expect(getAppointment({ centerId, appointmentId }, client)).rejects.toThrow();
+      expect(calls).toHaveBeenCalledWith(
+        membershipRole === "ADMIN" ? "staff_get_appointment" : "professional_get_own_appointment",
+        expect.anything(),
+      );
+    },
+  );
+  it.each(["ADMIN", "PROFESSIONAL"] as const)(
+    "preserves empty %s detail as not found",
+    async (membershipRole) => {
+      role(membershipRole);
+      calls.mockResolvedValueOnce({ data: [], error: null });
+      expect(await getAppointment({ centerId, appointmentId }, client)).toEqual({
+        kind: membershipRole === "ADMIN" ? "STAFF" : "PROFESSIONAL",
+        appointment: null,
+      });
+    },
+  );
   it("routes Professional list and detail only to own RPCs and strips surplus sensitive fields", async () => {
     role("PROFESSIONAL");
     calls.mockResolvedValueOnce({

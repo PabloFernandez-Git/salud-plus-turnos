@@ -111,4 +111,35 @@ describe("patients presentation", () => {
       `/centers/${centerId}/patients?q=Ana&state=ALL&page=2`,
     );
   });
+  it("carries the validated appointment intent through search, clear, pages and detail", () => {
+    HTMLDialogElement.prototype.showModal = function () {
+      this.setAttribute("open", "");
+    };
+    render(
+      <PatientsScreen
+        centerId={centerId}
+        centerName="Centro"
+        filters={filters}
+        result={result}
+        returnToAppointments
+      />,
+    );
+    const suffix = "&from=appointment";
+    expect(screen.getByRole("form").querySelector('[name="from"]')).toHaveAttribute(
+      "value",
+      "appointment",
+    );
+    expect(screen.getByRole("link", { name: "Limpiar" })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/patients?from=appointment`,
+    );
+    expect(screen.getByRole("link", { name: "Siguiente" })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/patients?q=Ana&state=ALL&page=3${suffix}`,
+    );
+    expect(screen.getAllByRole("link", { name: "Administrar" })[0]).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/patients?q=Ana&state=ALL&page=2&patient=${row.patient_center_id}${suffix}`,
+    );
+  });
 });

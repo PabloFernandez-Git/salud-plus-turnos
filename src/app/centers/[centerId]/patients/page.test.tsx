@@ -100,6 +100,11 @@ describe("patients route", () => {
     );
     expect(listPatientCenters).toHaveBeenCalledOnce();
   });
+  it("preserves appointment intent when an empty higher page resets", async () => {
+    await expect(page({ q: "Ana", page: "2", from: "appointment" })).rejects.toThrow(
+      `REDIRECT:/centers/${centerId}/patients?q=Ana&from=appointment`,
+    );
+  });
   it("hides RPC revocation and shows ordinary load errors", async () => {
     vi.mocked(listPatientCenters).mockRejectedValueOnce(
       new AuthorizationError("CENTER_ACCESS_DENIED"),

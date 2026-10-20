@@ -47,6 +47,18 @@ export const appointmentOperationSchemas = {
     page: z.number().int().min(1).max(401).default(1),
   }),
   patientSelection: z.strictObject({ centerId: z.uuid(), patientCenterId: z.uuid() }),
+  reconcileCreate: createAppointmentSchema
+    .pick({
+      centerId: true,
+      patientCenterId: true,
+      professionalCenterId: true,
+      specialtyId: true,
+      localDate: true,
+    })
+    .extend({
+      startsAt: z.iso.datetime({ offset: true }),
+      endsAt: z.iso.datetime({ offset: true }),
+    }),
 } as const;
 export type AppointmentOperation = keyof typeof appointmentOperationSchemas;
 const staffRoles = ["ADMIN", "RECEPTION"] as const;
@@ -155,6 +167,52 @@ export async function addAppointment(input: unknown, client: AppointmentClient) 
     p_local_start_time: value.localStartTime,
     p_administrative_note: value.administrativeNote ?? undefined,
   });
+}
+
+// A bounded, read-only search can identify a matching committed row. Absence is
+// never proof that CREATE rolled back, so this operation never authorizes retry.
+export async function reconcileAppointmentCreate(input: unknown, client: AppointmentClient) {
+  const value = appointmentOperationSchemas.reconcileCreate.parse(input);
+  await requireRole(value.centerId, staffRoles, client);
+  let cursor: { startsAt: string; id: string } | undefined;
+  let matchId: string | null = null;
+  for (let page = 0; page < 3; page++) {
+    const rows = await listStaffAppointments(client, {
+      p_center_id: value.centerId,
+      p_from_date: value.localDate,
+      p_to_date: value.localDate,
+      p_status: undefined,
+      p_professional_center_id: value.professionalCenterId,
+      p_limit: 50,
+      p_cursor_id: cursor?.id,
+      p_cursor_starts_at: cursor?.startsAt,
+    });
+    for (const row of rows) {
+      if (row.starts_at !== value.startsAt) continue;
+      const detail = await getStaffAppointment(client, {
+        p_center_id: value.centerId,
+        p_appointment_id: row.appointment_id,
+      });
+      if (
+        detail &&
+        detail.status !== "CANCELLED" &&
+        detail.patient_center_id === value.patientCenterId &&
+        detail.professional_center_id === value.professionalCenterId &&
+        detail.specialty_id === value.specialtyId &&
+        detail.starts_at === value.startsAt &&
+        detail.ends_at === value.endsAt
+      ) {
+        if (matchId) return { kind: "INCONCLUSIVE" as const };
+        matchId = detail.appointment_id;
+      }
+    }
+    if (!rows[0]?.has_more || rows.length === 0)
+      return matchId
+        ? { kind: "MATCH" as const, appointmentId: matchId }
+        : { kind: "INCONCLUSIVE" as const };
+    cursor = { startsAt: rows.at(-1)!.starts_at, id: rows.at(-1)!.appointment_id };
+  }
+  return { kind: "INCONCLUSIVE" as const };
 }
 export async function moveAppointment(input: unknown, client: AppointmentClient) {
   const value = rescheduleAppointmentSchema.parse(input);
