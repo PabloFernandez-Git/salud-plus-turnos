@@ -635,7 +635,7 @@ async function browserPersistenceSnapshot(page) {
 
 async function expectUsersRouteDenied(page, centerId) {
   await page.goto(`/centers/${centerId}/users`);
-  await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Agregar usuario", exact: true })).toHaveCount(0);
   await expect(page.locator('input[name="operationId"]')).toHaveCount(0);
 }
@@ -858,9 +858,7 @@ test.describe.serial("TASK-005B3C Center user provisioning", () => {
 
     const role = page.getByLabel("Rol", { exact: true });
     await expect(role.locator('option[value="PROFESSIONAL"]')).toHaveAttribute("disabled", "");
-    await expect(
-      page.getByText(/Profesional no está disponible/i).first(),
-    ).toBeVisible();
+    await expect(page.getByText(/Profesional no está disponible/i).first()).toBeVisible();
     await expect(page.getByLabel("Profesional asociado", { exact: true })).toHaveCount(0);
     const addUserPanel = page.locator("#agregar-usuario");
     await expect(addUserPanel.getByText("Olivia Ocupada", { exact: true })).toHaveCount(0);

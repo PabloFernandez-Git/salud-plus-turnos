@@ -1,0 +1,82 @@
+[
+  {
+    "name": "desktop-1440",
+    "accessLayout": {
+      "groupCenter": 720,
+      "dialogCenter": 720,
+      "heights": [
+        44,
+        44
+      ]
+    },
+    "initialLayout": {
+      "groupCenter": 720,
+      "dialogCenter": 720,
+      "heights": [
+        44
+      ]
+    },
+    "altaLayout": {
+      "groupCenter": 720,
+      "dialogCenter": 720,
+      "heights": [
+        44
+      ]
+    },
+    "confirmLayout": {
+      "groupCenter": 719.9921875,
+      "dialogCenter": 720,
+      "heights": [
+        44
+      ]
+    },
+    "discardLayout": {
+      "groupCenter": 720,
+      "dialogCenter": 720,
+      "heights": [
+        44,
+        44
+      ]
+    }
+  },
+  {
+    "name": "mobile-390",
+    "accessLayout": {
+      "groupCenter": 195,
+      "dialogCenter": 195,
+      "heights": [
+        44,
+        44
+      ]
+    },
+    "initialLayout": {
+      "groupCenter": 195,
+      "dialogCenter": 195,
+      "heights": [
+        44
+      ]
+    },
+    "altaLayout": {
+      "groupCenter": 195,
+      "dialogCenter": 195,
+      "heights": [
+        44
+      ]
+    },
+    "confirmLayout": {
+      "groupCenter": 194.9921875,
+      "dialogCenter": 195,
+      "heights": [
+        44
+      ]
+    },
+    "discardLayout": {
+      "groupCenter": 195,
+      "dialogCenter": 195,
+      "heights": [
+        44,
+        44
+      ]
+    }
+  }
+]

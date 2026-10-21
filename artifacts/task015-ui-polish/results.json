@@ -1,0 +1,14 @@
+[
+  {
+    "name": "desktop-1440",
+    "descriptionHeight": 24,
+    "dialogWidth": 448,
+    "overflow": false
+  },
+  {
+    "name": "mobile-390",
+    "descriptionHeight": 72,
+    "dialogWidth": 358,
+    "overflow": false
+  }
+]

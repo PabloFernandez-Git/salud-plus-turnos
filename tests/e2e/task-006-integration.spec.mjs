@@ -261,7 +261,7 @@ test("TASK-006F ADMIN integra Specialty, ProfessionalCenter y asociaciones en DE
     await login(page, "admin-a");
     await page.goto(`/centers/${centerA}`);
     const nav = page.getByRole("navigation", { name: "Administración del centro" });
-    await expect(nav.getByRole("link", { name: "Usuarios" })).toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "Gestión de usuarios" })).toHaveAttribute(
       "href",
       `/centers/${centerA}/users`,
     );
@@ -598,10 +598,11 @@ test("TASK-006F ADMIN integra Specialty, ProfessionalCenter y asociaciones en DE
     await page.getByRole("link", { name: "Ir a Usuarios" }).click();
     await expect(page).toHaveURL(new RegExp(`/centers/${centerA}/users`));
     const membershipRow = page.getByRole("row", { name: /Pablo Integración/ });
-    await membershipRow.getByRole("button", { name: "Administrar" }).click();
-    await membershipRow.getByLabel("Estado del acceso").selectOption("inactive");
-    await membershipRow.getByRole("button", { name: "Revisar cambios" }).click();
-    await membershipRow.getByRole("button", { name: "Confirmar cambios" }).click();
+    await membershipRow.getByRole("button", { name: "Administrar acceso" }).click();
+    const accessDialog = page.getByRole("dialog", { name: "Administrar acceso" });
+    await accessDialog.getByLabel("Estado del acceso").selectOption("inactive");
+    await accessDialog.getByRole("button", { name: "Revisar cambios" }).click();
+    await accessDialog.getByRole("button", { name: "Confirmar cambios" }).click();
     await expect
       .poll(
         async () =>

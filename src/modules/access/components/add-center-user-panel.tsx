@@ -466,9 +466,8 @@ export function AddCenterUserPanel({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-slate-950">Agregar usuario</h2>
-          <p className="max-w-3xl text-sm leading-6 text-slate-600">
-            Resolvé un email exacto y agregá únicamente su acceso a este centro. Si la cuenta ya
-            existe, sus datos y credenciales se conservan.
+          <p className="text-sm leading-6 text-slate-600">
+            Ingresá un email para agregar un usuario a este centro.
           </p>
         </div>
         {!isOpen ? (
@@ -519,8 +518,8 @@ export function AddCenterUserPanel({
         <form className="max-w-xl" onSubmit={resolveEmail}>
           <input name="operationId" type="hidden" value={operationId} />
           <input name="centerId" type="hidden" value={centerId} />
-          <div className="space-y-3">
-            <label className="space-y-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <label className="block min-w-0 flex-1 space-y-2">
               <span className="text-sm font-medium text-slate-800">Email</span>
               <input
                 aria-describedby={
@@ -528,7 +527,7 @@ export function AddCenterUserPanel({
                 }
                 aria-invalid={Boolean(resolution.fieldErrors?.email)}
                 autoComplete="email"
-                className="min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+                className="h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base text-slate-950 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
                 name="email"
                 onChange={(event) => setEmail(event.target.value)}
                 required
@@ -536,17 +535,17 @@ export function AddCenterUserPanel({
                 value={email}
               />
             </label>
-            <FieldError errors={resolution.fieldErrors?.email} id="center-user-email-error" />
-            <ActionMessage state={resolution} />
-          </div>
-          <div className="mt-4">
             <button
-              className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-md bg-sky-700 px-5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               disabled={isPending}
               type="submit"
             >
               {isPending ? "Verificando…" : "Continuar"}
             </button>
+          </div>
+          <div className="mt-3 space-y-3">
+            <FieldError errors={resolution.fieldErrors?.email} id="center-user-email-error" />
+            <ActionMessage state={resolution} />
           </div>
         </form>
       ) : resolution.membershipExists ? (

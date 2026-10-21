@@ -44,7 +44,8 @@ Un mismo usuario puede tener diferentes roles en distintos centros.
 
 Solo Administrator gestiona usuarios del centro.
 
-El listado vive en `/centers/[centerId]/users`: muestra exclusivamente las memberships visibles del
+El módulo se presenta como **Gestión de usuarios** en Dashboard, encabezado y breadcrumb. El listado
+vive en `/centers/[centerId]/users`: muestra exclusivamente las memberships visibles del
 Center autorizado, identidad proyectada, rol, estado y la asociación Professional segura cuando
 existe. La ruta, sus queries y sus mutaciones requieren `ADMIN` tenant activo; ocultar el enlace es
 sólo una ayuda de UX.
@@ -60,7 +61,14 @@ El alta inicial admite Administrator, Reception y Professional. Professional só
 cuando existe un `ProfessionalCenter` del mismo Center, activo y libre; el servidor y las
 invariantes B3A siguen siendo autoridad ante carreras o selecciones manipuladas. Cambio posterior
 de rol, activación/desactivación y edición o reasignación del vínculo profesional se resuelven en
-una acción **Administrar** separada sobre la membership existente.
+una acción **Administrar acceso** separada sobre la membership existente.
+
+En Gestión de usuarios, el primer paso de **Agregar usuario** presenta Email y Continuar alineados
+en desktop y apilados en mobile. **Administrar acceso** abre un modal que conserva la revisión y confirmación
+del cambio, muestra errores sin descartar la edición y pide confirmar el descarte de cambios sin
+guardar al cancelar. El listado permanece sin filas expandidas.
+La X del encabezado, el fondo, Escape y Cancelar usan la misma protección de descarte; el footer
+alinea Cancelar y Revisar cambios sin alterar su acción ni el flujo de confirmación.
 
 La administración de una membership muestra únicamente identidad global de solo lectura y el rol,
 estado y vínculo profesional del Center actual. Cada submit incluye el snapshot visible para detectar

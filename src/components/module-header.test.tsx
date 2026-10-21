@@ -22,5 +22,6 @@ describe("ModuleHeader", () => {
     );
     expect(screen.getByRole("heading", { level: 1, name: "Turnos" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Crear turno" })).toBeVisible();
+    expect(screen.getByText("Consultá los turnos del centro.")).toHaveClass("max-w-3xl");
   });
 });

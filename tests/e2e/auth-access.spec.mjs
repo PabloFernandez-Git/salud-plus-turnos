@@ -486,6 +486,11 @@ test.describe.serial("TASK-005B1 Auth UI and Center access", () => {
     await expect(page).toHaveURL(new RegExp(`/centers/${centerA.id}$`));
 
     await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await page
+      .getByRole("dialog", { name: "¿Querés cerrar sesión?" })
+      .getByRole("button", { name: "Cerrar sesión" })
+      .click();
+    await expect(page).toHaveURL(/\/login$/);
     await login(page, "one", updatedPassword);
     await expect(page).toHaveURL(new RegExp(`/centers/${centerA.id}$`));
   });

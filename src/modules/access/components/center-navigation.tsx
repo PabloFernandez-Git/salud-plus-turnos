@@ -163,7 +163,7 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
             icon: <Icon kind="specialties" />,
           },
           {
-            title: "Usuarios",
+            title: "Gestión de usuarios",
             description: "Gestioná los accesos y roles del equipo.",
             path: "users",
             icon: <Icon kind="users" />,

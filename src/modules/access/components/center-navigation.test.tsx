@@ -15,7 +15,7 @@ describe("center navigation", () => {
       "Profesionales",
       "Disponibilidad",
       "Especialidades",
-      "Usuarios",
+      "Gestión de usuarios",
     ]);
     expect(screen.getByRole("heading", { name: "Operación diaria" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Administración del centro" })).toBeInTheDocument();

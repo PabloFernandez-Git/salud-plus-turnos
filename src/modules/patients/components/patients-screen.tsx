@@ -61,6 +61,7 @@ export function PatientsScreen({
           centerId={centerId}
           title="Pacientes"
           description="Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y mantené actualizados sus datos administrativos."
+          wideDescription
           actions={
             <PatientWorkspace
               centerId={centerId}

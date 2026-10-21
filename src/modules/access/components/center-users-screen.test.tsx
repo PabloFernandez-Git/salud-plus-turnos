@@ -46,18 +46,18 @@ const users: CenterUserListItem[] = [
 afterEach(cleanup);
 
 describe("Center user navigation", () => {
-  it("shows Center → Usuarios only to ADMIN", () => {
+  it("shows Center → Gestión de usuarios only to ADMIN", () => {
     const { rerender } = render(<CenterNavigation centerId={centerId} role="ADMIN" />);
-    expect(screen.getByRole("link", { name: "Usuarios" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Gestión de usuarios" })).toHaveAttribute(
       "href",
       `/centers/${centerId}/users`,
     );
 
     rerender(<CenterNavigation centerId={centerId} role="RECEPTION" />);
-    expect(screen.queryByRole("link", { name: "Usuarios" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Gestión de usuarios" })).not.toBeInTheDocument();
   });
 
-  it("shows Usuarios → Inicio navigation", () => {
+  it("shows Gestión de usuarios → Inicio navigation", () => {
     render(
       <CenterUsersScreen
         actorUserId="99999999-9999-4999-8999-999999999999"
@@ -91,13 +91,17 @@ describe("CenterUsersScreen", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { level: 1, name: "Usuarios" })).toBeVisible();
-    expect(screen.queryByText("Centro Norte")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toBeVisible();
     expect(
-      screen.getByText(
-        "Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas memberships sin modificar identidades existentes.",
-      ),
-    ).toHaveClass("max-w-3xl", "text-sm", "leading-6", "text-slate-600");
+      screen.getByText("Gestión de usuarios", { selector: '[aria-current="page"]' }),
+    ).toBeVisible();
+    expect(screen.queryByText("Centro Norte")).not.toBeInTheDocument();
+    expect(screen.getByText("Administrá los usuarios, roles y accesos del centro.")).toHaveClass(
+      "max-w-3xl",
+      "text-sm",
+      "leading-6",
+      "text-slate-600",
+    );
 
     const adminRow = screen.getByRole("row", { name: /Ana Admin/ });
     expect(within(adminRow).getByText("ana@example.test")).toBeVisible();
@@ -111,7 +115,9 @@ describe("CenterUsersScreen", () => {
     expect(within(professionalRow).getByText("Paula Médica")).toBeVisible();
     expect(within(professionalRow).getByText("Matrícula: MP 1234")).toBeVisible();
     expect(within(professionalRow).getByText("Vínculo inactivo")).toBeVisible();
-    expect(within(professionalRow).getByRole("button", { name: "Administrar" })).toBeVisible();
+    expect(
+      within(professionalRow).getByRole("button", { name: "Administrar acceso" }),
+    ).toBeVisible();
   });
 
   it("renders an explicit empty state", () => {
