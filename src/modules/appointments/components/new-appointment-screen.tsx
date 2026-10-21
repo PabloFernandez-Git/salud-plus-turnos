@@ -30,11 +30,20 @@ export function NewAppointmentScreen({
   centerName,
   timezone,
   initialPatient,
+  initialBooking = null,
+  initialBookingUnavailable = false,
 }: {
   centerId: string;
   centerName: string;
   timezone: string;
   initialPatient: Patient | null;
+  initialBooking?: {
+    specialtyId: string;
+    professionalCenterId: string;
+    localDate: string;
+    startsAt: string;
+  } | null;
+  initialBookingUnavailable?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -313,12 +322,18 @@ export function NewAppointmentScreen({
           <p className="mt-1 text-sm text-slate-600">
             Elegí un horario ofrecido por el centro. La disponibilidad se confirma al crear.
           </p>
+          {initialBookingUnavailable && (
+            <p role="alert" className="mt-2 text-sm text-amber-900">
+              El horario elegido desde la Agenda ya no está disponible. Elegí otro horario.
+            </p>
+          )}
           <div className="mt-4">
             <BookingSelector
               key={selectorKey}
               centerId={centerId}
               timezone={timezone}
               onChange={setChoice}
+              initial={initialBooking ?? undefined}
             />
           </div>
         </section>

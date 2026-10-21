@@ -33,3 +33,8 @@ Thumbs.db
 # generated local artifacts
 *.tsbuildinfo
 supabase/.temp/
+
+# TASK-013 local operational records; curated synthetic screenshots are tracked.
+.harness/tasks/archive/TASK-013/validation-ledger.json
+.harness/tasks/archive/TASK-013/attempts/
+.harness/tasks/archive/TASK-013/evidence/local-visual-before/

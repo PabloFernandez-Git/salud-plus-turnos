@@ -58,6 +58,41 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("booking selector", () => {
+  it("preselects only the exact PostgreSQL slot handed off from Agenda", async () => {
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="America/Argentina/Buenos_Aires"
+        onChange={onChange}
+        initial={{
+          specialtyId,
+          professionalCenterId,
+          localDate: "2026-10-20",
+          startsAt: "2026-10-20T12:00:00+00:00",
+        }}
+      />,
+    );
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          specialtyId,
+          professionalCenterId,
+          localDate: "2026-10-20",
+          localStartTime: "09:00",
+        }),
+      ),
+    );
+    expect(screen.getByRole("combobox", { name: "Horario disponible" })).toHaveValue(
+      "2026-10-20T12:00:00+00:00",
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Horario disponible" }), {
+      target: { value: "" },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: "Horario disponible" })).toHaveValue(""),
+    );
+    expect(onChange).toHaveBeenLastCalledWith(null);
+  });
   it("waits for the initial catalogs before accepting a fetched reschedule slot", async () => {
     let finishSpecialties!: (
       value: Awaited<ReturnType<typeof listBookableSpecialtiesAction>>,
@@ -84,7 +119,7 @@ describe("booking selector", () => {
       />,
     );
     const slot = screen.getByRole("combobox", { name: "Horario disponible" });
-    await screen.findByRole("option", { name: "09:00–09:30" });
+    await screen.findByRole("option", { name: "09:00–09:30 (UTC−03:00)" });
     expect(slot).toBeDisabled();
     finishSpecialties({
       status: "SUCCESS",
@@ -211,8 +246,8 @@ describe("booking selector", () => {
           local_end_time: "10:30",
         },
         {
-          starts_at: "2026-10-21T02:30:00+00:00",
-          ends_at: "2026-10-21T03:00:00+00:00",
+          starts_at: "2026-10-22T02:30:00+00:00",
+          ends_at: "2026-10-22T03:00:00+00:00",
           local_date: "2026-10-21",
           local_start_time: "23:30",
           local_end_date: "2026-10-22",
@@ -230,8 +265,10 @@ describe("booking selector", () => {
     );
     const slot = await screen.findByRole("combobox", { name: "Horario disponible" });
     await waitFor(() => expect(slot).toBeEnabled());
-    expect(screen.getByRole("option", { name: "10:00–10:30" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "23:30–00:00 (2026-10-22)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "10:00–10:30 (UTC−02:00)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "23:30–00:00 (UTC−03:00) (2026-10-22)" }),
+    ).toBeDisabled();
     fireEvent.change(slot, { target: { value: "2026-10-20T12:00:00+00:00" } });
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -240,7 +277,7 @@ describe("booking selector", () => {
         localEndTime: "10:30",
       }),
     );
-    fireEvent.change(slot, { target: { value: "2026-10-21T02:30:00+00:00" } });
+    fireEvent.change(slot, { target: { value: "2026-10-22T02:30:00+00:00" } });
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
 });

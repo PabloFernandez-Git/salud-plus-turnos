@@ -19,6 +19,9 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       <Link className={linkClass} href={`/centers/${centerId}/appointments`}>
         Turnos
       </Link>
+      <Link className={linkClass} href={`/centers/${centerId}/agenda`}>
+        Agenda
+      </Link>
       {role === "ADMIN" && (
         <>
           <Link className={linkClass} href={`/centers/${centerId}/users`}>
