@@ -13,6 +13,11 @@ import {
   type ResourceHeaderProps,
   type SlotInfo,
 } from "react-big-calendar";
+import {
+  ModuleHeader,
+  modulePrimaryActionClass,
+  moduleSecondaryActionClass,
+} from "@/components/module-header";
 import type { AvailabilityProfessionalCenter } from "@/modules/availability/server/availability";
 import { appointmentStatusLabels } from "@/modules/appointments/components/appointments-list";
 import {
@@ -38,6 +43,7 @@ const localizer = dateFnsLocalizer({
   locales: { es },
 });
 const statuses = ["PENDING", "CONFIRMED", "ATTENDED", "NO_SHOW", "CANCELLED"] as const;
+const timeSlotMinutes = 30;
 const linkClass =
   "inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-sky-700";
 const activeLinkClass =
@@ -73,7 +79,6 @@ function ResourceHeading({ resource }: ResourceHeaderProps<Resource>) {
 
 export function AgendaCalendar({
   centerId,
-  centerName,
   timezone,
   today,
   role,
@@ -106,7 +111,25 @@ export function AgendaCalendar({
   } | null>(null);
   const [slotHelp, setSlotHelp] = useState<string | null>(null);
   const [bookingChoice, setBookingChoice] = useState<BookingChoice | null>(null);
+  const [currentInstant, setCurrentInstant] = useState<Date | null>(null);
   const date = useMemo(() => calendarDate(filters.date), [filters.date]);
+  useEffect(() => {
+    if (filters.view !== "day") return;
+    let timeout: number;
+    const update = () => {
+      setCurrentInstant(new Date());
+      timeout = window.setTimeout(update, 60_000 - (Date.now() % 60_000));
+    };
+    update();
+    return () => window.clearTimeout(timeout);
+  }, [filters.view]);
+  const currentSlotMinute = useMemo(() => {
+    if (filters.view !== "day" || !currentInstant) return null;
+    const centerNow = centerWallTime(currentInstant.toISOString(), timezone);
+    if (centerNow.localDate !== filters.date) return null;
+    const [hour, minute] = centerNow.localTime.split(":").map(Number);
+    return Math.floor((hour * 60 + minute) / timeSlotMinutes) * timeSlotMinutes;
+  }, [currentInstant, filters.date, filters.view, timezone]);
   const projected = useMemo(
     () =>
       appointments.map((row) => ({
@@ -258,32 +281,31 @@ export function AgendaCalendar({
     });
   }
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-6 sm:px-6">
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-[1500px] space-y-5">
-        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-sky-700">
-            {centerName} · {timezone}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950">Agenda</h1>
-              <p className="mt-1 text-sm text-slate-600">Horarios en la zona del centro.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+        <ModuleHeader
+          centerId={centerId}
+          title="Agenda"
+          description={`Consultá la actividad por día, semana o mes. Horarios en la zona del centro: ${timezone}.`}
+          actions={
+            <>
               {role !== "PROFESSIONAL" && (
-                <Link className={linkClass} href={`/centers/${centerId}/appointments/new`}>
+                <Link
+                  className={modulePrimaryActionClass}
+                  href={`/centers/${centerId}/appointments/new`}
+                >
                   Crear turno
                 </Link>
               )}
-              <Link className={linkClass} href={`/centers/${centerId}/appointments`}>
+              <Link
+                className={moduleSecondaryActionClass}
+                href={`/centers/${centerId}/appointments`}
+              >
                 Lista de turnos
               </Link>
-              <Link className={linkClass} href={`/centers/${centerId}`}>
-                Volver al centro
-              </Link>
-            </div>
-          </div>
-        </header>
+            </>
+          }
+        />
         <section
           className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
           aria-label="Controles de agenda"
@@ -528,19 +550,33 @@ export function AgendaCalendar({
                     date={date}
                     view={filters.view}
                     events={filters.view === "month" ? [] : events}
-                    resources={filters.view === "day" ? resources : undefined}
+                    resources={
+                      filters.view === "day" && resources.length > 0 ? resources : undefined
+                    }
                     resourceIdAccessor="id"
                     resourceTitleAccessor="name"
                     startAccessor="start"
                     endAccessor="end"
                     components={components}
                     scrollToTime={initialTime}
+                    slotPropGetter={
+                      currentSlotMinute === null
+                        ? undefined
+                        : (slot) =>
+                            slot.getHours() * 60 + slot.getMinutes() === currentSlotMinute
+                              ? { className: "agenda-current-time-slot" }
+                              : {}
+                    }
                     dayLayoutAlgorithm="no-overlap"
                     toolbar={false}
-                    selectable={role !== "PROFESSIONAL" && filters.view !== "month"}
+                    selectable={
+                      role !== "PROFESSIONAL" &&
+                      filters.view !== "month" &&
+                      (filters.view !== "day" || resources.length > 0)
+                    }
                     min={new Date(2020, 0, 1, 0)}
                     max={new Date(2020, 0, 1, 23, 59)}
-                    step={30}
+                    step={timeSlotMinutes}
                     timeslots={2}
                     messages={{
                       noEventsInRange: "Sin turnos en este período",

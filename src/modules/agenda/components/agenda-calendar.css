@@ -44,6 +44,15 @@
 .agenda-calendar .rbc-today {
   background: #f0f9ff;
 }
+.agenda-calendar-day .rbc-day-slot.rbc-today {
+  background: #fff;
+}
+.agenda-calendar-day .rbc-time-slot.agenda-current-time-slot {
+  background: #f0f9ff;
+}
+.agenda-calendar-day .rbc-current-time-indicator {
+  display: none;
+}
 .agenda-event-content {
   display: block;
   min-width: 0;
@@ -63,8 +72,58 @@
   font-size: 0.75rem;
   line-height: 16px;
 }
-.agenda-calendar .rbc-time-content {
-  scrollbar-gutter: stable;
+.agenda-calendar-day .rbc-time-view,
+.agenda-calendar-week .rbc-time-view {
+  border-color: #e2e8f0;
+}
+/* React Big Calendar renders an all-day row even with only timed appointments. */
+.agenda-calendar-day .rbc-allday-cell:not(:has(.rbc-event)),
+.agenda-calendar-week .rbc-allday-cell:not(:has(.rbc-event)) {
+  display: none;
+}
+.agenda-calendar-day .rbc-time-header,
+.agenda-calendar-week .rbc-time-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+.agenda-calendar-day .rbc-time-header .rbc-header,
+.agenda-calendar-week .rbc-time-header .rbc-header {
+  border-bottom: 0;
+}
+.agenda-calendar-day
+  .rbc-time-header-content:has(> .rbc-allday-cell:not(:has(.rbc-event)))
+  > .rbc-row.rbc-row-resource {
+  border-bottom: 0;
+}
+.agenda-calendar-day .rbc-time-header-content,
+.agenda-calendar-week .rbc-time-header-content,
+.agenda-calendar-day .rbc-time-header.rbc-overflowing,
+.agenda-calendar-week .rbc-time-header.rbc-overflowing {
+  border-color: #e2e8f0;
+}
+.agenda-calendar-day .rbc-time-content,
+.agenda-calendar-week .rbc-time-content {
+  /* The calendar already accounts for its native vertical scrollbar in the header. */
+  border-top: 0;
+}
+.agenda-calendar-day .rbc-time-content > * + *,
+.agenda-calendar-week .rbc-time-content > * + * {
+  border-left: 1px solid #e2e8f0;
+}
+.agenda-calendar-day .rbc-time-content > .rbc-time-gutter {
+  margin-right: 0;
+  border-right: 0;
+}
+.agenda-calendar-day .rbc-time-content > * + * > *,
+.agenda-calendar-week .rbc-time-content > * + * > * {
+  border-left: 0;
+}
+.agenda-calendar-day .rbc-day-slot .rbc-time-slot,
+.agenda-calendar-week .rbc-day-slot .rbc-time-slot {
+  border-top: 0;
+}
+.agenda-calendar-day .rbc-day-slot .rbc-time-slot + .rbc-time-slot,
+.agenda-calendar-week .rbc-day-slot .rbc-time-slot + .rbc-time-slot {
+  border-top: 1px solid #e2e8f0;
 }
 .agenda-month-summary {
   display: flex;

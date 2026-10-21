@@ -58,7 +58,7 @@ describe("ProfessionalsScreen", () => {
       screen.getByText(
         "Consultá y administrá los profesionales vinculados a este centro, sus datos y las especialidades asociadas.",
       ),
-    ).toHaveClass("mt-2", "max-w-5xl", "text-sm", "leading-6", "text-slate-600");
+    ).toHaveClass("mt-2", "max-w-3xl", "text-sm", "leading-6", "text-slate-600");
     expect(screen.getByText("Ana Pérez")).toBeVisible();
     expect(screen.getByText("M-1")).toBeVisible();
     expect(screen.getByRole("link", { name: "Disponibilidad" })).toHaveAttribute(

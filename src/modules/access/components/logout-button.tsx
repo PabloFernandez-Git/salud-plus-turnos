@@ -6,7 +6,7 @@ import { logoutAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
 import { SubmitButton } from "./submit-button";
 
-export function LogoutButton() {
+export function LogoutButton({ variant = "primary" }: { variant?: "primary" | "quiet" }) {
   const [state, formAction] = useActionState(logoutAction, {
     status: "idle",
   } satisfies AuthActionState);
@@ -14,7 +14,7 @@ export function LogoutButton() {
   return (
     <form action={formAction} className="space-y-2">
       <ActionMessage state={state} />
-      <SubmitButton idleLabel="Cerrar sesión" pendingLabel="Cerrando sesión…" />
+      <SubmitButton idleLabel="Cerrar sesión" pendingLabel="Cerrando sesión…" variant={variant} />
     </form>
   );
 }

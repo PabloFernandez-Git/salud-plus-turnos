@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PageReveal } from "@/components/page-reveal";
+import { CenterDashboard } from "@/modules/access/components/center-dashboard";
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
 import CenterPage from "./page";
 
@@ -28,7 +29,7 @@ describe("Center route transition", () => {
 
     const result = await CenterPage({ params: Promise.resolve({ centerId }) });
     expect(result.type).toBe(PageReveal);
-    expect(result.props.children.type).toBe("main");
+    expect(result.props.children.type).toBe(CenterDashboard);
     expect(requireCenterMembership).toHaveBeenCalledWith(centerId);
   });
 

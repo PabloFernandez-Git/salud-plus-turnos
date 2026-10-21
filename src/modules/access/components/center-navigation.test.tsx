@@ -8,15 +8,17 @@ afterEach(cleanup);
 describe("center navigation", () => {
   it("shows all center destinations to ADMIN", () => {
     render(<CenterNavigation centerId={centerId} role="ADMIN" />);
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Pacientes",
-      "Disponibilidad",
-      "Turnos",
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual([
       "Agenda",
-      "Usuarios",
-      "Especialidades",
+      "Turnos",
+      "Pacientes",
       "Profesionales",
+      "Disponibilidad",
+      "Especialidades",
+      "Usuarios",
     ]);
+    expect(screen.getByRole("heading", { name: "Operación diaria" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Administración del centro" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Pacientes" })).toHaveAttribute(
       "href",
       `/centers/${centerId}/patients`,
@@ -28,19 +30,22 @@ describe("center navigation", () => {
   });
   it("shows operational destinations including Agenda to RECEPTION", () => {
     render(<CenterNavigation centerId={centerId} role="RECEPTION" />);
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual([
+      "Agenda",
+      "Turnos",
       "Pacientes",
       "Disponibilidad",
-      "Turnos",
-      "Agenda",
     ]);
   });
   it("shows Availability, own Appointments and Agenda to PROFESSIONAL", () => {
     render(<CenterNavigation centerId={centerId} role="PROFESSIONAL" />);
-    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Disponibilidad",
-      "Turnos",
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual([
       "Agenda",
+      "Turnos",
+      "Disponibilidad",
     ]);
+    expect(screen.getByRole("link", { name: "Agenda" })).toHaveTextContent("tu actividad");
+    expect(screen.getByRole("link", { name: "Turnos" })).toHaveTextContent("tus turnos");
+    expect(screen.getByRole("link", { name: "Disponibilidad" })).toHaveTextContent("tus horarios");
   });
 });

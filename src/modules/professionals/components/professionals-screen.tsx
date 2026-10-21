@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
+import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 import {
   createProfessionalAction,
   linkProfessionalAction,
@@ -24,7 +25,6 @@ type Resolution = NonNullable<ProfessionalActionState["resolution"]>;
 
 export function ProfessionalsScreen({
   centerId,
-  centerName,
   loadFailed,
   professionals,
   specialties = [],
@@ -164,43 +164,31 @@ export function ProfessionalsScreen({
   const fieldError = (field: string) => feedback?.fieldErrors?.[field]?.[0];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950">Profesionales</h1>
-              <p className="mt-1 text-slate-700">{centerName}</p>
-              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
-                Consultá y administrá los profesionales vinculados a este centro, sus datos y las
-                especialidades asociadas.
-              </p>
-            </div>
-            <Link
-              className="rounded-md border border-slate-300 px-4 py-2 font-semibold text-slate-800"
-              href={`/centers/${centerId}`}
-            >
-              Volver al centro
-            </Link>
-          </div>
-        </header>
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <ModuleHeader
+          centerId={centerId}
+          title="Profesionales"
+          description="Consultá y administrá los profesionales vinculados a este centro, sus datos y las especialidades asociadas."
+          actions={
+            !loadFailed && (
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => select({ mode: "new" })}
+                className={modulePrimaryActionClass}
+              >
+                Nuevo profesional
+              </button>
+            )
+          }
+        />
         {loadFailed ? (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
             No pudimos cargar los profesionales. Actualizá la página para reintentar.
           </p>
         ) : (
           <>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => select({ mode: "new" })}
-                className="rounded-md bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
-              >
-                Nuevo profesional
-              </button>
-            </div>
             {feedback && (
               <p
                 role="alert"

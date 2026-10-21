@@ -96,6 +96,88 @@ describe("AgendaCalendar", () => {
     expect(container.querySelectorAll(".rbc-time-content .rbc-day-slot")).toHaveLength(1);
   });
 
+  it("keeps a full Day grid when there are no professionals or appointments", () => {
+    const { container, rerender } = render(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="UTC"
+        today="2026-10-28"
+        role="ADMIN"
+        filters={{ date: "2026-10-28", view: "day" }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+      />,
+    );
+    expect(container.querySelectorAll(".rbc-time-content .rbc-day-slot")).toHaveLength(1);
+    expect(container.querySelectorAll(".rbc-day-slot .rbc-timeslot-group")).toHaveLength(24);
+
+    rerender(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="UTC"
+        today="2026-10-28"
+        role="ADMIN"
+        filters={{ date: "2026-10-28", view: "week" }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+      />,
+    );
+    expect(container.querySelectorAll(".rbc-time-content .rbc-day-slot")).toHaveLength(7);
+  });
+
+  it("highlights only the current half-hour in the center timezone on Day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-28T18:20:00Z"));
+    try {
+      const calendarProps = {
+        centerId,
+        centerName: "Centro",
+        timezone: "America/New_York",
+        today: "2026-10-28",
+        role: "ADMIN" as const,
+        loadFailed: false,
+        professionals: [
+          {
+            id: professionalId,
+            firstName: "Elena",
+            lastName: "Demo",
+            usualAppointmentDurationMinutes: 30,
+            updatedAt: "2026-10-01T00:00:00Z",
+          },
+          {
+            id: "33333333-3333-4333-8333-333333333333",
+            firstName: "Martín",
+            lastName: "Demo",
+            usualAppointmentDurationMinutes: 30,
+            updatedAt: "2026-10-01T00:00:00Z",
+          },
+        ],
+        appointments: [],
+      };
+      const { container, rerender, unmount } = render(
+        <AgendaCalendar {...calendarProps} filters={{ date: "2026-10-28", view: "day" }} />,
+      );
+      const columns = container.querySelectorAll(".rbc-day-slot");
+      expect(columns).toHaveLength(2);
+      for (const column of columns) {
+        const slots = column.querySelectorAll(".rbc-time-slot");
+        expect(column.querySelectorAll(".agenda-current-time-slot")).toHaveLength(1);
+        expect(slots[28]).toHaveClass("agenda-current-time-slot");
+        expect(slots[27]).not.toHaveClass("agenda-current-time-slot");
+        expect(slots[29]).not.toHaveClass("agenda-current-time-slot");
+      }
+      rerender(<AgendaCalendar {...calendarProps} filters={{ date: "2026-10-27", view: "day" }} />);
+      expect(container.querySelectorAll(".rbc-day-slot .agenda-current-time-slot")).toHaveLength(0);
+      unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders a real monthly summary from Center-local appointments", () => {
     render(
       <AgendaCalendar

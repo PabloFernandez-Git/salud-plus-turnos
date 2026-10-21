@@ -69,6 +69,10 @@ describe("new appointment flow", () => {
       },
     });
     screenWithPatient();
+    expect(
+      screen.getByText("Seleccioná el paciente, el profesional y un horario disponible."),
+    ).toBeVisible();
+    expect(screen.queryByText(/America\/Argentina\/Buenos_Aires/)).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "Nota" }), {
       target: { value: "Control" },
     });

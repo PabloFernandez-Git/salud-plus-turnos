@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
+import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 
 import {
   createSpecialtyAction,
@@ -16,7 +16,6 @@ type Selection = { mode: "create" } | { mode: "edit" | "state"; specialty: Speci
 
 export function SpecialtiesScreen({
   centerId,
-  centerName,
   loadFailed,
   specialties,
 }: {
@@ -87,27 +86,25 @@ export function SpecialtiesScreen({
   const descriptionError = feedback?.fieldErrors?.description?.[0];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950">Especialidades</h1>
-              <p className="mt-1 text-slate-700">{centerName}</p>
-              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-600">
-                Consultá y administrá las especialidades de este centro, y definí cuáles están
-                disponibles para asociar a sus profesionales.
-              </p>
-            </div>
-            <Link
-              className="rounded-md border border-slate-300 px-4 py-2 font-semibold text-slate-800"
-              href={`/centers/${centerId}`}
-            >
-              Volver al centro
-            </Link>
-          </div>
-        </header>
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <ModuleHeader
+          centerId={centerId}
+          title="Especialidades"
+          description="Consultá y administrá las especialidades de este centro, y definí cuáles están disponibles para asociar a sus profesionales."
+          actions={
+            !loadFailed && (
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => select({ mode: "create" })}
+                className={modulePrimaryActionClass}
+              >
+                Nueva especialidad
+              </button>
+            )
+          }
+        />
 
         {loadFailed ? (
           <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
@@ -115,17 +112,6 @@ export function SpecialtiesScreen({
           </p>
         ) : (
           <>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => select({ mode: "create" })}
-                className="rounded-md bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
-              >
-                Nueva especialidad
-              </button>
-            </div>
-
             {feedback && (
               <p
                 role="alert"
