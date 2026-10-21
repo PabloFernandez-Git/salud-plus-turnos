@@ -129,3 +129,12 @@ capturas sintéticas vigentes se preparan para Git. Las rutas documentales y los
 scripts históricos apuntan al archivo. La retrospectiva y `docs/status.md`
 registran el cierre. TASK-010/011/012 permanecen intactas y `next-env.d.ts`
 conserva su SHA-256 anterior.
+
+## Corrección focal del CI del PR
+
+El primer `verify` del PR #14 falló sólo en las tres expectativas de navegación
+de `center-navigation.test.tsx`: la ruta Agenda ya estaba presente para ADMIN,
+RECEPTION y PROFESSIONAL, pero el test aún esperaba las listas anteriores.
+Los otros 624 tests pasaron. Se actualizaron esas expectativas y se comprobó
+el destino `/centers/<centerId>/agenda`; la suite focal pasó 3/3, con formato y
+ESLint focal PASS. No cambió el componente ni la lógica funcional.

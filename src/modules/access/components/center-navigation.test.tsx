@@ -12,6 +12,7 @@ describe("center navigation", () => {
       "Pacientes",
       "Disponibilidad",
       "Turnos",
+      "Agenda",
       "Usuarios",
       "Especialidades",
       "Profesionales",
@@ -20,20 +21,26 @@ describe("center navigation", () => {
       "href",
       `/centers/${centerId}/patients`,
     );
+    expect(screen.getByRole("link", { name: "Agenda" })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/agenda`,
+    );
   });
-  it("shows Patients, Availability and Appointments to RECEPTION", () => {
+  it("shows operational destinations including Agenda to RECEPTION", () => {
     render(<CenterNavigation centerId={centerId} role="RECEPTION" />);
     expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
       "Pacientes",
       "Disponibilidad",
       "Turnos",
+      "Agenda",
     ]);
   });
-  it("shows Availability and own Appointments to PROFESSIONAL", () => {
+  it("shows Availability, own Appointments and Agenda to PROFESSIONAL", () => {
     render(<CenterNavigation centerId={centerId} role="PROFESSIONAL" />);
     expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
       "Disponibilidad",
       "Turnos",
+      "Agenda",
     ]);
   });
 });

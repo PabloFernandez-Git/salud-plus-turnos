@@ -94,3 +94,12 @@ cambios de arquitectura, DB/RLS, permisos, migraciones o tooling principal. Los
 ledgers operativos y comparativas previas permanecen fuera de Git; las capturas
 publicables contienen sólo identidades sintéticas. TASK-010/011/012 y
 `next-env.d.ts` se preservan. No se requiere nueva ronda DEV ni gate adicional.
+
+## Re-review focal del CI del PR
+
+El primer CI reveló únicamente tres expectativas obsoletas del test de navegación
+por la incorporación del enlace Agenda. Se verificó el componente: el enlace
+corresponde al alcance aprobado y aparece en los tres roles de centro. El test
+actualizado comprueba orden y destino; 3/3 PASS, formato y ESLint focal PASS.
+El cambio es sólo de test. **Dictamen de review: PASS**; el CI completo de la
+rama corregida es la comprobación restante antes de integrar el PR.
