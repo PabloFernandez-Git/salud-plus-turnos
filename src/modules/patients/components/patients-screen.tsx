@@ -27,6 +27,7 @@ export function PatientsScreen({
   loadFailed = false,
   detail = null,
   detailFailed = false,
+  returnToAppointments = false,
 }: {
   centerId: string;
   centerName: string;
@@ -35,9 +36,15 @@ export function PatientsScreen({
   loadFailed?: boolean;
   detail?: PatientDetail | null;
   detailFailed?: boolean;
+  returnToAppointments?: boolean;
 }) {
-  const baseUrl = patientSearchUrl(centerId, { query: "", state: "ACTIVE", page: 1 });
-  const currentUrl = patientSearchUrl(centerId, filters);
+  const baseUrl = patientSearchUrl(
+    centerId,
+    { query: "", state: "ACTIVE", page: 1 },
+    undefined,
+    returnToAppointments,
+  );
+  const currentUrl = patientSearchUrl(centerId, filters, undefined, returnToAppointments);
   const rows = result?.rows ?? [];
   const emptyMessage = filters.query
     ? "No encontramos pacientes para esta búsqueda"
@@ -75,14 +82,16 @@ export function PatientsScreen({
             filters={filters}
             detail={detail}
             detailFailed={detailFailed}
+            returnToAppointments={returnToAppointments}
           />
         </div>
         <form
-          action={baseUrl}
+          action={`/centers/${centerId}/patients`}
           aria-label="Búsqueda de pacientes"
           className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 md:grid-cols-[minmax(0,1fr)_12rem] md:items-end lg:grid-cols-[minmax(0,1fr)_12rem_auto_auto]"
           method="get"
         >
+          {returnToAppointments && <input type="hidden" name="from" value="appointment" />}
           <div className="space-y-1">
             <label className="block text-sm font-medium text-slate-800" htmlFor="patient-query">
               Buscar
@@ -196,7 +205,12 @@ export function PatientsScreen({
                       <td className="p-3">
                         <Link
                           className="font-semibold text-sky-700 underline"
-                          href={patientSearchUrl(centerId, filters, row.patient_center_id)}
+                          href={patientSearchUrl(
+                            centerId,
+                            filters,
+                            row.patient_center_id,
+                            returnToAppointments,
+                          )}
                         >
                           Administrar
                         </Link>
@@ -233,7 +247,12 @@ export function PatientsScreen({
                   </dl>
                   <Link
                     className="mt-3 inline-block font-semibold text-sky-700 underline"
-                    href={patientSearchUrl(centerId, filters, row.patient_center_id)}
+                    href={patientSearchUrl(
+                      centerId,
+                      filters,
+                      row.patient_center_id,
+                      returnToAppointments,
+                    )}
                   >
                     Administrar
                   </Link>
@@ -244,7 +263,12 @@ export function PatientsScreen({
               {result?.hasPrevious && (
                 <Link
                   className="font-semibold text-sky-700 underline"
-                  href={patientSearchUrl(centerId, { ...filters, page: filters.page - 1 })}
+                  href={patientSearchUrl(
+                    centerId,
+                    { ...filters, page: filters.page - 1 },
+                    undefined,
+                    returnToAppointments,
+                  )}
                 >
                   Anterior
                 </Link>
@@ -252,7 +276,12 @@ export function PatientsScreen({
               {result?.hasNext && (
                 <Link
                   className="font-semibold text-sky-700 underline"
-                  href={patientSearchUrl(centerId, { ...filters, page: filters.page + 1 })}
+                  href={patientSearchUrl(
+                    centerId,
+                    { ...filters, page: filters.page + 1 },
+                    undefined,
+                    returnToAppointments,
+                  )}
                 >
                   Siguiente
                 </Link>

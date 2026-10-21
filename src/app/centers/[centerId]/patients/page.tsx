@@ -50,7 +50,14 @@ export default async function PatientsPage({
     loadFailed = true;
   }
   if (result && filters.page > 1 && result.rows.length === 0) {
-    redirect(patientSearchUrl(centerId.data, { ...filters, page: 1 }, parsed.patientId));
+    redirect(
+      patientSearchUrl(
+        centerId.data,
+        { ...filters, page: 1 },
+        parsed.patientId,
+        parsed.returnToAppointments,
+      ),
+    );
   }
   let detail: PatientDetail | null = null;
   let detailFailed = false;
@@ -72,6 +79,7 @@ export default async function PatientsPage({
         loadFailed={loadFailed}
         detail={detail}
         detailFailed={detailFailed || Boolean(parsed.patientId && !detail)}
+        returnToAppointments={parsed.returnToAppointments}
       />
     </PageReveal>
   );

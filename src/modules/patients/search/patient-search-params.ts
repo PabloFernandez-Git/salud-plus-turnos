@@ -13,15 +13,29 @@ export function patientSearchUrl(
   centerId: string,
   filters: PatientFilters,
   patientId?: string,
+  returnToAppointments = false,
 ): string {
   const params = new URLSearchParams();
   if (filters.query) params.set("q", filters.query);
   if (filters.state !== "ACTIVE") params.set("state", filters.state);
   if (filters.page !== 1) params.set("page", String(filters.page));
   if (patientId) params.set("patient", patientId);
+  if (returnToAppointments) params.set("from", "appointment");
   const search = params.toString();
   const path = `/centers/${centerId}/patients`;
   return search ? `${path}?${search}` : path;
+}
+
+export function patientRegistrationDestination(
+  centerId: string,
+  patientCenterId: string,
+  filters: PatientFilters,
+  returnToAppointments: boolean,
+): string {
+  if (returnToAppointments) {
+    return `/centers/${centerId}/appointments/new?patientCenterId=${encodeURIComponent(patientCenterId)}`;
+  }
+  return patientSearchUrl(centerId, filters, patientCenterId);
 }
 
 function parsePatientFilters(input: PatientSearchParams): PatientFilters {
@@ -65,11 +79,13 @@ export function parsePatientSearchParams(
     typeof input.patient === "string" && z.uuid().safeParse(input.patient).success
       ? input.patient
       : undefined;
-  const canonicalUrl = patientSearchUrl(centerId, filters, patientId);
+  const returnToAppointments = input.from === "appointment";
+  const canonicalUrl = patientSearchUrl(centerId, filters, patientId, returnToAppointments);
   const actualUrl = `/centers/${centerId}/patients${originalSearch}`;
   return {
     ...filters,
     ...(patientId ? { patientId } : {}),
+    ...(returnToAppointments ? { returnToAppointments: true } : {}),
     canonicalUrl,
     needsRedirect: actualUrl !== canonicalUrl,
   };

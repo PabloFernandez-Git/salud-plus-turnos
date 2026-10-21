@@ -265,6 +265,35 @@ describe("patient staged dialogs", () => {
     expect(reactivatePatientAction).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith(expect.stringContaining(`patient=${patientCenterId}`));
   });
+  it("returns an ACTIVE patient to same-Center appointment creation only from the validated intent", async () => {
+    vi.mocked(resolvePatientAction).mockResolvedValue({
+      status: "success",
+      data: found("ACTIVE"),
+    } as never);
+    render(
+      <PatientWorkspace
+        centerId={centerId}
+        filters={filters}
+        detail={null}
+        detailFailed={false}
+        returnToAppointments
+      />,
+    );
+    expect(await screen.findByRole("dialog", { name: "Registrar paciente" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Nacionalidad (código ISO de dos letras)"), {
+      target: { value: "AR" },
+    });
+    fireEvent.change(screen.getByLabelText("Documento"), { target: { value: "123" } });
+    fireEvent.change(screen.getByLabelText("Fecha de nacimiento"), {
+      target: { value: "2000-01-02" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Comprobar identidad" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir panel" }));
+    expect(push).toHaveBeenCalledWith(
+      `/centers/${centerId}/appointments/new?patientCenterId=${patientCenterId}`,
+    );
+    expect(createPatientAction).not.toHaveBeenCalled();
+  });
   it("reactivates with identity and CAS token, without administrative fields", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
       status: "success",
@@ -329,6 +358,44 @@ describe("patient staged dialogs", () => {
     await waitFor(() =>
       expect(reactivatePatientAction).toHaveBeenCalledWith(
         expect.objectContaining({ patientCenterId, expectedUpdatedAt: updatedAt, confirmed: true }),
+      ),
+    );
+  });
+  it("returns to appointment creation after reactivating from a detail opened with intent", async () => {
+    vi.mocked(resolvePatientAction).mockResolvedValue({
+      status: "success",
+      data: found("INACTIVE"),
+    } as never);
+    vi.mocked(reactivatePatientAction).mockResolvedValue({
+      status: "success",
+      data: { outcome: "REACTIVATED", patient_center_id: patientCenterId },
+    } as never);
+    render(
+      <PatientWorkspace
+        centerId={centerId}
+        filters={filters}
+        detail={{ ...detail, isActive: false }}
+        detailFailed={false}
+        returnToAppointments
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Confirmar fecha de nacimiento"), {
+      target: { value: "2000-01-02" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Comprobar para reactivar" }));
+    const confirmReactivation = await screen.findByRole("button", {
+      name: "Confirmar reactivación",
+    });
+    await waitFor(() => expect(confirmReactivation).toBeEnabled());
+    fireEvent.click(confirmReactivation);
+    await waitFor(() =>
+      expect(reactivatePatientAction).toHaveBeenCalledWith(
+        expect.objectContaining({ patientCenterId, expectedUpdatedAt: updatedAt, confirmed: true }),
+      ),
+    );
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(
+        `/centers/${centerId}/appointments/new?patientCenterId=${patientCenterId}`,
       ),
     );
   });
