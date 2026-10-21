@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ModuleHeader } from "@/components/module-header";
 import {
   createAppointmentAction,
   reconcileAppointmentCreateAction,
@@ -23,11 +24,10 @@ type CreateIntent = {
   endsAt: string;
 };
 const buttonClass =
-  "min-h-11 rounded-md bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-50";
+  "min-h-11 rounded-md bg-sky-700 px-4 py-2 font-semibold text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50";
 
 export function NewAppointmentScreen({
   centerId,
-  centerName,
   timezone,
   initialPatient,
   initialBooking = null,
@@ -211,233 +211,242 @@ export function NewAppointmentScreen({
     }
   }
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">Crear turno</h1>
-          <p className="mt-1 text-slate-700">
-            {centerName} · {timezone}
-          </p>
-          <Link
-            className="mt-3 inline-block font-semibold text-sky-700 underline"
-            href={`/centers/${centerId}/appointments`}
-          >
-            Volver a turnos
-          </Link>
-        </header>
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <ModuleHeader
+          centerId={centerId}
+          title="Crear turno"
+          description="Seleccioná el paciente, el profesional y un horario disponible."
+          parent={{ label: "Turnos", href: `/centers/${centerId}/appointments` }}
+        />
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-slate-900">1. Paciente</h2>
-          {patient ? (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <p>
-                Seleccionado:{" "}
-                <strong>
-                  {patient.firstName} {patient.lastName}
-                </strong>
-              </p>
-              <button
-                type="button"
-                className="font-semibold text-sky-700 underline"
-                onClick={() => setPatient(null)}
-              >
-                Cambiar
-              </button>
-            </div>
-          ) : (
-            <>
-              <form
-                className="mt-4 flex flex-wrap gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void search();
-                }}
-              >
-                <label className="min-w-0 flex-1 text-sm font-semibold text-slate-800">
-                  Buscar paciente activo
-                  <input
-                    className="mt-1 min-h-11 w-full rounded border border-slate-300 px-3"
-                    value={query}
-                    onChange={(event) => invalidateSearch(event.target.value)}
-                    maxLength={100}
-                    type="search"
-                  />
-                </label>
-                <button className={buttonClass} type="submit" disabled={patientState === "loading"}>
-                  Buscar
-                </button>
-              </form>
-              {patientState === "loading" && <p role="status">Buscando pacientes…</p>}
-              {patientState === "error" && (
-                <p role="alert" className="text-red-700">
-                  No pudimos buscar pacientes. Intentá de nuevo.
+          <div className="w-full max-w-[800px]">
+            <h2 className="text-xl font-semibold text-slate-900">1. Paciente</h2>
+            {patient ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <p>
+                  Seleccionado:{" "}
+                  <strong>
+                    {patient.firstName} {patient.lastName}
+                  </strong>
                 </p>
-              )}
-              {patientState === "ready" &&
-                (patients.length ? (
-                  <ul className="mt-3 space-y-2">
-                    {patients.map((item) => (
-                      <li
-                        key={item.patientCenterId}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded border p-3"
-                      >
-                        <span>
-                          {item.firstName} {item.lastName}
-                        </span>
-                        <button
-                          type="button"
-                          className="font-semibold text-sky-700 underline"
-                          onClick={() => setPatient(item)}
-                        >
-                          Seleccionar
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-3">No encontramos pacientes activos.</p>
-                ))}
-              {patientState === "ready" && hasNext && (
                 <button
                   type="button"
-                  className="mt-3 font-semibold text-sky-700 underline"
-                  onClick={() => void search(patientPage + 1)}
+                  className="font-semibold text-sky-700 underline"
+                  onClick={() => setPatient(null)}
                 >
-                  Siguiente página de pacientes
+                  Cambiar
                 </button>
-              )}
-              <Link
-                className="mt-4 inline-block font-semibold text-sky-700 underline"
-                href={`/centers/${centerId}/patients?from=appointment`}
-              >
-                Registrar o reactivar paciente
-              </Link>
-            </>
-          )}
-        </section>
-        <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-slate-900">
-            2. Especialidad, profesional y horario
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Elegí un horario ofrecido por el centro. La disponibilidad se confirma al crear.
-          </p>
-          {initialBookingUnavailable && (
-            <p role="alert" className="mt-2 text-sm text-amber-900">
-              El horario elegido desde la Agenda ya no está disponible. Elegí otro horario.
-            </p>
-          )}
-          <div className="mt-4">
-            <BookingSelector
-              key={selectorKey}
-              centerId={centerId}
-              timezone={timezone}
-              onChange={setChoice}
-              initial={initialBooking ?? undefined}
-            />
+              </div>
+            ) : (
+              <>
+                <form
+                  className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void search();
+                  }}
+                >
+                  <label className="min-w-0 flex-1 text-sm font-semibold text-slate-800">
+                    Buscar paciente activo
+                    <input
+                      className="mt-1 h-11 w-full rounded border border-slate-300 px-3"
+                      value={query}
+                      onChange={(event) => invalidateSearch(event.target.value)}
+                      maxLength={100}
+                      type="search"
+                    />
+                  </label>
+                  <button
+                    className={`${buttonClass} h-11 w-full sm:w-auto`}
+                    type="submit"
+                    disabled={patientState === "loading"}
+                  >
+                    Buscar
+                  </button>
+                </form>
+                {patientState === "loading" && <p role="status">Buscando pacientes…</p>}
+                {patientState === "error" && (
+                  <p role="alert" className="text-red-700">
+                    No pudimos buscar pacientes. Intentá de nuevo.
+                  </p>
+                )}
+                {patientState === "ready" &&
+                  (patients.length ? (
+                    <ul className="mt-3 space-y-2">
+                      {patients.map((item) => (
+                        <li
+                          key={item.patientCenterId}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded border p-3"
+                        >
+                          <span>
+                            {item.firstName} {item.lastName}
+                          </span>
+                          <button
+                            type="button"
+                            className="font-semibold text-sky-700 underline"
+                            onClick={() => setPatient(item)}
+                          >
+                            Seleccionar
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3">No encontramos pacientes activos.</p>
+                  ))}
+                {patientState === "ready" && hasNext && (
+                  <button
+                    type="button"
+                    className="mt-3 font-semibold text-sky-700 underline"
+                    onClick={() => void search(patientPage + 1)}
+                  >
+                    Siguiente página de pacientes
+                  </button>
+                )}
+                <Link
+                  className="mt-4 inline-block font-semibold text-sky-700 underline"
+                  href={`/centers/${centerId}/patients?from=appointment`}
+                >
+                  Registrar o reactivar paciente
+                </Link>
+              </>
+            )}
           </div>
         </section>
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-slate-900">3. Nota administrativa opcional</h2>
-          <label className="mt-3 block text-sm font-semibold text-slate-800">
-            Nota
-            <textarea
-              className="mt-1 min-h-28 w-full rounded border border-slate-300 p-3"
-              value={note}
-              onChange={(event) => {
-                if (Array.from(event.target.value).length <= 2000) setNote(event.target.value);
-              }}
-            />
-          </label>
-          <p className="text-sm text-slate-600">
-            {Array.from(note).length}/2.000 caracteres. No registrar información clínica.
-          </p>
+          <div className="w-full max-w-[800px]">
+            <h2 className="text-xl font-semibold text-slate-900">
+              2. Especialidad, profesional y horario
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Elegí un horario ofrecido por el centro. La disponibilidad se confirma al crear.
+            </p>
+            {initialBookingUnavailable && (
+              <p role="alert" className="mt-2 text-sm text-amber-900">
+                El horario elegido desde la Agenda ya no está disponible. Elegí otro horario.
+              </p>
+            )}
+            <div className="mt-4">
+              <BookingSelector
+                key={selectorKey}
+                centerId={centerId}
+                timezone={timezone}
+                onChange={setChoice}
+                initial={initialBooking ?? undefined}
+              />
+            </div>
+          </div>
         </section>
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-slate-900">4. Resumen</h2>
-          {patient && choice ? (
-            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="font-semibold">Paciente</dt>
-                <dd>
-                  {patient.firstName} {patient.lastName}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold">Especialidad</dt>
-                <dd>{choice.specialtyName}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold">Profesional</dt>
-                <dd>{choice.professionalName}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold">Fecha local</dt>
-                <dd>{choice.localDate}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold">Horario</dt>
-                <dd>
-                  {choice.localStartTime}–{choice.localEndTime}
-                  {choice.localEndDate !== choice.localDate ? ` (${choice.localEndDate})` : ""}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-semibold">Duración</dt>
-                <dd>{choice.duration} minutos</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="font-semibold">Nota</dt>
-                <dd>{note || "Sin nota"}</dd>
-              </div>
-            </dl>
-          ) : (
-            <p className="mt-3 text-slate-600">
-              Seleccioná paciente y horario para revisar el turno.
+          <div className="w-full max-w-[800px]">
+            <h2 className="text-xl font-semibold text-slate-900">
+              3. Nota administrativa opcional
+            </h2>
+            <label className="mt-3 block text-sm font-semibold text-slate-800">
+              Nota
+              <textarea
+                className="mt-1 min-h-28 w-full rounded border border-slate-300 p-3"
+                value={note}
+                onChange={(event) => {
+                  if (Array.from(event.target.value).length <= 2000) setNote(event.target.value);
+                }}
+              />
+            </label>
+            <p className="text-sm text-slate-600">
+              {Array.from(note).length}/2.000 caracteres. No registrar información clínica.
             </p>
-          )}
-          <div className="mt-4 space-y-3">
-            <AppointmentFeedback result={feedback} />
-            {uncertain && (
-              <div className="space-y-2" role="status">
-                <p>
-                  El resultado de esta reserva sigue sin confirmarse. Verificá el turno propuesto;
-                  no vuelvas a crear desde este formulario.
-                </p>
+          </div>
+        </section>
+        <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+          <div className="w-full max-w-[800px]">
+            <h2 className="text-xl font-semibold text-slate-900">4. Resumen</h2>
+            {patient && choice ? (
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 [&>div]:rounded-lg [&>div]:border [&>div]:border-slate-200 [&>div]:bg-slate-50 [&>div]:px-3 [&>div]:py-2">
+                <div>
+                  <dt className="font-semibold">Paciente</dt>
+                  <dd>
+                    {patient.firstName} {patient.lastName}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Especialidad</dt>
+                  <dd>{choice.specialtyName}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Profesional</dt>
+                  <dd>{choice.professionalName}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Fecha local</dt>
+                  <dd>{choice.localDate}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Horario</dt>
+                  <dd>
+                    {choice.localStartTime}–{choice.localEndTime}
+                    {choice.localEndDate !== choice.localDate ? ` (${choice.localEndDate})` : ""}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Duración</dt>
+                  <dd>{choice.duration} minutos</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-semibold">Nota</dt>
+                  <dd>{note || "Sin nota"}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-3 text-slate-600">
+                Seleccioná paciente y horario para revisar el turno.
+              </p>
+            )}
+            <div className="mt-5 space-y-4 border-t border-slate-200 pt-5">
+              <AppointmentFeedback result={feedback} />
+              {uncertain && (
+                <div className="space-y-2" role="status">
+                  <p>
+                    El resultado de esta reserva sigue sin confirmarse. Verificá el turno propuesto;
+                    no vuelvas a crear desde este formulario.
+                  </p>
+                  <button
+                    type="button"
+                    className={buttonClass}
+                    disabled={checking}
+                    onClick={() => void reconcile()}
+                  >
+                    {checking ? "Verificando…" : "Verificar turno propuesto"}
+                  </button>
+                  {matchId ? (
+                    <p>
+                      Se encontró un turno coincidente.{" "}
+                      <Link
+                        className="font-semibold text-sky-700 underline"
+                        href={`/centers/${centerId}/appointments/${matchId}`}
+                      >
+                        Ver detalle
+                      </Link>
+                    </p>
+                  ) : (
+                    <p>
+                      Si la verificación no encuentra un turno, el resultado sigue siendo
+                      indeterminado. Solicitá una comprobación administrativa antes de otro intento.
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="flex justify-center">
                 <button
                   type="button"
-                  className={buttonClass}
-                  disabled={checking}
-                  onClick={() => void reconcile()}
+                  className={`${buttonClass} w-full sm:w-auto`}
+                  disabled={!patient || !choice || pending || uncertain || completed}
+                  onClick={() => void create()}
                 >
-                  {checking ? "Verificando…" : "Verificar turno propuesto"}
+                  {pending ? "Creando…" : completed ? "Turno creado" : "Confirmar y crear turno"}
                 </button>
-                {matchId ? (
-                  <p>
-                    Se encontró un turno coincidente.{" "}
-                    <Link
-                      className="font-semibold text-sky-700 underline"
-                      href={`/centers/${centerId}/appointments/${matchId}`}
-                    >
-                      Ver detalle
-                    </Link>
-                  </p>
-                ) : (
-                  <p>
-                    Si la verificación no encuentra un turno, el resultado sigue siendo
-                    indeterminado. Solicitá una comprobación administrativa antes de otro intento.
-                  </p>
-                )}
               </div>
-            )}
-            <button
-              type="button"
-              className={buttonClass}
-              disabled={!patient || !choice || pending || uncertain || completed}
-              onClick={() => void create()}
-            >
-              {pending ? "Creando…" : completed ? "Turno creado" : "Confirmar y crear turno"}
-            </button>
+            </div>
           </div>
         </section>
       </div>

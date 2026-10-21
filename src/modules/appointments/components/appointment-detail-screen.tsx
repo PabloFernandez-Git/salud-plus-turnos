@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { ModuleHeader } from "@/components/module-header";
 import {
   rescheduleAppointmentAction,
   transitionAppointmentStatusAction,
@@ -88,7 +88,6 @@ function availableTransitions(status: ProfessionalAppointment["status"], staff: 
 
 function AppointmentDetailBody({
   centerId,
-  centerName,
   timezone,
   detail,
   outsideAvailability,
@@ -219,17 +218,14 @@ function AppointmentDetailBody({
   }
   const initialDate = appointmentLocalParts(appointment.starts_at, timezone).date;
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <p className="text-sm font-semibold text-sky-700">
-            {centerName} · {timezone}
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-950">Detalle del turno</h1>
-          <Link className="mt-3 inline-block font-semibold text-sky-700 underline" href={base}>
-            Volver a turnos
-          </Link>
-        </header>
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6 [&>section]:max-w-4xl">
+        <ModuleHeader
+          centerId={centerId}
+          title="Detalle del turno"
+          description={`Consultá los datos y el estado del turno. Horarios en la zona del centro: ${timezone}.`}
+          parent={{ label: "Turnos", href: base }}
+        />
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
           <h2 className="mb-4 text-xl font-semibold text-slate-900">Datos del turno</h2>
           <Details appointment={appointment} timezone={timezone} staff={staff} />

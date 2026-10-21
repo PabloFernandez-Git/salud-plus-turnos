@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { ModuleHeader, moduleSecondaryActionClass } from "@/components/module-header";
 import {
   createAvailabilityAction,
   deactivateAvailabilityAction,
@@ -22,7 +23,6 @@ type Editor =
 
 export function AvailabilityScreen({
   centerId,
-  centerName,
   timezone,
   professional,
   intervals,
@@ -198,33 +198,28 @@ export function AvailabilityScreen({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950">Disponibilidad</h1>
-              <p className="mt-1 text-lg text-slate-900">
-                {professional.firstName} {professional.lastName}
-              </p>
-              <p className="text-slate-700">{centerName}</p>
-              <p className="mt-2 text-sm text-slate-600">
-                Horarios semanales en la zona horaria del centro: {timezone}.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {canViewProfessionals && (
-                <Link className={buttonClass} href={`/centers/${centerId}/professionals`}>
-                  Profesionales
-                </Link>
-              )}
-              <Link className={buttonClass} href={`/centers/${centerId}`}>
-                Volver al centro
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <ModuleHeader
+          centerId={centerId}
+          title="Disponibilidad"
+          description={
+            <>
+              Horarios semanales de {professional.firstName} {professional.lastName} en la zona del
+              centro: {timezone}.
+            </>
+          }
+          actions={
+            canViewProfessionals && (
+              <Link
+                className={moduleSecondaryActionClass}
+                href={`/centers/${centerId}/professionals`}
+              >
+                Profesionales
               </Link>
-            </div>
-          </div>
-        </header>
+            )
+          }
+        />
 
         {feedback && (
           <div

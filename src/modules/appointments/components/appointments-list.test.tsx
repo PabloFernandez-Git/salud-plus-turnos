@@ -62,6 +62,7 @@ describe("appointment list", () => {
         }}
       />,
     );
+    expect(screen.getByText("Consultá y gestioná los turnos del centro.")).toBeVisible();
     expect(screen.getByRole("link", { name: "Crear turno" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Profesional" })).toHaveValue(professionalCenterId);
     expect(screen.getByRole("combobox", { name: "Estado" })).toHaveValue("CANCELLED");
@@ -89,7 +90,7 @@ describe("appointment list", () => {
         }}
       />,
     );
-    expect(screen.getByText(/Tus turnos/)).toBeInTheDocument();
+    expect(screen.getByText("Consultá y gestioná los turnos del centro.")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Profesional" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
     expect(screen.queryByText("Dr Paz")).not.toBeInTheDocument();

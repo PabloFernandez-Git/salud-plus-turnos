@@ -57,7 +57,7 @@ describe("Center user navigation", () => {
     expect(screen.queryByRole("link", { name: "Usuarios" })).not.toBeInTheDocument();
   });
 
-  it("shows Usuarios → Center navigation", () => {
+  it("shows Usuarios → Inicio navigation", () => {
     render(
       <CenterUsersScreen
         actorUserId="99999999-9999-4999-8999-999999999999"
@@ -70,7 +70,7 @@ describe("Center user navigation", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Volver al centro" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Inicio" })).toHaveAttribute(
       "href",
       `/centers/${centerId}`,
     );
@@ -92,12 +92,12 @@ describe("CenterUsersScreen", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "Usuarios" })).toBeVisible();
-    expect(screen.getByText("Centro Norte")).toBeVisible();
+    expect(screen.queryByText("Centro Norte")).not.toBeInTheDocument();
     expect(
       screen.getByText(
         "Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas memberships sin modificar identidades existentes.",
       ),
-    ).toHaveClass("max-w-5xl", "text-sm", "leading-6", "text-slate-600");
+    ).toHaveClass("max-w-3xl", "text-sm", "leading-6", "text-slate-600");
 
     const adminRow = screen.getByRole("row", { name: /Ana Admin/ });
     expect(within(adminRow).getByText("ana@example.test")).toBeVisible();

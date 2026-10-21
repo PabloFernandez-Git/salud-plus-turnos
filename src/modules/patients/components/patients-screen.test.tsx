@@ -41,7 +41,7 @@ describe("patients presentation", () => {
       screen.getByText(
         "Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y mantené actualizados sus datos administrativos.",
       ),
-    ).toHaveClass("max-w-5xl", "text-sm", "leading-6", "text-slate-600");
+    ).toHaveClass("max-w-3xl", "text-sm", "leading-6", "text-slate-600");
     const table = screen.getByRole("table", { hidden: true });
     expect(within(table).getByText("Ana Pérez")).toBeInTheDocument();
     expect(within(table).getAllByText("—")).toHaveLength(2);

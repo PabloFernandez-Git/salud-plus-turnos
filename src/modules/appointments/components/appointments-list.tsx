@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 import type { AvailabilityProfessionalCenter } from "@/modules/availability/server/availability";
 import type { listAppointments } from "../server/appointments";
 import {
@@ -22,7 +23,6 @@ const linkClass =
 
 export function AppointmentsList({
   centerId,
-  centerName,
   timezone,
   today,
   role,
@@ -43,33 +43,20 @@ export function AppointmentsList({
 }) {
   const base = `/centers/${centerId}/appointments`;
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-          <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-950">Turnos</h1>
-              <p className="mt-1 text-slate-700">
-                {centerName} · {timezone}
-              </p>
-              <p className="mt-2 text-sm text-slate-600">
-                {role === "PROFESSIONAL" ? "Tus turnos" : "Turnos del centro"}. Fechas y horas en la
-                zona del centro.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {role !== "PROFESSIONAL" && (
-                <Link className={linkClass} href={`${base}/new`}>
-                  Crear turno
-                </Link>
-              )}
-              <Link className={linkClass} href={`/centers/${centerId}`}>
-                Volver al centro
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-[1400px] space-y-6">
+        <ModuleHeader
+          centerId={centerId}
+          title="Turnos"
+          description="Consultá y gestioná los turnos del centro."
+          actions={
+            role !== "PROFESSIONAL" && (
+              <Link className={modulePrimaryActionClass} href={`${base}/new`}>
+                Crear turno
               </Link>
-            </div>
-          </div>
-        </header>
+            )
+          }
+        />
         <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-slate-900">Buscar turnos</h2>
           <form

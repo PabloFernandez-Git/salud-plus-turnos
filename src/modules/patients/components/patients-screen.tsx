@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ModuleHeader } from "@/components/module-header";
 import { patientSearchUrl, type PatientFilters } from "../search/patient-search-params";
 import type { PatientPage } from "../server/patients";
 import type { PatientDetail } from "../server/patient-management";
@@ -21,7 +22,6 @@ function Status({ active }: { active: boolean }) {
 
 export function PatientsScreen({
   centerId,
-  centerName,
   filters,
   result,
   loadFailed = false,
@@ -55,36 +55,22 @@ export function PatientsScreen({
         : "No hay pacientes activos";
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+    <main className="px-5 py-8 sm:px-8 sm:py-10">
       <section className="mx-auto max-w-[1400px] space-y-6">
-        <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-sky-700">Administración del centro</p>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-950">Pacientes</h1>
-              <p className="text-lg font-medium text-slate-800">{centerName}</p>
-              <p className="max-w-5xl text-sm leading-6 text-slate-600">
-                Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y
-                mantené actualizados sus datos administrativos.
-              </p>
-            </div>
-            <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
-              href={`/centers/${centerId}`}
-            >
-              Volver al centro
-            </Link>
-          </div>
-        </header>
-        <div className="flex flex-col items-stretch gap-3 sm:items-end">
-          <PatientWorkspace
-            centerId={centerId}
-            filters={filters}
-            detail={detail}
-            detailFailed={detailFailed}
-            returnToAppointments={returnToAppointments}
-          />
-        </div>
+        <ModuleHeader
+          centerId={centerId}
+          title="Pacientes"
+          description="Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y mantené actualizados sus datos administrativos."
+          actions={
+            <PatientWorkspace
+              centerId={centerId}
+              filters={filters}
+              detail={detail}
+              detailFailed={detailFailed}
+              returnToAppointments={returnToAppointments}
+            />
+          }
+        />
         <form
           action={`/centers/${centerId}/patients`}
           aria-label="Búsqueda de pacientes"

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { modulePrimaryActionClass } from "@/components/module-header";
 import {
   createPatientAction,
   deactivatePatientAction,
@@ -976,7 +977,7 @@ export function PatientWorkspace({
           setNotice("");
           setRegisterOpen(true);
         }}
-        className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white"
+        className={modulePrimaryActionClass}
       >
         Registrar paciente
       </button>
