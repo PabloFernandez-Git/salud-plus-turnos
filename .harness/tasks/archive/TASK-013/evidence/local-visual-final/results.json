@@ -1,0 +1,176 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "name": "desktop",
+      "view": "day",
+      "pageWidth": 1440,
+      "viewport": 1440,
+      "calendarWidth": 1350,
+      "calendarContent": 1350,
+      "timeHeight": 474,
+      "timeContent": 2304,
+      "scrollTop": 817,
+      "eventHeights": [
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375
+      ],
+      "checks": [
+        "30-minute targets >=44px",
+        "00:00 and 22:30 reachable",
+        "return to first appointment",
+        "full concurrent appointment readable in list; detail link works",
+        "event keyboard detail navigation",
+        "empty view opens at 08:00 with full 24 hours"
+      ]
+    },
+    {
+      "name": "desktop",
+      "view": "week",
+      "pageWidth": 1440,
+      "viewport": 1440,
+      "calendarWidth": 1350,
+      "calendarContent": 1350,
+      "timeHeight": 473,
+      "timeContent": 2304,
+      "scrollTop": 817,
+      "eventHeights": [
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375
+      ],
+      "checks": [
+        "30-minute targets >=44px",
+        "00:00 and 22:30 reachable",
+        "return to first appointment",
+        "full concurrent appointment readable in list; detail link works",
+        "event keyboard detail navigation",
+        "empty view opens at 08:00 with full 24 hours"
+      ]
+    },
+    {
+      "name": "desktop",
+      "view": "month",
+      "pageWidth": 1440,
+      "viewport": 1440,
+      "calendarWidth": 1350,
+      "calendarContent": 1350,
+      "eventHeights": [],
+      "checks": [
+        "full concurrent appointment readable in list; detail link works",
+        "month summary opens day"
+      ]
+    },
+    {
+      "name": "mobile",
+      "view": "day",
+      "pageWidth": 390,
+      "viewport": 390,
+      "calendarWidth": 340,
+      "calendarContent": 900,
+      "timeHeight": 442,
+      "timeContent": 2304,
+      "scrollTop": 817,
+      "eventHeights": [
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375
+      ],
+      "checks": [
+        "30-minute targets >=44px",
+        "00:00 and 22:30 reachable",
+        "return to first appointment",
+        {
+          "allColumnsAccessible": [
+            "Elena Demo",
+            "Martín Demo",
+            "Lucía Demo"
+          ]
+        },
+        "long specialty selected: no page overflow",
+        "full concurrent appointment readable in list; detail link works",
+        "event keyboard detail navigation",
+        "empty view opens at 08:00 with full 24 hours"
+      ]
+    },
+    {
+      "name": "mobile",
+      "view": "week",
+      "pageWidth": 390,
+      "viewport": 390,
+      "calendarWidth": 340,
+      "calendarContent": 1120,
+      "timeHeight": 440,
+      "timeContent": 2304,
+      "scrollTop": 817,
+      "eventHeights": [
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375,
+        45.984375
+      ],
+      "checks": [
+        "30-minute targets >=44px",
+        "00:00 and 22:30 reachable",
+        "return to first appointment",
+        {
+          "allColumnsAccessible": [
+            "26 lun",
+            "27 mar",
+            "28 mié",
+            "29 jue",
+            "30 vie",
+            "31 sáb",
+            "01 dom"
+          ]
+        },
+        "long specialty selected: no page overflow",
+        "full concurrent appointment readable in list; detail link works",
+        "event keyboard detail navigation",
+        "empty view opens at 08:00 with full 24 hours"
+      ]
+    },
+    {
+      "name": "mobile",
+      "view": "month",
+      "pageWidth": 390,
+      "viewport": 390,
+      "calendarWidth": 340,
+      "calendarContent": 800,
+      "eventHeights": [],
+      "checks": [
+        {
+          "allColumnsAccessible": [
+            "lun",
+            "mar",
+            "mié",
+            "jue",
+            "vie",
+            "sáb",
+            "dom"
+          ]
+        },
+        "long specialty selected: no page overflow",
+        "full concurrent appointment readable in list; detail link works",
+        "month summary opens day"
+      ]
+    }
+  ],
+  "blocked": []
+}

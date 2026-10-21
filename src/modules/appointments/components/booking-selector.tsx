@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getAppointmentAvailabilityAction,
   listBookableProfessionalsAction,
@@ -38,6 +38,46 @@ type Slot = {
 };
 const selectClass = "mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3";
 
+function slotOffset(slot: Slot) {
+  // The civil fields come from PostgreSQL. Derive the offset from those fields
+  // and the instant so DST labels do not depend on the browser's timezone data.
+  const wall = Date.parse(`${slot.local_date}T${slot.local_start_time}:00Z`);
+  const minutes = Math.round((wall - Date.parse(slot.starts_at)) / 60000);
+  const sign = minutes < 0 ? "−" : "+";
+  const absolute = Math.abs(minutes);
+  return `UTC${sign}${String(Math.floor(absolute / 60)).padStart(2, "0")}:${String(absolute % 60).padStart(2, "0")}`;
+}
+
+function resolveBookingChoice(
+  specialties: Specialty[],
+  professionals: Professional[],
+  slots: Slot[],
+  specialtyId: string,
+  professionalCenterId: string,
+  localDate: string,
+  startsAt: string,
+): BookingChoice | null {
+  const specialty = specialties.find((row) => row.specialty_id === specialtyId);
+  const professional = professionals.find(
+    (row) => row.professional_center_id === professionalCenterId,
+  );
+  const slot = slots.find((row) => row.starts_at === startsAt && row.local_date === localDate);
+  if (!specialty || !professional || !slot) return null;
+  return {
+    specialtyId,
+    specialtyName: specialty.specialty_name,
+    professionalCenterId,
+    professionalName: `${professional.professional_first_name} ${professional.professional_last_name}`,
+    duration: professional.usual_appointment_duration_minutes,
+    localDate,
+    localStartTime: slot.local_start_time,
+    localEndDate: slot.local_end_date,
+    localEndTime: slot.local_end_time,
+    startsAt: slot.starts_at,
+    endsAt: slot.ends_at,
+  };
+}
+
 export function BookingSelector({
   centerId,
   onChange,
@@ -46,7 +86,12 @@ export function BookingSelector({
   centerId: string;
   timezone: string;
   onChange: (choice: BookingChoice | null) => void;
-  initial?: { specialtyId: string; professionalCenterId: string; localDate: string };
+  initial?: {
+    specialtyId: string;
+    professionalCenterId: string;
+    localDate: string;
+    startsAt?: string;
+  };
 }) {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -64,6 +109,7 @@ export function BookingSelector({
   const [slotState, setSlotState] = useState<
     "idle" | "loading" | "ready" | "no-availability" | "empty" | "error"
   >("idle");
+  const initialApplied = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -139,6 +185,51 @@ export function BookingSelector({
     };
   }, [centerId, specialtyId, professionalCenterId, localDate]);
 
+  useEffect(() => {
+    if (
+      !initial?.startsAt ||
+      initialApplied.current ||
+      slotStart ||
+      slotState !== "ready" ||
+      specialtyState !== "ready" ||
+      professionalState !== "ready"
+    )
+      return;
+    const choice = resolveBookingChoice(
+      specialties,
+      professionals,
+      slots,
+      specialtyId,
+      professionalCenterId,
+      localDate,
+      initial.startsAt,
+    );
+    if (!choice) return;
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      initialApplied.current = true;
+      setSlotStart(choice.startsAt);
+      onChange(choice);
+    });
+    return () => {
+      active = false;
+    };
+  }, [
+    initial?.startsAt,
+    slotStart,
+    slotState,
+    specialtyState,
+    professionalState,
+    specialties,
+    professionals,
+    slots,
+    specialtyId,
+    professionalCenterId,
+    localDate,
+    onChange,
+  ]);
+
   function changeSpecialty(value: string) {
     setSpecialtyId(value);
     setProfessionalCenterId("");
@@ -167,28 +258,17 @@ export function BookingSelector({
   }
   function changeSlot(value: string) {
     setSlotStart(value);
-    const specialty = specialties.find((row) => row.specialty_id === specialtyId);
-    const professional = professionals.find(
-      (row) => row.professional_center_id === professionalCenterId,
+    onChange(
+      resolveBookingChoice(
+        specialties,
+        professionals,
+        slots,
+        specialtyId,
+        professionalCenterId,
+        localDate,
+        value,
+      ),
     );
-    const slot = slots.find((row) => row.starts_at === value);
-    if (!specialty || !professional || !slot || slot.local_date !== localDate) {
-      onChange(null);
-      return;
-    }
-    onChange({
-      specialtyId,
-      specialtyName: specialty.specialty_name,
-      professionalCenterId,
-      professionalName: `${professional.professional_first_name} ${professional.professional_last_name}`,
-      duration: professional.usual_appointment_duration_minutes,
-      localDate,
-      localStartTime: slot.local_start_time,
-      localEndDate: slot.local_end_date,
-      localEndTime: slot.local_end_time,
-      startsAt: slot.starts_at,
-      endsAt: slot.ends_at,
-    });
   }
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -271,7 +351,7 @@ export function BookingSelector({
                 key={slot.starts_at}
                 disabled={slot.local_date !== localDate}
               >
-                {slot.local_start_time}–{slot.local_end_time}
+                {slot.local_start_time}–{slot.local_end_time} ({slotOffset(slot)})
                 {slot.local_end_date !== slot.local_date ? ` (${slot.local_end_date})` : ""}
               </option>
             );

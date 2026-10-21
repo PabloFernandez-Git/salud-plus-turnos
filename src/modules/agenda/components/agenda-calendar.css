@@ -1,0 +1,98 @@
+.agenda-calendar-inner {
+  min-width: 360px;
+}
+.agenda-calendar .rbc-calendar {
+  height: clamp(420px, 60vh, 620px);
+}
+.agenda-calendar .rbc-time-view {
+  min-height: 0;
+}
+.agenda-calendar .rbc-timeslot-group {
+  min-height: 96px;
+}
+.agenda-calendar:focus-visible {
+  outline: 2px solid #0369a1;
+  outline-offset: 2px;
+}
+.agenda-calendar .rbc-time-slot,
+.agenda-calendar .rbc-timeslot-group {
+  border-color: #e2e8f0;
+}
+.agenda-calendar .rbc-event {
+  border-radius: 6px;
+  background: #0369a1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.agenda-calendar .rbc-day-slot .rbc-event {
+  display: block;
+}
+.agenda-calendar .rbc-day-slot .rbc-event-label {
+  display: none;
+}
+.agenda-calendar .rbc-day-slot .rbc-event-content {
+  min-width: 0;
+  height: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agenda-calendar .rbc-event:focus-visible {
+  outline: 3px solid #0f172a;
+  outline-offset: 2px;
+}
+.agenda-calendar .rbc-today {
+  background: #f0f9ff;
+}
+.agenda-event-content {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 18px;
+}
+.agenda-event-content strong,
+.agenda-event-content span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agenda-event-content span {
+  font-size: 0.75rem;
+  line-height: 16px;
+}
+.agenda-calendar .rbc-time-content {
+  scrollbar-gutter: stable;
+}
+.agenda-month-summary {
+  display: flex;
+  width: 100%;
+  min-height: 75px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px;
+  text-align: left;
+  color: #0f172a;
+}
+.agenda-month-summary span {
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.agenda-month-summary small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: #475569;
+}
+.agenda-month-summary:disabled {
+  opacity: 0.45;
+}
+.agenda-month-summary:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: -3px;
+}
