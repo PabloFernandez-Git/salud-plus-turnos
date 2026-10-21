@@ -416,20 +416,20 @@ async function login(page, name) {
 async function openUsers(page, actor, centerId = centerIds[0]) {
   await login(page, actor);
   await page.goto(`/centers/${centerId}/users`);
-  await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toBeVisible();
 }
 
 async function openManager(page, rowName) {
   const row = page.getByRole("row", { name: rowName });
-  await row.getByRole("button", { name: "Administrar" }).click();
-  return row;
+  await row.getByRole("button", { name: "Administrar acceso" }).click();
+  const dialog = page.getByRole("dialog", { name: "Administrar acceso" });
+  await expect(dialog).toBeVisible();
+  return dialog;
 }
 
 async function confirmChange(page, row) {
   await row.getByRole("button", { name: "Revisar cambios" }).click();
-  const dialog = row.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Confirmar cambios" }).click();
+  await row.getByRole("button", { name: "Confirmar cambios" }).click();
 }
 
 function professionalSelect(row) {
@@ -547,14 +547,20 @@ test.describe.serial("TASK-005B3D membership management", () => {
     for (const actor of ["reception-actor", "professional-actor", "inactive-admin"]) {
       await login(page, actor);
       await page.goto(`/centers/${centerIds[0]}/users`);
-      await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Gestión de usuarios" }),
+      ).toHaveCount(0);
     }
     await login(page, "other-admin");
     await page.goto(`/centers/${centerIds[0]}/users`);
-    await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toHaveCount(
+      0,
+    );
     await login(page, "platform");
     await page.goto(`/centers/${centerIds[0]}/users`);
-    await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toHaveCount(
+      0,
+    );
   });
 
   test("PROFESSIONAL sólo ofrece PC válido, permite el PC propio y rechaza opciones inválidas", async ({
@@ -646,6 +652,8 @@ test.describe.serial("TASK-005B3D membership management", () => {
     expect(await membership("admin-a")).toMatchObject({ role: "RECEPTION", is_active: true });
     expect(await membership("admin-b")).toMatchObject({ role: "ADMIN", is_active: true });
     await page.goto(`/centers/${centerIds[0]}/users`);
-    await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toHaveCount(
+      0,
+    );
   });
 });

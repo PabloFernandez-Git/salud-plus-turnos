@@ -184,7 +184,8 @@ async function createAuthUser(name, firstName, lastName) {
     password,
     email_confirm: true,
   });
-  if (error || !data.user) throw new Error(`No se pudo crear el Auth user ${name}.`, { cause: error });
+  if (error || !data.user)
+    throw new Error(`No se pudo crear el Auth user ${name}.`, { cause: error });
   const user = { id: data.user.id, email, firstName, lastName };
   users.set(name, user);
   createdAuthUserIds.push(user.id);
@@ -212,12 +213,7 @@ async function createFixtures() {
   await database.query(
     `insert into public.centers (id,name,is_active)
      values ($1,$2,true),($3,$4,true)`,
-    [
-      centerIds[0],
-      `TASK-005B3B ${runId} Centro A`,
-      centerIds[1],
-      `TASK-005B3B ${runId} Centro B`,
-    ],
+    [centerIds[0], `TASK-005B3B ${runId} Centro A`, centerIds[1], `TASK-005B3B ${runId} Centro B`],
   );
   await database.query(
     `insert into public.professionals
@@ -334,7 +330,7 @@ async function login(page, name) {
 
 async function expectUsersRouteDenied(page, centerId) {
   await page.goto(`/centers/${centerId}/users`);
-  await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
   await expect(page.getByText(users.get("admin-a").email)).toHaveCount(0);
 }
@@ -364,9 +360,11 @@ test.describe.serial("TASK-005B3B Center users read-only UI", () => {
     await login(page, "admin-a");
     await expect(page).toHaveURL(new RegExp(`/centers/${centerIds[0]}$`));
 
-    await page.getByRole("link", { name: "Usuarios" }).click();
+    await page.getByRole("link", { name: "Gestión de usuarios" }).click();
     await expect(page).toHaveURL(new RegExp(`/centers/${centerIds[0]}/users$`));
-    await expect(page.getByRole("heading", { level: 1, name: "Usuarios" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Gestión de usuarios" }),
+    ).toBeVisible();
     await expect(page.getByText(`TASK-005B3B ${runId} Centro A`)).toBeVisible();
 
     const adminRow = page.getByRole("row", { name: /Ana Administradora/ });
@@ -388,7 +386,7 @@ test.describe.serial("TASK-005B3B Center users read-only UI", () => {
     ).toBeVisible();
     await expect(professionalRow.getByText("Paula Médica")).toBeVisible();
     await expect(professionalRow.getByText("Matrícula: MP 1234")).toBeVisible();
-    await expect(professionalRow.getByRole("button", { name: "Administrar" })).toBeVisible();
+    await expect(professionalRow.getByRole("button", { name: "Administrar acceso" })).toBeVisible();
 
     await expect(page.getByText(users.get("cross-center").email)).toHaveCount(0);
     await expect(page.getByText(`TASK-005B3B ${runId} Centro B`)).toHaveCount(0);
@@ -401,7 +399,7 @@ test.describe.serial("TASK-005B3B Center users read-only UI", () => {
     for (const name of ["reception", "professional"]) {
       await login(page, name);
       await expect(page).toHaveURL(new RegExp(`/centers/${centerIds[0]}$`));
-      await expect(page.getByRole("link", { name: "Usuarios" })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "Gestión de usuarios" })).toHaveCount(0);
       await expectUsersRouteDenied(page, centerIds[0]);
     }
   });

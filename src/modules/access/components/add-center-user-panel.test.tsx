@@ -79,6 +79,10 @@ describe("AddCenterUserPanel", () => {
     });
     renderPanel();
 
+    expect(
+      screen.getByText("Ingresá un email para agregar un usuario a este centro."),
+    ).toBeVisible();
+
     await openAndResolve("new@example.test");
 
     await waitFor(() => expect(screen.getByLabelText("Nombre")).toBeVisible());

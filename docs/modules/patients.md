@@ -39,6 +39,10 @@ Opcionales:
 Los datos administrativos son privados por centro. La existencia de una Persona común no revela otros centros ni comparte automáticamente turnos/notas/cobertura.
 
 La UI puede presentar la operación simplemente como “Registrar paciente”.
+En la interfaz actual, Registrar paciente se presenta en un modal centrado, adaptable al viewport y
+con scroll interno para las etapas largas. X, fondo y Escape comparten confirmación de descarte si
+hay datos sin guardar; una operación pendiente impide cerrar. El panel de Administración de pacientes
+conserva su presentación lateral.
 
 ## Foundation DB/API de TASK-007A (review independiente PASS)
 
@@ -64,7 +68,7 @@ Tabla desktop y tarjetas móviles muestran nombre, documento/nacionalidad, fecha
 
 ## TASK-007C+D — Administración de pacientes
 
-El plan C+D recibió review independiente PASS y autorización conjunta. **GATE C PASS:** la ruta existente añade Registrar paciente explícito y Administrar por fila/tarjeta. `patient=<UUID>` canónico abre un panel sin cambiar `q/state/page`; el panel permite inspeccionar un registro aunque no esté en la página o filtro visibles. En móvil el diálogo ocupa la pantalla y en desktop funciona como panel lateral. El listado sigue siendo una lectura server y no se mantiene una copia de la tabla en el cliente.
+El plan C+D recibió review independiente PASS y autorización conjunta. **GATE C PASS:** la ruta existente añade Registrar paciente explícito y Administrar por fila/tarjeta. `patient=<UUID>` canónico abre un panel sin cambiar `q/state/page`; el panel permite inspeccionar un registro aunque no esté en la página o filtro visibles. El diálogo de Administración de pacientes ocupa la pantalla en móvil y funciona como panel lateral en desktop. El listado sigue siendo una lectura server y no se mantiene una copia de la tabla en el cliente.
 
 Registrar comprueba nacionalidad, documento y fecha ingresada mediante resolve exacto; SEARCH miss nunca inicia resolve. NOT_FOUND crea Person y PatientCenter atómicamente tras revisar nombres y datos administrativos; mismatch de nacimiento bloquea mutación sin revelar la fecha almacenada; NOT_LINKED vincula sólo con confirmación; ACTIVE reutiliza la relación sin mutar; INACTIVE reactiva con confirmación y CAS conservando datos administrativos. La pantalla sólo usa la proyección mínima de resolve y nunca muestra IDs técnicos, datos de otro Center ni fecha almacenada en esa respuesta.
 

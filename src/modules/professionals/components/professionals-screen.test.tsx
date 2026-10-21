@@ -84,7 +84,7 @@ describe("ProfessionalsScreen", () => {
       "href",
       `/centers/${centerId}/professionals`,
     );
-    expect(screen.getByRole("link", { name: "Usuarios" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Gestión de usuarios" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Especialidades" })).toBeVisible();
     view.rerender(<CenterNavigation centerId={centerId} role="RECEPTION" />);
     expect(screen.queryByRole("link", { name: "Profesionales" })).not.toBeInTheDocument();

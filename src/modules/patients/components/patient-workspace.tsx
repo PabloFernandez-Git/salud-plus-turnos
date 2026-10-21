@@ -1,8 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { modulePrimaryActionClass } from "@/components/module-header";
+import { modalActionGroupClass } from "@/components/modal-action-group";
 import {
   createPatientAction,
   deactivatePatientAction,
@@ -49,34 +57,89 @@ const emptyDetails: Details = { phone: "", email: "", insuranceName: "", adminis
 function PatientDialog({
   children,
   onClose,
-  canClose,
   closeOnBackdrop = false,
   iconClose = false,
+  centered = false,
+  hasUnsavedChanges = false,
+  isPending = false,
   title,
   description,
 }: {
   children: React.ReactNode;
   onClose: () => void;
-  canClose?: () => boolean;
   closeOnBackdrop?: boolean;
   iconClose?: boolean;
+  centered?: boolean;
+  hasUnsavedChanges?: boolean;
+  isPending?: boolean;
   title: string;
   description: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const continueEditingRef = useRef<HTMLButtonElement>(null);
+  const wasDiscardRequested = useRef(false);
+  const [discardRequested, setDiscardRequested] = useState(false);
   useEffect(() => {
     const dialog = ref.current;
-    dialog?.showModal();
-    dialog?.querySelector<HTMLElement>("h2")?.focus();
-  }, []);
+    if (dialog && !dialog.open) dialog.showModal();
+    if (centered) closeButtonRef.current?.focus();
+    else dialog?.querySelector<HTMLElement>("h2")?.focus();
+  }, [centered]);
+  useEffect(() => {
+    if (discardRequested) continueEditingRef.current?.focus();
+    else if (wasDiscardRequested.current) closeButtonRef.current?.focus();
+    wasDiscardRequested.current = discardRequested;
+  }, [discardRequested]);
+  useEffect(() => {
+    if (centered && isPending) ref.current?.focus();
+  }, [centered, isPending]);
+
+  function requestClose() {
+    if (centered && isPending) return;
+    if (centered && hasUnsavedChanges) {
+      setDiscardRequested(true);
+      return;
+    }
+    ref.current?.close();
+  }
+
+  function keepTabInDialog(event: KeyboardEvent<HTMLDialogElement>) {
+    if (!centered || event.key !== "Tab") return;
+    const focusable = Array.from(
+      ref.current?.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
+      ) ?? [],
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) {
+      event.preventDefault();
+      ref.current?.focus();
+    } else if (
+      event.shiftKey &&
+      (document.activeElement === first || document.activeElement === ref.current)
+    ) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
   return (
     <dialog
       ref={ref}
-      aria-label={title}
-      aria-describedby="patient-dialog-description"
+      aria-label={discardRequested ? "Descartar cambios" : title}
+      aria-describedby={
+        discardRequested ? "patient-discard-description" : "patient-dialog-description"
+      }
       onClose={onClose}
       onCancel={(event) => {
-        if (canClose && !canClose()) event.preventDefault();
+        if (!centered) return;
+        event.preventDefault();
+        if (discardRequested) setDiscardRequested(false);
+        else requestClose();
       }}
       onClick={(event) => {
         if (!closeOnBackdrop || event.target !== event.currentTarget) return;
@@ -88,49 +151,107 @@ function PatientDialog({
           event.clientY < bottom
         )
           return;
-        if (!canClose || canClose()) event.currentTarget.close();
+        requestClose();
       }}
-      className="m-0 ml-auto h-dvh max-h-dvh w-screen max-w-none overflow-y-auto border-0 bg-white p-0 shadow-2xl backdrop:bg-slate-950/50 md:w-[min(100%,38rem)]"
+      onKeyDown={keepTabInDialog}
+      tabIndex={centered ? -1 : undefined}
+      className={
+        centered
+          ? `m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 text-left shadow-xl backdrop:bg-slate-950/50 ${discardRequested ? "max-w-[28rem]" : "max-w-2xl"}`
+          : "m-0 ml-auto h-dvh max-h-dvh w-screen max-w-none overflow-y-auto border-0 bg-white p-0 shadow-2xl backdrop:bg-slate-950/50 md:w-[min(100%,38rem)]"
+      }
     >
-      <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white p-4 sm:p-6">
-        <div>
-          <h2 className="text-xl font-bold text-slate-950" tabIndex={-1}>
-            {title}
-          </h2>
-          <p id="patient-dialog-description" className="text-sm text-slate-600">
-            {description}
+      {centered && discardRequested ? (
+        <div className="p-5 sm:p-6" role="alert">
+          <h2 className="text-lg font-semibold text-slate-950">¿Descartar cambios?</h2>
+          <p id="patient-discard-description" className="mt-2 text-sm leading-6 text-slate-700">
+            Hay datos sin guardar. Si salís ahora, perderás los cambios realizados.
           </p>
-        </div>
-        <button
-          type="button"
-          aria-label={iconClose ? "Cerrar" : undefined}
-          onClick={() => {
-            if (!canClose || canClose()) ref.current?.close();
-          }}
-          className={
-            iconClose
-              ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-              : "min-h-11 rounded px-3 font-semibold text-sky-700"
-          }
-        >
-          {iconClose ? (
-            <svg
-              aria-hidden="true"
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="2"
-              viewBox="0 0 20 20"
+          <div className={`${modalActionGroupClass} mt-6`}>
+            <button
+              className="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+              onClick={() => setDiscardRequested(false)}
+              ref={continueEditingRef}
+              type="button"
             >
-              <path d="M5 5l10 10M15 5L5 15" />
-            </svg>
-          ) : (
-            "Cerrar"
-          )}
-        </button>
-      </div>
-      <div className="space-y-5 p-4 pb-8 sm:p-6">{children}</div>
+              Seguir editando
+            </button>
+            <button
+              className="min-h-11 rounded-md border border-red-700 bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+              onClick={() => ref.current?.close()}
+              type="button"
+            >
+              Descartar cambios
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            className={
+              centered
+                ? "flex min-w-0 items-start justify-between gap-4 px-5 pt-5 pb-2 sm:px-6 sm:pt-6"
+                : "sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white p-4 sm:p-6"
+            }
+          >
+            <div className={centered ? "min-w-0" : undefined}>
+              <h2
+                className={
+                  centered
+                    ? "text-lg font-semibold text-slate-950"
+                    : "text-xl font-bold text-slate-950"
+                }
+                tabIndex={-1}
+              >
+                {title}
+              </h2>
+              <p
+                id="patient-dialog-description"
+                className={
+                  centered ? "mt-1 break-words text-sm text-slate-600" : "text-sm text-slate-600"
+                }
+              >
+                {description}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label={iconClose ? "Cerrar" : undefined}
+              disabled={centered && isPending}
+              onClick={requestClose}
+              ref={closeButtonRef}
+              className={
+                iconClose
+                  ? "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-60"
+                  : "min-h-11 rounded px-3 font-semibold text-sky-700"
+              }
+            >
+              {iconClose ? (
+                <svg
+                  aria-hidden="true"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M5 5l10 10M15 5L5 15" />
+                </svg>
+              ) : (
+                "Cerrar"
+              )}
+            </button>
+          </div>
+          <div
+            className={
+              centered ? "space-y-5 px-5 pt-4 pb-5 sm:px-6 sm:pb-6" : "space-y-5 p-4 pb-8 sm:p-6"
+            }
+          >
+            {children}
+          </div>
+        </>
+      )}
     </dialog>
   );
 }
@@ -399,6 +520,16 @@ function Registration({
   const showDetails =
     resolution?.identity_status === "NOT_FOUND" ||
     (matched && resolution.relationship_state === "NOT_LINKED");
+  const hasUnsavedChanges =
+    identity.nationalityCode !== emptyIdentity.nationalityCode ||
+    identity.documentNumber !== "" ||
+    identity.birthDate !== "" ||
+    identity.firstName !== "" ||
+    identity.lastName !== "" ||
+    details.phone !== "" ||
+    details.email !== "" ||
+    details.insuranceName !== "" ||
+    details.administrativeNotes !== "";
   return (
     <PatientDialog
       title="Registrar paciente"
@@ -406,14 +537,9 @@ function Registration({
       onClose={onClose}
       closeOnBackdrop
       iconClose
-      canClose={() =>
-        (!identity.documentNumber &&
-          !identity.birthDate &&
-          !identity.firstName &&
-          !identity.lastName &&
-          !details.phone) ||
-        window.confirm("Hay datos sin guardar. ¿Querés salir del registro?")
-      }
+      centered
+      hasUnsavedChanges={hasUnsavedChanges}
+      isPending={pending}
     >
       <form className="space-y-4" onSubmit={resolve}>
         <h3 className="font-semibold">1. Identidad</h3>
@@ -442,13 +568,15 @@ function Registration({
           error={errors?.birthDate}
           required
         />
-        <button
-          disabled={pending}
-          className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-          type="submit"
-        >
-          Comprobar identidad
-        </button>
+        <div className={modalActionGroupClass}>
+          <button
+            disabled={pending}
+            className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50"
+            type="submit"
+          >
+            Comprobar identidad
+          </button>
+        </div>
       </form>
       <Feedback result={feedback} />
       {resolution?.identity_status === "FOUND" && !resolution.birth_date_matches && (
@@ -545,23 +673,25 @@ function Registration({
                   : "Confirmá la reactivación en este centro."}
             </p>
           )}
-          <button
-            disabled={pending}
-            type="submit"
-            className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-          >
-            {pending
-              ? "Procesando…"
-              : matched && resolution.relationship_state === "ACTIVE"
-                ? "Abrir panel"
-                : confirm
-                  ? "Confirmar"
-                  : resolution.identity_status === "NOT_FOUND"
-                    ? "Revisar alta"
-                    : matched && resolution.relationship_state === "NOT_LINKED"
-                      ? "Vincular a este centro"
-                      : "Reactivar en este centro"}
-          </button>
+          <div className={modalActionGroupClass}>
+            <button
+              disabled={pending}
+              type="submit"
+              className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50"
+            >
+              {pending
+                ? "Procesando…"
+                : matched && resolution.relationship_state === "ACTIVE"
+                  ? "Abrir panel"
+                  : confirm
+                    ? "Confirmar"
+                    : resolution.identity_status === "NOT_FOUND"
+                      ? "Revisar alta"
+                      : matched && resolution.relationship_state === "NOT_LINKED"
+                        ? "Vincular a este centro"
+                        : "Reactivar en este centro"}
+            </button>
+          </div>
         </form>
       )}
     </PatientDialog>

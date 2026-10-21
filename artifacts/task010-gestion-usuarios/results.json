@@ -1,0 +1,16 @@
+[
+  {
+    "name": "desktop-1440",
+    "width": 1440,
+    "hasOverflow": false,
+    "navigation": "ok",
+    "addUser": "ok"
+  },
+  {
+    "name": "mobile-390",
+    "width": 390,
+    "hasOverflow": false,
+    "navigation": "ok",
+    "addUser": "ok"
+  }
+]

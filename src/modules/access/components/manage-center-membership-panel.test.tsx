@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const action = vi.hoisted(() => vi.fn());
@@ -50,7 +50,30 @@ function renderPanel(overrides: Partial<Parameters<typeof ManageCenterMembership
   );
 }
 
+function dismissBy(method: "Cerrar" | "Cancelar" | "Fondo" | "Escape") {
+  const dialog = screen.getByRole("dialog", { name: "Administrar acceso" });
+  if (method === "Fondo") {
+    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+      left: 400,
+      right: 900,
+      top: 100,
+      bottom: 700,
+    } as DOMRect);
+    fireEvent.click(dialog, { clientX: 100, clientY: 50 });
+  } else if (method === "Escape") {
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+  } else {
+    fireEvent.click(within(dialog).getByRole("button", { name: method }));
+  }
+}
+
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
   action.mockReset();
   router.refresh.mockReset();
   router.replace.mockReset();
@@ -68,9 +91,60 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("ManageCenterMembershipPanel", () => {
+  it.each(["Cerrar", "Cancelar", "Fondo", "Escape"] as const)(
+    "closes with %s and restores focus when unchanged",
+    (method) => {
+      renderPanel();
+      const trigger = screen.getByRole("button", { name: "Administrar acceso" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      dismissBy(method);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+      expect(action).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["Cerrar", "Cancelar", "Fondo", "Escape"] as const)(
+    "guards edited values on %s and discards only after confirmation",
+    (method) => {
+      renderPanel();
+      const trigger = screen.getByRole("button", { name: "Administrar acceso" });
+      fireEvent.click(trigger);
+      fireEvent.change(screen.getByLabelText("Rol en este centro"), {
+        target: { value: "RECEPTION" },
+      });
+      dismissBy(method);
+      expect(screen.getByRole("dialog", { name: "Descartar cambios" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+      expect(screen.getByLabelText("Rol en este centro")).toHaveValue("RECEPTION");
+      dismissBy(method);
+      fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(trigger).toHaveFocus();
+      expect(action).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps inner clicks open and uses a shared action footer", () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
+    const dialog = screen.getByRole("dialog", { name: "Administrar acceso" });
+    fireEvent.click(within(dialog).getByRole("heading", { name: "Administrar acceso" }));
+    expect(dialog).toBeVisible();
+    const cancel = within(dialog).getByRole("button", { name: "Cancelar" });
+    const review = within(dialog).getByRole("button", { name: "Revisar cambios" });
+    expect(cancel.parentElement).toBe(review.parentElement);
+    expect(cancel.compareDocumentPosition(review) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Cerrar" })).toHaveAttribute(
+      "aria-label",
+      "Cerrar",
+    );
+  });
+
   it("shows only Center access data and requires an explicit role-change confirmation", async () => {
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
 
     expect(screen.getByText("Ana Admin")).toBeVisible();
     expect(screen.getByText("ana@example.test")).toBeVisible();
@@ -97,11 +171,12 @@ describe("ManageCenterMembershipPanel", () => {
       isActive: "true",
     });
     await waitFor(() => expect(router.refresh).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "Administrar acceso" })).not.toBeInTheDocument();
   });
 
   it("requires explicit confirmation for deactivation and reactivation", () => {
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "inactive" },
     });
@@ -110,7 +185,7 @@ describe("ManageCenterMembershipPanel", () => {
 
     cleanup();
     renderPanel({ user: { ...user, role: "RECEPTION", isActive: false } });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "active" },
     });
@@ -120,19 +195,21 @@ describe("ManageCenterMembershipPanel", () => {
 
   it("anticipates the evident last-ADMIN rejection", () => {
     renderPanel({ activeAdminCount: 1 });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "inactive" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Revisar cambios" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("único Administrador activo");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Confirmar cambio de acceso" }),
+    ).not.toBeInTheDocument();
   });
 
   it("blocks PROFESSIONAL when no eligible ProfessionalCenter exists", () => {
     renderPanel({ activeAdminCount: 2, professionalCenters: [] });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
 
     expect(
       within(screen.getByLabelText("Rol en este centro")).getByRole("option", {
@@ -160,7 +237,7 @@ describe("ManageCenterMembershipPanel", () => {
         professionalCenters[1]!,
       ],
     });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
 
     const select = screen.getByLabelText("Profesional asociado");
     expect(within(select).getByRole("option", { name: /Libre, Paula/ })).toBeVisible();
@@ -180,7 +257,7 @@ describe("ManageCenterMembershipPanel", () => {
       },
     };
     const { unmount } = renderPanel({ user: inactiveProfessional, professionalCenters: [] });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "inactive" },
     });
@@ -192,7 +269,7 @@ describe("ManageCenterMembershipPanel", () => {
       user: { ...inactiveProfessional, isActive: false },
       professionalCenters: [],
     });
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "active" },
     });
@@ -208,7 +285,7 @@ describe("ManageCenterMembershipPanel", () => {
       membership: { id: user.id, role: "RECEPTION", isActive: true, professionalCenterId: null },
     });
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Rol en este centro"), {
       target: { value: "RECEPTION" },
     });
@@ -222,7 +299,7 @@ describe("ManageCenterMembershipPanel", () => {
   it("refreshes persisted state after an ambiguous transport failure", async () => {
     action.mockRejectedValueOnce(new Error("response lost"));
     renderPanel();
-    fireEvent.click(screen.getByRole("button", { name: "Administrar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
     fireEvent.change(screen.getByLabelText("Rol en este centro"), {
       target: { value: "RECEPTION" },
     });
@@ -230,6 +307,105 @@ describe("ManageCenterMembershipPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar cambios" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos confirmar el resultado");
+    expect(router.refresh).toHaveBeenCalledOnce();
+    expect(screen.getByRole("dialog", { name: "Administrar acceso" })).toBeVisible();
+    expect(screen.getByLabelText("Rol en este centro")).toHaveValue("RECEPTION");
+  });
+
+  it("renders a native modal outside the table and restores focus after Cancel", () => {
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <ManageCenterMembershipPanel
+                activeAdminCount={2}
+                centerId={centerId}
+                professionalCenters={professionalCenters}
+                user={user}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>,
+    );
+    const trigger = screen.getByRole("button", { name: "Administrar acceso" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Administrar acceso" });
+    expect(dialog.parentElement).toBe(document.body);
+    expect(dialog).toHaveAttribute("open");
+    expect(within(dialog).getByRole("button", { name: "Cerrar" })).toHaveFocus();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("requires explicit discard for unsaved changes and keeps edits when continuing", () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
+    fireEvent.change(screen.getByLabelText("Rol en este centro"), {
+      target: { value: "RECEPTION" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.getByRole("dialog", { name: "Descartar cambios" })).toBeVisible();
+    expect(action).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+    expect(screen.getByLabelText("Rol en este centro")).toHaveValue("RECEPTION");
+    expect(screen.getByLabelText("Rol en este centro")).toHaveFocus();
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("keeps edited values and server validation errors available for correction", async () => {
+    action.mockResolvedValueOnce({
+      status: "error",
+      message: "El acceso cambió mientras lo estabas editando.",
+      fieldErrors: { role: ["Revisá el rol seleccionado."] },
+    });
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
+    fireEvent.change(screen.getByLabelText("Rol en este centro"), {
+      target: { value: "RECEPTION" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Revisar cambios" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cambios" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("El acceso cambió");
+    expect(screen.getByLabelText("Rol en este centro")).toHaveValue("RECEPTION");
+    expect(screen.getByRole("dialog", { name: "Administrar acceso" })).toBeVisible();
+  });
+
+  it("keeps focus and blocks closing while a confirmed update is pending", async () => {
+    let finish!: (state: unknown) => void;
+    action.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
+    fireEvent.change(screen.getByLabelText("Rol en este centro"), {
+      target: { value: "RECEPTION" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Revisar cambios" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar cambios" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const dialog = screen.getByRole("dialog", { name: "Administrar acceso" });
+    expect(dialog).toHaveFocus();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(dialog).toBeVisible();
+    expect(dialog).toHaveFocus();
+    await act(async () => {
+      finish({
+        status: "success",
+        message: "Acceso actualizado.",
+        membership: { id: user.id, role: "RECEPTION", isActive: true, professionalCenterId: null },
+      });
+    });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(router.refresh).toHaveBeenCalledOnce();
   });
 });

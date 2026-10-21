@@ -43,7 +43,7 @@ export function CenterHeader({
         </div>
         <div className="w-full shrink-0 sm:w-auto">
           {isDashboard ? (
-            <LogoutButton variant="quiet" />
+            <LogoutButton variant="quiet" confirm />
           ) : (
             <Link
               className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"

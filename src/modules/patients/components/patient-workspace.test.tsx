@@ -99,6 +99,14 @@ function openRegistrationDialog() {
   } as DOMRect);
   return { dialog, trigger };
 }
+function requestRegistrationClose(
+  dialog: HTMLDialogElement,
+  method: "Cerrar" | "Fondo" | "Escape",
+) {
+  if (method === "Cerrar") fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+  else if (method === "Fondo") fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+  else fireEvent(dialog, new Event("cancel", { cancelable: true }));
+}
 function renderRegistration() {
   render(
     <PatientWorkspace centerId={centerId} filters={filters} detail={null} detailFailed={false} />,
@@ -112,20 +120,42 @@ function renderRegistration() {
 }
 
 describe("patient staged dialogs", () => {
-  it("closes registration from the backdrop using the unsaved-data guard and restores focus", async () => {
+  it("guards unsaved registration data on the backdrop and restores focus after discard", async () => {
     const { dialog, trigger } = openRegistrationDialog();
     fireEvent.change(screen.getByLabelText("Documento"), { target: { value: "123" } });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-
-    fireEvent.click(dialog, { clientX: 100, clientY: 100 });
-    expect(confirm).toHaveBeenCalledOnce();
-    expect(dialog).toBeInTheDocument();
-
-    confirm.mockReturnValue(true);
-    fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+    requestRegistrationClose(dialog, "Fondo");
+    const discardDialog = screen.getByRole("dialog", { name: "Descartar cambios" });
+    expect(discardDialog).toBeVisible();
+    expect(discardDialog).toHaveAttribute("aria-describedby", "patient-discard-description");
+    expect(screen.getByRole("heading", { name: "¿Descartar cambios?" })).toBeVisible();
+    expect(
+      screen.getByText("Hay datos sin guardar. Si salís ahora, perderás los cambios realizados."),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+    expect(screen.getByLabelText("Documento")).toHaveValue("123");
+    requestRegistrationClose(dialog, "Fondo");
+    fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
     expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
   });
+
+  it.each(["Cerrar", "Escape"] as const)(
+    "guards unsaved registration data on %s",
+    async (method) => {
+      const { dialog, trigger } = openRegistrationDialog();
+      fireEvent.change(screen.getByLabelText("Nacionalidad (código ISO de dos letras)"), {
+        target: { value: "UY" },
+      });
+      requestRegistrationClose(dialog, method);
+      expect(screen.getByRole("dialog", { name: "Descartar cambios" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+      expect(screen.getByLabelText("Nacionalidad (código ISO de dos letras)")).toHaveValue("UY");
+      requestRegistrationClose(dialog, method);
+      fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await waitFor(() => expect(trigger).toHaveFocus());
+    },
+  );
 
   it("keeps registration open for clicks inside the panel and closes with Cerrar", async () => {
     const { dialog, trigger } = openRegistrationDialog();
@@ -151,6 +181,67 @@ describe("patient staged dialogs", () => {
 
     expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("keeps Tab and Shift+Tab inside the centered registration dialog", () => {
+    const { dialog } = openRegistrationDialog();
+    const close = screen.getByRole("button", { name: "Cerrar" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(screen.getByRole("button", { name: "Comprobar identidad" })).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(close).toHaveFocus();
+  });
+
+  it("blocks all registration close paths while identity resolution is pending", async () => {
+    const pendingResolve = deferred<Awaited<ReturnType<typeof resolvePatientAction>>>();
+    vi.mocked(resolvePatientAction).mockReturnValueOnce(pendingResolve.promise);
+    const { dialog } = openRegistrationDialog();
+    fireEvent.change(screen.getByLabelText("Documento"), { target: { value: "123" } });
+    fireEvent.change(screen.getByLabelText("Fecha de nacimiento"), {
+      target: { value: "2000-01-02" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Comprobar identidad" }));
+    await waitFor(() => expect(resolvePatientAction).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeDisabled();
+    requestRegistrationClose(dialog, "Fondo");
+    requestRegistrationClose(dialog, "Escape");
+    expect(screen.getByRole("dialog", { name: "Registrar paciente" })).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: "Descartar cambios" })).not.toBeInTheDocument();
+    await act(async () => pendingResolve.resolve({ status: "success", data: notFound } as never));
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeEnabled();
+  });
+
+  it("keeps registration open while a confirmed creation has an uncertain result", async () => {
+    vi.mocked(resolvePatientAction).mockResolvedValue({
+      status: "success",
+      data: notFound,
+    } as never);
+    const pendingCreate = deferred<Awaited<ReturnType<typeof createPatientAction>>>();
+    vi.mocked(createPatientAction).mockReturnValueOnce(pendingCreate.promise);
+    renderRegistration();
+    await screen.findByText("2. Datos del nuevo paciente");
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Ana" } });
+    fireEvent.change(screen.getByLabelText("Apellido"), { target: { value: "Paciente" } });
+    fireEvent.change(screen.getByLabelText("Teléfono"), { target: { value: "555" } });
+    fireEvent.click(screen.getByRole("button", { name: "Revisar alta" }));
+    const confirm = await screen.findByRole("button", { name: "Confirmar" });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+    await waitFor(() => expect(createPatientAction).toHaveBeenCalledOnce());
+    const dialog = screen.getByRole("dialog", { name: "Registrar paciente" }) as HTMLDialogElement;
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeDisabled();
+    requestRegistrationClose(dialog, "Fondo");
+    requestRegistrationClose(dialog, "Escape");
+    expect(dialog).toBeVisible();
+    expect(screen.queryByRole("dialog", { name: "Descartar cambios" })).not.toBeInTheDocument();
+    await act(async () =>
+      pendingCreate.resolve({
+        status: "success",
+        data: { outcome: "CREATED", patient_center_id: patientCenterId },
+      } as never),
+    );
+    expect(screen.queryByRole("dialog", { name: "Registrar paciente" })).not.toBeInTheDocument();
   });
 
   it("requires a second explicit confirmation before atomic creation", async () => {

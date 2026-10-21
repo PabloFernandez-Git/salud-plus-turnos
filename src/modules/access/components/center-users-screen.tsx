@@ -29,8 +29,8 @@ export function CenterUsersScreen({
       <div className="mx-auto max-w-[1400px] space-y-6">
         <ModuleHeader
           centerId={centerId}
-          title="Usuarios"
-          description="Consultá las cuentas, roles y accesos asociados a este centro, y agregá nuevas memberships sin modificar identidades existentes."
+          title="Gestión de usuarios"
+          description="Administrá los usuarios, roles y accesos del centro."
         />
 
         {loadFailed ? (
