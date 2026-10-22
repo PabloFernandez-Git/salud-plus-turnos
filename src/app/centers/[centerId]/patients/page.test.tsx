@@ -4,6 +4,7 @@ import { ORIGINAL_SEARCH_HEADER } from "@/lib/original-search-header";
 import { PageReveal } from "@/components/page-reveal";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { listPatientCenters } from "@/modules/patients/server/patients";
+import { getPatientCenter } from "@/modules/patients/server/patient-management";
 import PatientsPage from "./page";
 
 vi.mock("next/navigation", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   return { ...original, requireRole: vi.fn() };
 });
 vi.mock("@/modules/patients/server/patients", () => ({ listPatientCenters: vi.fn() }));
+vi.mock("@/modules/patients/server/patient-management", () => ({ getPatientCenter: vi.fn() }));
 
 const centerId = "11111111-1111-4111-8111-111111111111";
 const page = (
@@ -48,6 +50,7 @@ beforeEach(() => {
   vi.mocked(requireRole).mockReset();
   vi.mocked(headers).mockReset();
   vi.mocked(listPatientCenters).mockReset();
+  vi.mocked(getPatientCenter).mockReset();
   vi.mocked(requireRole).mockResolvedValue({ center: { id: centerId, name: "Centro" } } as never);
   vi.mocked(listPatientCenters).mockResolvedValue({
     rows: [],
@@ -74,9 +77,12 @@ describe("patients route", () => {
     "hides %s before parsing filters",
     async (code) => {
       vi.mocked(requireRole).mockRejectedValueOnce(new AuthorizationError(code));
-      await expect(page({ page: "402" })).rejects.toThrow("NOT_FOUND");
+      await expect(
+        page({ page: "402", patient: "22222222-2222-4222-8222-222222222222" }),
+      ).rejects.toThrow("NOT_FOUND");
       expect(headers).not.toHaveBeenCalled();
       expect(listPatientCenters).not.toHaveBeenCalled();
+      expect(getPatientCenter).not.toHaveBeenCalled();
     },
   );
   it("sends unauthenticated users to login", async () => {

@@ -50,6 +50,8 @@ Center autorizado, identidad proyectada, rol, estado y la asociación Profession
 existe. La ruta, sus queries y sus mutaciones requieren `ADMIN` tenant activo; ocultar el enlace es
 sólo una ayuda de UX.
 
+En «Usuarios del centro», la ausencia de profesional asociado se representa con `—` centrado en su celda, también cuando la tabla se desplaza horizontalmente en móvil. Si existe un profesional, su nombre y matrícula conservan alineación de lectura a la izquierda.
+
 Desde esa pantalla, **Agregar usuario** resuelve el email exacto en servidor. Si la identidad ya
 existe, se reutiliza sin cambiar email, password, nombre, apellido ni accesos de otros Centers. Si
 no existe, se solicitan nombre, apellido y password inicial de al menos 10 caracteres y se usa el

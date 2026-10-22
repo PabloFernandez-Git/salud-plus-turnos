@@ -27,6 +27,7 @@ import {
   type PatientFilters,
 } from "../search/patient-search-params";
 import type { PatientDetail } from "../server/patient-management";
+import { PatientAppointments } from "./patient-appointments";
 const formatPatientBirthDate = (value: string) => {
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year}`;
@@ -79,12 +80,19 @@ function PatientDialog({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const continueEditingRef = useRef<HTMLButtonElement>(null);
   const wasDiscardRequested = useRef(false);
+  const didClose = useRef(false);
   const [discardRequested, setDiscardRequested] = useState(false);
   useEffect(() => {
     const dialog = ref.current;
     if (dialog && !dialog.open) dialog.showModal();
     if (centered) closeButtonRef.current?.focus();
     else dialog?.querySelector<HTMLElement>("h2")?.focus();
+    if (!centered) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
   }, [centered]);
   useEffect(() => {
     if (discardRequested) continueEditingRef.current?.focus();
@@ -95,13 +103,20 @@ function PatientDialog({
     if (centered && isPending) ref.current?.focus();
   }, [centered, isPending]);
 
+  function finishClose() {
+    if (didClose.current) return;
+    didClose.current = true;
+    if (ref.current?.open) ref.current.close();
+    onClose();
+  }
+
   function requestClose() {
     if (centered && isPending) return;
     if (centered && hasUnsavedChanges) {
       setDiscardRequested(true);
       return;
     }
-    ref.current?.close();
+    finishClose();
   }
 
   function keepTabInDialog(event: KeyboardEvent<HTMLDialogElement>) {
@@ -110,7 +125,7 @@ function PatientDialog({
       ref.current?.querySelectorAll<HTMLElement>(
         "button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
       ) ?? [],
-    );
+    ).filter((element) => !element.closest("[hidden]") && element.tabIndex >= 0);
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (!first || !last) {
@@ -131,10 +146,11 @@ function PatientDialog({
     <dialog
       ref={ref}
       aria-label={discardRequested ? "Descartar cambios" : title}
+      aria-modal={centered ? "true" : undefined}
       aria-describedby={
         discardRequested ? "patient-discard-description" : "patient-dialog-description"
       }
-      onClose={onClose}
+      onClose={finishClose}
       onCancel={(event) => {
         if (!centered) return;
         event.preventDefault();
@@ -178,7 +194,7 @@ function PatientDialog({
             </button>
             <button
               className="min-h-11 rounded-md border border-red-700 bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
-              onClick={() => ref.current?.close()}
+              onClick={finishClose}
               type="button"
             >
               Descartar cambios
@@ -700,6 +716,7 @@ function Registration({
 
 function Administration({
   centerId,
+  timezone,
   filters,
   detail,
   detailFailed,
@@ -708,6 +725,7 @@ function Administration({
   returnToAppointments,
 }: {
   centerId: string;
+  timezone: string;
   filters: PatientFilters;
   detail: PatientDetail | null;
   detailFailed: boolean;
@@ -721,6 +739,9 @@ function Administration({
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [reactivationBirthDate, setReactivationBirthDate] = useState("");
   const [reactivation, setReactivation] = useState<PatientResolveRow | null>(null);
+  const [activeTab, setActiveTab] = useState<"data" | "appointments">("data");
+  const dataTabRef = useRef<HTMLButtonElement>(null);
+  const appointmentsTabRef = useRef<HTMLButtonElement>(null);
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState<Details>({
     phone: detail?.phone ?? "",
@@ -728,6 +749,24 @@ function Administration({
     insuranceName: detail?.insuranceName ?? "",
     administrativeNotes: detail?.administrativeNotes ?? "",
   });
+  const [savedForm, setSavedForm] = useState(form);
+  const hasUnsavedChanges = Object.keys(form).some(
+    (key) => form[key as keyof Details] !== savedForm[key as keyof Details],
+  );
+  function selectTab(tab: "data" | "appointments") {
+    if (pending) return;
+    setActiveTab(tab);
+    (tab === "data" ? dataTabRef : appointmentsTabRef).current?.focus();
+  }
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      selectTab(activeTab === "data" ? "appointments" : "data");
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      selectTab(event.key === "Home" ? "data" : "appointments");
+    }
+  }
   function runSafely(work: () => Promise<void>) {
     startTransition(async () => {
       try {
@@ -757,6 +796,7 @@ function Administration({
       result.data && typeof result.data === "object" && "outcome" in result.data
         ? result.data.outcome
         : "";
+    if (!deactivate) setSavedForm(form);
     if (
       returnToAppointments &&
       (outcome === "REACTIVATED" || outcome === "UNCHANGED") &&
@@ -886,181 +926,230 @@ function Administration({
       title="Administrar paciente"
       description="Datos de este centro. La identidad compartida es de solo lectura."
       onClose={onClose}
+      closeOnBackdrop
+      iconClose
+      centered
+      hasUnsavedChanges={hasUnsavedChanges}
+      isPending={pending}
     >
       {detailFailed || !detail ? (
         <p role="alert">No pudimos abrir este registro. Volvé al listado y reintentá.</p>
       ) : (
         <>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-            <dt>Nombre</dt>
-            <dd>
-              {detail.firstName} {detail.lastName}
-            </dd>
-            <dt>Nacionalidad</dt>
-            <dd>{detail.nationalityCode}</dd>
-            <dt>Documento</dt>
-            <dd>{detail.documentNumber}</dd>
-            <dt>Nacimiento</dt>
-            <dd>{formatPatientBirthDate(detail.birthDate)}</dd>
-            <dt>Estado</dt>
-            <dd>{detail.isActive ? "Activo" : "Inactivo"}</dd>
-          </dl>
-          <Feedback result={feedback} />
-          {stale && (
+          <div
+            aria-label="Secciones de la ficha"
+            className="flex gap-2 border-b border-slate-200"
+            role="tablist"
+          >
             <button
+              aria-controls="patient-data-panel"
+              aria-selected={activeTab === "data"}
+              className={`min-h-11 rounded-t-md px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${activeTab === "data" ? "border-b-2 border-sky-700 text-sky-800" : "text-slate-600 hover:bg-slate-50"}`}
+              disabled={pending}
+              id="patient-data-tab"
+              onClick={() => selectTab("data")}
+              onKeyDown={handleTabKey}
+              ref={dataTabRef}
+              role="tab"
+              tabIndex={activeTab === "data" ? 0 : -1}
               type="button"
-              className="min-h-11 font-semibold text-sky-700 underline"
-              onClick={() => {
-                setFeedback(null);
-                router.refresh();
-              }}
             >
-              Recargar datos
+              Datos del paciente
             </button>
-          )}
-          <form className="space-y-4 border-t pt-4" onSubmit={save}>
-            <h3 className="font-semibold">Datos administrativos</h3>
-            <Field
-              name="phone"
-              label="Teléfono"
-              value={form.phone}
-              onChange={(v) => change("phone", v)}
-              error={errors?.phone}
-              required
-            />
-            <Field
-              name="email"
-              label="Email"
-              type="email"
-              value={form.email}
-              onChange={(v) => change("email", v)}
-              error={errors?.email}
-            />
-            <Field
-              name="insuranceName"
-              label="Obra social / prepaga"
-              value={form.insuranceName}
-              onChange={(v) => change("insuranceName", v)}
-              error={errors?.insuranceName}
-            />
-            <Field
-              name="administrativeNotes"
-              label="Notas administrativas"
-              value={form.administrativeNotes}
-              onChange={(v) => change("administrativeNotes", v)}
-              error={errors?.administrativeNotes}
-              multiline
-            />
-            <p className="text-sm text-slate-600">
-              Uso administrativo. No registrar información clínica.
-            </p>
             <button
-              disabled={pending || stale || !detail.isActive}
-              type="submit"
-              className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
+              aria-controls="patient-appointments-panel"
+              aria-selected={activeTab === "appointments"}
+              className={`min-h-11 rounded-t-md px-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${activeTab === "appointments" ? "border-b-2 border-sky-700 text-sky-800" : "text-slate-600 hover:bg-slate-50"}`}
+              disabled={pending}
+              id="patient-appointments-tab"
+              onClick={() => selectTab("appointments")}
+              onKeyDown={handleTabKey}
+              ref={appointmentsTabRef}
+              role="tab"
+              tabIndex={activeTab === "appointments" ? 0 : -1}
+              type="button"
             >
-              Guardar cambios
+              Turnos
             </button>
-          </form>
-          {detail.isActive && (
-            <div className="space-y-3 border-t pt-4">
+          </div>
+          <div
+            aria-labelledby="patient-data-tab"
+            hidden={activeTab !== "data"}
+            id="patient-data-panel"
+            role="tabpanel"
+            className="space-y-5"
+          >
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+              <dt>Nombre</dt>
+              <dd>
+                {detail.firstName} {detail.lastName}
+              </dd>
+              <dt>Nacionalidad</dt>
+              <dd>{detail.nationalityCode}</dd>
+              <dt>Documento</dt>
+              <dd>{detail.documentNumber}</dd>
+              <dt>Nacimiento</dt>
+              <dd>{formatPatientBirthDate(detail.birthDate)}</dd>
+              <dt>Estado</dt>
+              <dd>{detail.isActive ? "Activo" : "Inactivo"}</dd>
+            </dl>
+            <Feedback result={feedback} />
+            {stale && (
               <button
                 type="button"
-                disabled={pending || stale}
-                onClick={() => setConfirmDeactivate(true)}
-                className="min-h-11 font-semibold text-rose-700 disabled:opacity-50"
+                className="min-h-11 font-semibold text-sky-700 underline"
+                onClick={() => {
+                  setFeedback(null);
+                  router.refresh();
+                }}
               >
-                Desactivar
+                Recargar datos
               </button>
-              {confirmDeactivate && (
-                <div
-                  role="group"
-                  aria-label="Confirmar desactivación"
-                  className="rounded border border-rose-300 p-4"
+            )}
+            <form className="space-y-4" onSubmit={save}>
+              <h3 className="font-semibold">Datos administrativos</h3>
+              <Field
+                name="phone"
+                label="Teléfono"
+                value={form.phone}
+                onChange={(v) => change("phone", v)}
+                error={errors?.phone}
+                required
+              />
+              <Field
+                name="email"
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(v) => change("email", v)}
+                error={errors?.email}
+              />
+              <Field
+                name="insuranceName"
+                label="Obra social / prepaga"
+                value={form.insuranceName}
+                onChange={(v) => change("insuranceName", v)}
+                error={errors?.insuranceName}
+              />
+              <Field
+                name="administrativeNotes"
+                label="Notas administrativas"
+                value={form.administrativeNotes}
+                onChange={(v) => change("administrativeNotes", v)}
+                error={errors?.administrativeNotes}
+                multiline
+              />
+              <p className="text-sm text-slate-600">
+                Uso administrativo. No registrar información clínica.
+              </p>
+              <button
+                disabled={pending || stale || !detail.isActive}
+                type="submit"
+                className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
+              >
+                Guardar cambios
+              </button>
+            </form>
+            {detail.isActive && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  disabled={pending || stale}
+                  onClick={() => setConfirmDeactivate(true)}
+                  className="min-h-11 rounded-md border border-rose-300 bg-white px-4 py-2.5 text-sm font-semibold text-rose-800 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:opacity-50"
                 >
-                  <p>
-                    ¿Desactivar a {detail.firstName} {detail.lastName}? Dejará de aparecer en el
-                    filtro Activos. El registro no se elimina.
-                  </p>
-                  <div className="mt-3 flex gap-3">
+                  Desactivar paciente
+                </button>
+                {confirmDeactivate && (
+                  <div
+                    role="group"
+                    aria-label="Confirmar desactivación"
+                    className="rounded border border-rose-300 p-4"
+                  >
+                    <div className="space-y-1.5">
+                      <p>
+                        ¿Estás seguro que querés desactivar a {detail.firstName} {detail.lastName}?
+                      </p>
+                      <p>Dejará de aparecer como paciente activo.</p>
+                      <p>El registro no se elimina.</p>
+                    </div>
+                    <div className="mt-3 flex gap-3">
+                      <button
+                        type="button"
+                        disabled={pending || stale}
+                        onClick={deactivate}
+                        className="min-h-11 rounded bg-rose-700 px-4 font-semibold text-white"
+                      >
+                        Confirmar desactivación
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeactivate(false)}
+                        className="min-h-11 px-3"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {!detail.isActive && (
+              <form className="space-y-3" onSubmit={verifyReactivation}>
+                <h3 className="font-semibold">Reactivar en este centro</h3>
+                <p className="text-sm text-slate-600">
+                  Ingresá la fecha de nacimiento para comprobar la identidad. La reactivación
+                  conserva teléfono, email, cobertura y notas.
+                </p>
+                <Field
+                  name="reactivationBirthDate"
+                  label="Confirmar fecha de nacimiento"
+                  type="date"
+                  value={reactivationBirthDate}
+                  onChange={(v) => {
+                    setReactivationBirthDate(v);
+                    setReactivation(null);
+                  }}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={pending || stale}
+                  className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
+                >
+                  Comprobar para reactivar
+                </button>
+                {reactivation && (
+                  <div className="rounded border border-sky-200 p-3">
+                    <p>
+                      Identidad comprobada. Confirmá la reactivación de {detail.firstName}{" "}
+                      {detail.lastName}.
+                    </p>
                     <button
                       type="button"
                       disabled={pending || stale}
-                      onClick={deactivate}
-                      className="min-h-11 rounded bg-rose-700 px-4 font-semibold text-white"
+                      onClick={reactivate}
+                      className="mt-2 min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
                     >
-                      Confirmar desactivación
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeactivate(false)}
-                      className="min-h-11 px-3"
-                    >
-                      Cancelar
+                      Confirmar reactivación
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-          {!detail.isActive && (
-            <form className="space-y-3 border-t pt-4" onSubmit={verifyReactivation}>
-              <h3 className="font-semibold">Reactivar en este centro</h3>
-              <p className="text-sm text-slate-600">
-                Ingresá la fecha de nacimiento para comprobar la identidad. La reactivación conserva
-                teléfono, email, cobertura y notas.
-              </p>
-              <Field
-                name="reactivationBirthDate"
-                label="Confirmar fecha de nacimiento"
-                type="date"
-                value={reactivationBirthDate}
-                onChange={(v) => {
-                  setReactivationBirthDate(v);
-                  setReactivation(null);
-                }}
-                required
-              />
-              <button
-                type="submit"
-                disabled={pending || stale}
-                className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-              >
-                Comprobar para reactivar
-              </button>
-              {reactivation && (
-                <div className="rounded border border-sky-200 p-3">
-                  <p>
-                    Identidad comprobada. Confirmá la reactivación de {detail.firstName}{" "}
-                    {detail.lastName}.
-                  </p>
-                  <button
-                    type="button"
-                    disabled={pending || stale}
-                    onClick={reactivate}
-                    className="mt-2 min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-                  >
-                    Confirmar reactivación
-                  </button>
-                </div>
-              )}
-            </form>
-          )}
-          <a
-            className="font-semibold text-sky-700 underline"
-            href={patientSearchUrl(
-              centerId,
-              {
-                query: detail.documentNumber,
-                state: detail.isActive ? "ACTIVE" : "INACTIVE",
-                page: 1,
-              },
-              undefined,
-              returnToAppointments,
+                )}
+              </form>
             )}
+          </div>
+          <div
+            aria-labelledby="patient-appointments-tab"
+            hidden={activeTab !== "appointments"}
+            id="patient-appointments-panel"
+            role="tabpanel"
           >
-            Ver en listado
-          </a>
+            <PatientAppointments
+              centerId={centerId}
+              patientCenterId={detail.patientCenterId}
+              timezone={timezone}
+            />
+          </div>
         </>
       )}
     </PatientDialog>
@@ -1069,12 +1158,16 @@ function Administration({
 
 export function PatientWorkspace({
   centerId,
+  timezone = "UTC",
   filters,
   detail,
+  selectedPatientCenterId = detail?.patientCenterId ?? null,
   detailFailed,
   returnToAppointments = false,
 }: {
   centerId: string;
+  timezone?: string;
+  selectedPatientCenterId?: string | null;
   filters: PatientFilters;
   detail: PatientDetail | null;
   detailFailed: boolean;
@@ -1129,8 +1222,9 @@ export function PatientWorkspace({
       )}
       {selected && (
         <Administration
-          key={detail?.updatedAt ?? "failed"}
+          key={`${centerId}:${selectedPatientCenterId ?? "none"}:${detail?.updatedAt ?? "failed"}`}
           centerId={centerId}
+          timezone={timezone}
           filters={filters}
           detail={detail}
           detailFailed={detailFailed}

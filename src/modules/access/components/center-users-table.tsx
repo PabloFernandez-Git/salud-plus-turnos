@@ -81,7 +81,7 @@ export function CenterUsersTable({
                   {user.isActive ? "Activo" : "Inactivo"}
                 </span>
               </td>
-              <td className="px-4 py-4">
+              <td className={`px-4 py-4${user.professional ? "" : " text-center"}`}>
                 <ProfessionalAssociation user={user} />
               </td>
               <td className="px-4 py-4">

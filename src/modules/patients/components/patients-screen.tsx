@@ -20,8 +20,13 @@ function Status({ active }: { active: boolean }) {
   );
 }
 
+const managePatientActionClass =
+  "inline-flex min-h-10 items-center justify-center rounded-md border border-sky-300 px-3 py-2 font-semibold text-sky-800 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700";
+
 export function PatientsScreen({
   centerId,
+  timezone = "UTC",
+  selectedPatientCenterId,
   filters,
   result,
   loadFailed = false,
@@ -30,6 +35,8 @@ export function PatientsScreen({
   returnToAppointments = false,
 }: {
   centerId: string;
+  timezone?: string;
+  selectedPatientCenterId?: string | null;
   centerName: string;
   filters: PatientFilters;
   result: PatientPage | null;
@@ -46,6 +53,7 @@ export function PatientsScreen({
   );
   const currentUrl = patientSearchUrl(centerId, filters, undefined, returnToAppointments);
   const rows = result?.rows ?? [];
+  const hasPagination = Boolean(result?.hasPrevious || result?.hasNext);
   const emptyMessage = filters.query
     ? "No encontramos pacientes para esta búsqueda"
     : filters.state === "INACTIVE"
@@ -65,6 +73,8 @@ export function PatientsScreen({
           actions={
             <PatientWorkspace
               centerId={centerId}
+              timezone={timezone}
+              selectedPatientCenterId={selectedPatientCenterId}
               filters={filters}
               detail={detail}
               detailFailed={detailFailed}
@@ -142,7 +152,6 @@ export function PatientsScreen({
           </p>
         ) : (
           <section aria-label="Listado de pacientes" className="space-y-4">
-            <p className="text-sm text-slate-600">Página {filters.page}</p>
             <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-100 text-slate-700">
@@ -169,7 +178,7 @@ export function PatientsScreen({
                       Estado
                     </th>
                     <th className="p-3" scope="col">
-                      Acción
+                      Acciones
                     </th>
                   </tr>
                 </thead>
@@ -191,7 +200,7 @@ export function PatientsScreen({
                       </td>
                       <td className="p-3">
                         <Link
-                          className="font-semibold text-sky-700 underline"
+                          className={managePatientActionClass}
                           href={patientSearchUrl(
                             centerId,
                             filters,
@@ -199,7 +208,7 @@ export function PatientsScreen({
                             returnToAppointments,
                           )}
                         >
-                          Administrar
+                          Administrar paciente
                         </Link>
                       </td>
                     </tr>
@@ -233,7 +242,7 @@ export function PatientsScreen({
                     <dd>{row.insurance_name ?? "—"}</dd>
                   </dl>
                   <Link
-                    className="mt-3 inline-block font-semibold text-sky-700 underline"
+                    className={`${managePatientActionClass} mt-3`}
                     href={patientSearchUrl(
                       centerId,
                       filters,
@@ -241,39 +250,45 @@ export function PatientsScreen({
                       returnToAppointments,
                     )}
                   >
-                    Administrar
+                    Administrar paciente
                   </Link>
                 </article>
               ))}
             </div>
-            <nav aria-label="Paginación de pacientes" className="flex items-center gap-4">
-              {result?.hasPrevious && (
-                <Link
-                  className="font-semibold text-sky-700 underline"
-                  href={patientSearchUrl(
-                    centerId,
-                    { ...filters, page: filters.page - 1 },
-                    undefined,
-                    returnToAppointments,
-                  )}
-                >
-                  Anterior
-                </Link>
-              )}
-              {result?.hasNext && (
-                <Link
-                  className="font-semibold text-sky-700 underline"
-                  href={patientSearchUrl(
-                    centerId,
-                    { ...filters, page: filters.page + 1 },
-                    undefined,
-                    returnToAppointments,
-                  )}
-                >
-                  Siguiente
-                </Link>
-              )}
-            </nav>
+            {hasPagination && (
+              <nav
+                aria-label="Paginación de pacientes"
+                className="flex flex-wrap items-center justify-end gap-4 text-sm"
+              >
+                {result?.hasPrevious && (
+                  <Link
+                    className="font-semibold text-sky-700 underline"
+                    href={patientSearchUrl(
+                      centerId,
+                      { ...filters, page: filters.page - 1 },
+                      undefined,
+                      returnToAppointments,
+                    )}
+                  >
+                    Anterior
+                  </Link>
+                )}
+                <span className="text-slate-600">Página {filters.page}</span>
+                {result?.hasNext && (
+                  <Link
+                    className="font-semibold text-sky-700 underline"
+                    href={patientSearchUrl(
+                      centerId,
+                      { ...filters, page: filters.page + 1 },
+                      undefined,
+                      returnToAppointments,
+                    )}
+                  >
+                    Siguiente
+                  </Link>
+                )}
+              </nav>
+            )}
             {result?.atOffsetCeiling && (
               <p className="text-sm text-slate-600">
                 Se alcanzó el límite de páginas. Refiná la búsqueda para ver más pacientes.

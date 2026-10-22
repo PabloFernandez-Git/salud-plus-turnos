@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createPatientAction,
@@ -9,6 +9,18 @@ import {
   deactivatePatientAction,
 } from "../actions/patient-actions";
 import { PatientWorkspace } from "./patient-workspace";
+
+vi.mock("../actions/patient-appointment-actions", () => ({
+  loadPatientAppointmentSectionsAction: vi.fn(async () => ({
+    status: "success",
+    data: {
+      asOf: "2026-10-22T12:00:00.000Z",
+      upcoming: { rows: [], hasMore: false, nextCursor: null },
+      history: { rows: [], hasMore: false, nextCursor: null },
+    },
+  })),
+  loadPatientAppointmentPageAction: vi.fn(),
+}));
 
 const push = vi.fn();
 const refresh = vi.fn();
@@ -117,6 +129,20 @@ function renderRegistration() {
     target: { value: "2000-01-02" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Comprobar identidad" }));
+}
+
+function renderAdministration() {
+  const view = render(
+    <PatientWorkspace centerId={centerId} filters={filters} detail={detail} detailFailed={false} />,
+  );
+  const dialog = screen.getByRole("dialog", { name: "Administrar paciente" }) as HTMLDialogElement;
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+    left: 400,
+    right: 900,
+    top: 0,
+    bottom: 800,
+  } as DOMRect);
+  return { dialog, ...view };
 }
 
 describe("patient staged dialogs", () => {
@@ -416,8 +442,92 @@ describe("patient staged dialogs", () => {
     expect(screen.getByText("Privada")).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Documento" })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Notas administrativas" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ver en listado" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desactivar paciente" })).toHaveClass(
+      "border",
+      "border-rose-300",
+      "bg-white",
+    );
     expect(updatePatientAction).not.toHaveBeenCalled();
     expect(deactivatePatientAction).not.toHaveBeenCalled();
+  });
+  it("opens administration as a centered modal with two keyboard operable tabs", async () => {
+    const { dialog, rerender } = renderAdministration();
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog.className).toContain("max-w-2xl");
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(screen.getByRole("button", { name: "Cerrar" })).toHaveFocus();
+    const dataTab = screen.getByRole("tab", { name: "Datos del paciente" });
+    const appointmentsTab = screen.getByRole("tab", { name: "Turnos" });
+    expect(dataTab).toHaveAttribute("aria-selected", "true");
+    expect(appointmentsTab).toHaveAttribute("aria-selected", "false");
+    const dataPanel = screen.getByRole("tabpanel", { name: "Datos del paciente" });
+    expect(dataPanel).toBeVisible();
+    expect(within(dataPanel).getByText("Ana Pérez", { exact: true })).toBeVisible();
+    expect(screen.queryByRole("tabpanel", { name: "Turnos" })).not.toBeInTheDocument();
+    fireEvent.keyDown(dataTab, { key: "ArrowRight" });
+    expect(appointmentsTab).toHaveFocus();
+    expect(appointmentsTab).toHaveAttribute("aria-selected", "true");
+    expect(dataPanel).not.toBeVisible();
+    expect(within(dataPanel).getByText("Ana Pérez", { exact: true })).not.toBeVisible();
+    expect(screen.getByRole("tabpanel", { name: "Turnos" })).toBeVisible();
+    expect(await screen.findByText("No hay próximos turnos para este paciente.")).toBeVisible();
+    expect(
+      screen.getByText("Este paciente todavía no tiene turnos en el historial."),
+    ).toBeVisible();
+    fireEvent.keyDown(appointmentsTab, { key: "Home" });
+    expect(dataTab).toHaveFocus();
+    rerender(
+      <PatientWorkspace centerId={centerId} filters={filters} detail={null} detailFailed={false} />,
+    );
+    expect(document.body.style.overflow).toBe("");
+  });
+  it.each(["Cerrar", "Escape", "Fondo"] as const)(
+    "guards unsaved administration data on %s and preserves edits across tabs",
+    (method) => {
+      const { dialog } = renderAdministration();
+      fireEvent.change(screen.getByRole("textbox", { name: "Teléfono" }), {
+        target: { value: "999" },
+      });
+      fireEvent.click(screen.getByRole("tab", { name: "Turnos" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Datos del paciente" }));
+      expect(screen.getByRole("textbox", { name: "Teléfono" })).toHaveValue("999");
+      if (method === "Cerrar") fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+      else if (method === "Escape") fireEvent(dialog, new Event("cancel", { cancelable: true }));
+      else fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+      expect(screen.getByRole("dialog", { name: "Descartar cambios" })).toBeVisible();
+      expect(push).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Seguir editando" }));
+      expect(screen.getByRole("textbox", { name: "Teléfono" })).toHaveValue("999");
+      fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+      fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
+      expect(push).toHaveBeenCalledWith(`/centers/${centerId}/patients?q=Ana&state=ALL&page=2`);
+    },
+  );
+  it("blocks administration close while a save is pending, then clears the dirty prompt on success", async () => {
+    const pendingUpdate = deferred<Awaited<ReturnType<typeof updatePatientAction>>>();
+    vi.mocked(updatePatientAction).mockReturnValueOnce(pendingUpdate.promise);
+    const { dialog } = renderAdministration();
+    fireEvent.change(screen.getByRole("textbox", { name: "Teléfono" }), {
+      target: { value: "999" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(updatePatientAction).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeDisabled();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    fireEvent.click(dialog, { clientX: 100, clientY: 100 });
+    expect(screen.queryByRole("dialog", { name: "Descartar cambios" })).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+    await act(async () =>
+      pendingUpdate.resolve({
+        status: "success",
+        data: { outcome: "UPDATED", patient_center_id: patientCenterId },
+      } as never),
+    );
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+    expect(screen.queryByRole("dialog", { name: "Descartar cambios" })).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledOnce();
   });
   it("reactivates an inactive detail only after identity resolve and confirmation", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
@@ -527,10 +637,28 @@ describe("patient staged dialogs", () => {
         detailFailed={false}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Desactivar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Desactivar paciente" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirmar desactivación" }));
     await screen.findByText("Los datos cambiaron desde que abriste este formulario.");
     expect(screen.getByRole("button", { name: "Confirmar desactivación" })).toBeDisabled();
     expect(deactivatePatientAction).toHaveBeenCalledOnce();
+  });
+  it("shows the three confirmation sentences separately with the patient name", () => {
+    renderAdministration();
+    fireEvent.click(screen.getByRole("button", { name: "Desactivar paciente" }));
+    const confirmation = screen.getByRole("group", { name: "Confirmar desactivación" });
+    expect(
+      Array.from(confirmation.querySelectorAll("p"), (paragraph) => paragraph.textContent),
+    ).toEqual([
+      "¿Estás seguro que querés desactivar a Ana Pérez?",
+      "Dejará de aparecer como paciente activo.",
+      "El registro no se elimina.",
+    ]);
+    expect(confirmation.firstElementChild).toHaveClass("space-y-1.5");
+    expect(screen.getByRole("button", { name: "Confirmar desactivación" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(
+      screen.queryByRole("group", { name: "Confirmar desactivación" }),
+    ).not.toBeInTheDocument();
   });
 });

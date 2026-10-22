@@ -57,6 +57,11 @@ describe("patients presentation", () => {
       "href",
       `/centers/${centerId}/patients?q=Ana&state=ALL&page=3`,
     );
+    expect(
+      within(screen.getByRole("navigation", { name: "Paginación de pacientes" })).getByText(
+        "Página 2",
+      ),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: "Limpiar" })).toHaveAttribute(
       "href",
       `/centers/${centerId}/patients`,
@@ -67,6 +72,20 @@ describe("patients presentation", () => {
     expect(within(form).getByRole("searchbox", { name: "Buscar" })).toHaveAttribute("name", "q");
     expect(within(form).getByRole("combobox", { name: "Estado" })).toHaveAttribute("name", "state");
     expect(form.querySelector('[name="page"]')).toBeNull();
+  });
+  it("hides pagination entirely when the result fits on one page", () => {
+    render(
+      <PatientsScreen
+        centerId={centerId}
+        centerName="Centro"
+        filters={{ query: "", state: "ACTIVE", page: 1 }}
+        result={{ ...result, page: 1, hasPrevious: false, hasNext: false }}
+      />,
+    );
+    expect(screen.queryByText("Página 1")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Paginación de pacientes" }),
+    ).not.toBeInTheDocument();
   });
   it("shows INACTIVE status", () => {
     render(
@@ -137,7 +156,7 @@ describe("patients presentation", () => {
       "href",
       `/centers/${centerId}/patients?q=Ana&state=ALL&page=3${suffix}`,
     );
-    expect(screen.getAllByRole("link", { name: "Administrar" })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "Administrar paciente" })[0]).toHaveAttribute(
       "href",
       `/centers/${centerId}/patients?q=Ana&state=ALL&page=2&patient=${row.patient_center_id}${suffix}`,
     );

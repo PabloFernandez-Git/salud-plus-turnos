@@ -1,0 +1,30 @@
+[
+  {
+    "name": "desktop-1440",
+    "pageWidth": 1440,
+    "dialogWidth": 672,
+    "dialogScrollWidth": 670,
+    "dialogClientWidth": 670,
+    "errors": []
+  },
+  {
+    "name": "desktop-1440-users",
+    "centerDelta": 0.0078125,
+    "cellWidth": 287.640625,
+    "errors": []
+  },
+  {
+    "name": "mobile-390",
+    "pageWidth": 390,
+    "dialogWidth": 358,
+    "dialogScrollWidth": 356,
+    "dialogClientWidth": 356,
+    "errors": []
+  },
+  {
+    "name": "mobile-390-users",
+    "centerDelta": 0.0078125,
+    "cellWidth": 192.015625,
+    "errors": []
+  }
+]

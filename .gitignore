@@ -11,6 +11,7 @@ test-results/
 .task007-gate-d/
 .task009-gate-d/
 .task009-gate-d-archive/
+.task022-functional-dev/
 coverage/
 
 # env / secrets

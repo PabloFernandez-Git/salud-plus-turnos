@@ -1,5 +1,9 @@
 # Turnos
 
+## TASK-022 — Lectura por paciente
+
+`20261022120000_add_patient_appointment_history.sql` agrega `staff_list_patient_appointments` para ADMIN/RECEPTION del Center activo. Filtra por Center + PatientCenter, devuelve sólo instantes, estado, nombres de profesional/especialidad, ID de turno y `has_more`, y pagina por `(starts_at,id)` con un `p_as_of` común a ambas secciones. Futuros PENDING/CONFIRMED son próximos; turnos vencidos o terminales, incluidas cancelaciones futuras, son historial. No se lee `administrative_note` ni se concede SELECT directo. El SQL pasó ejecución y pruebas locales; la persona usuaria confirmó PASS estructural DEV con 24 migrations remotas. La integración UI y el gate funcional DEV obtuvieron PASS con fixtures sintéticos y cleanup sin residuos, según el ledger y reporte conservados localmente. Reprogramar sobrescribe el horario anterior y no genera auditoría histórica.
+
 Un turno pertenece a un único centro y relaciona:
 - PatientCenter;
 - ProfessionalCenter;
