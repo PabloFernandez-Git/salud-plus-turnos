@@ -41,4 +41,11 @@ describe("Center route transition", () => {
       "NOT_FOUND",
     );
   });
+
+  it("propagates an internal query failure without turning it into a 404", async () => {
+    const queryError = new Error("internal query failure");
+    vi.mocked(requireCenterMembership).mockRejectedValueOnce(queryError);
+
+    await expect(CenterPage({ params: Promise.resolve({ centerId }) })).rejects.toBe(queryError);
+  });
 });
