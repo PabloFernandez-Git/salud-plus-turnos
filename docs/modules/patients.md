@@ -1,5 +1,13 @@
 # Personas y pacientes
 
+## TASK-022 — Turnos en la ficha
+
+El panel administrativo `PatientWorkspace` muestra Próximos turnos e Historial del `PatientCenter` seleccionado. La RPC `staff_list_patient_appointments` autoriza ADMIN/RECEPTION activos y aísla Center + PatientCenter en PostgreSQL; el servicio vuelve a autorizar en servidor y usa el cliente de sesión. Cada sección se pagina con cursor `(starts_at,id)` y comparte un instante `asOf` capturado al abrir o actualizar la ficha. Próximos comprende turnos futuros PENDING/CONFIRMED; Historial comprende el complemento, incluidas cancelaciones futuras. Se muestran sólo las ocho columnas aprobadas, con horario IANA del Center y offset DST, estados, reintentos independientes y enlace al detalle que reautoriza. La persona usuaria confirmó PASS estructural DEV de la migration y ejecutó el gate funcional DEV con PASS; el ledger local acredita cleanup con residuo cero e inventarios de 14 recursos coincidentes.
+
+La ficha se abre como modal centrado con dos pestañas, «Datos del paciente» y «Turnos». La primera conserva el formulario administrativo y las acciones existentes; la segunda conserva las dos listas, actualización y paginación. Los paneles permanecen montados al cambiar de pestaña para mantener el borrador y el estado de turnos. X, Escape y fondo comparten el descarte de cambios; una operación pendiente bloquea el cierre. El modal bloquea el scroll de fondo y desplaza su propio contenido en móvil. En el listado, «Administrar paciente» usa la presentación de botón secundario de Gestión de usuarios y conserva la navegación por URL.
+
+El listado oculta la leyenda de página cuando no hay páginas adyacentes; si las hay, ubica Anterior/Página actual/Siguiente debajo de la tabla o tarjetas sin calcular un total. El modal vuelve al listado al cerrarse, por lo que no muestra un enlace redundante «Ver en listado». «Desactivar paciente» usa un botón secundario rojo separado de Guardar cambios y conserva su confirmación. «Actualizar turnos» usa un botón secundario azul, alineado a la derecha del encabezado cuando hay espacio; la lectura autorizada, el estado de carga y la paginación no cambian.
+
 ## Persona
 
 `Person` representa identidad común dentro de la plataforma.
@@ -41,8 +49,8 @@ Los datos administrativos son privados por centro. La existencia de una Persona 
 La UI puede presentar la operación simplemente como “Registrar paciente”.
 En la interfaz actual, Registrar paciente se presenta en un modal centrado, adaptable al viewport y
 con scroll interno para las etapas largas. X, fondo y Escape comparten confirmación de descarte si
-hay datos sin guardar; una operación pendiente impide cerrar. El panel de Administración de pacientes
-conserva su presentación lateral.
+hay datos sin guardar; una operación pendiente impide cerrar. La Administración de pacientes usa el
+modal centrado descrito arriba.
 
 ## Foundation DB/API de TASK-007A (review independiente PASS)
 
@@ -68,7 +76,7 @@ Tabla desktop y tarjetas móviles muestran nombre, documento/nacionalidad, fecha
 
 ## TASK-007C+D — Administración de pacientes
 
-El plan C+D recibió review independiente PASS y autorización conjunta. **GATE C PASS:** la ruta existente añade Registrar paciente explícito y Administrar por fila/tarjeta. `patient=<UUID>` canónico abre un panel sin cambiar `q/state/page`; el panel permite inspeccionar un registro aunque no esté en la página o filtro visibles. El diálogo de Administración de pacientes ocupa la pantalla en móvil y funciona como panel lateral en desktop. El listado sigue siendo una lectura server y no se mantiene una copia de la tabla en el cliente.
+El plan C+D recibió review independiente PASS y autorización conjunta. **GATE C PASS:** la ruta existente añadió Registrar paciente explícito y Administrar por fila/tarjeta. `patient=<UUID>` canónico abre la ficha sin cambiar `q/state/page`; permite inspeccionar un registro aunque no esté en la página o filtro visibles. En GATE C la Administración funcionaba como panel lateral; TASK-022 la convirtió en el modal centrado descrito arriba. El listado sigue siendo una lectura server y no se mantiene una copia de la tabla en el cliente.
 
 Registrar comprueba nacionalidad, documento y fecha ingresada mediante resolve exacto; SEARCH miss nunca inicia resolve. NOT_FOUND crea Person y PatientCenter atómicamente tras revisar nombres y datos administrativos; mismatch de nacimiento bloquea mutación sin revelar la fecha almacenada; NOT_LINKED vincula sólo con confirmación; ACTIVE reutiliza la relación sin mutar; INACTIVE reactiva con confirmación y CAS conservando datos administrativos. La pantalla sólo usa la proyección mínima de resolve y nunca muestra IDs técnicos, datos de otro Center ni fecha almacenada en esa respuesta.
 

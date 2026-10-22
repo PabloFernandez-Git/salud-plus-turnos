@@ -74,6 +74,8 @@ export default async function PatientsPage({
       <PatientsScreen
         centerId={centerId.data}
         centerName={context.center.name}
+        timezone={context.center.timezone}
+        selectedPatientCenterId={parsed.patientId}
         filters={filters}
         result={result}
         loadFailed={loadFailed}

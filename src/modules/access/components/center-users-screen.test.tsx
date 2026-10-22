@@ -107,12 +107,17 @@ describe("CenterUsersScreen", () => {
     expect(within(adminRow).getByText("ana@example.test")).toBeVisible();
     expect(within(adminRow).getByText("Administrador")).toBeVisible();
     expect(within(adminRow).getByText("Activo")).toBeVisible();
-    expect(within(adminRow).getByLabelText("Sin profesional asociado")).toHaveTextContent("—");
+    const noProfessional = within(adminRow).getByLabelText("Sin profesional asociado");
+    expect(noProfessional).toHaveTextContent("—");
+    expect(noProfessional.closest("td")).toHaveClass("text-center");
 
     const professionalRow = screen.getByRole("row", { name: /Pablo Profesional/ });
     expect(within(professionalRow).getByText("Profesional")).toBeVisible();
     expect(within(professionalRow).getByText("Inactivo")).toBeVisible();
     expect(within(professionalRow).getByText("Paula Médica")).toBeVisible();
+    expect(within(professionalRow).getByText("Paula Médica").closest("td")).not.toHaveClass(
+      "text-center",
+    );
     expect(within(professionalRow).getByText("Matrícula: MP 1234")).toBeVisible();
     expect(within(professionalRow).getByText("Vínculo inactivo")).toBeVisible();
     expect(
