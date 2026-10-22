@@ -17,8 +17,11 @@ estadísticas ni crea datos operativos adicionales.
 
 El layout de `/centers/[centerId]` comparte el encabezado de centro activo, identidad del usuario
 y rol. En Inicio muestra Cerrar sesión; en las pantallas internas, Volver al inicio conserva la
-sesión y el centro activo. Cada módulo presenta un encabezado
-con enlace a Inicio, título, descripción y las acciones que le corresponden. El contenido usa un
+sesión y el centro activo. Cada módulo presenta breadcrumb con enlace a Inicio, título,
+descripción y las acciones que le corresponden. El nombre del centro permanece en el encabezado
+compartido, fuera del encabezado del módulo. Las descripciones usan el estilo compartido de
+`ModuleHeader`: ancho máximo `max-w-3xl`, salvo Pacientes, cuyo ancho flexible fue aprobado en
+TASK-015 para ocupar una línea cuando cabe y ajustarse naturalmente en mobile. El contenido usa un
 ancho común de hasta 1400 px; Agenda dispone de más espacio para el calendario.
 
 ## Evolución prevista
