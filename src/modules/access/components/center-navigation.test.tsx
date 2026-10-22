@@ -27,6 +27,20 @@ describe("center navigation", () => {
       "href",
       `/centers/${centerId}/agenda`,
     );
+    for (const [title, description] of [
+      ["Agenda", "Consultá la actividad del centro por día, semana o mes"],
+      ["Turnos", "Consultá y gestioná los turnos del centro"],
+      ["Pacientes", "Buscá y administrá las fichas de pacientes"],
+      ["Profesionales", "Gestioná el equipo de atención del centro"],
+      ["Disponibilidad", "Consultá y organizá los horarios de atención"],
+      ["Especialidades", "Administrá las especialidades del centro"],
+      ["Gestión de usuarios", "Gestioná los accesos y roles del equipo"],
+    ]) {
+      expect(
+        screen.getByRole("link", { name: title }).querySelector("[id$='-description']")
+          ?.textContent,
+      ).toBe(description);
+    }
   });
   it("shows operational destinations including Agenda to RECEPTION", () => {
     render(<CenterNavigation centerId={centerId} role="RECEPTION" />);
@@ -47,5 +61,15 @@ describe("center navigation", () => {
     expect(screen.getByRole("link", { name: "Agenda" })).toHaveTextContent("tu actividad");
     expect(screen.getByRole("link", { name: "Turnos" })).toHaveTextContent("tus turnos");
     expect(screen.getByRole("link", { name: "Disponibilidad" })).toHaveTextContent("tus horarios");
+    for (const [title, description] of [
+      ["Agenda", "Consultá tu actividad por día, semana o mes"],
+      ["Turnos", "Consultá tus turnos y su estado"],
+      ["Disponibilidad", "Consultá y organizá tus horarios de atención"],
+    ]) {
+      expect(
+        screen.getByRole("link", { name: title }).querySelector("[id$='-description']")
+          ?.textContent,
+      ).toBe(description);
+    }
   });
 });

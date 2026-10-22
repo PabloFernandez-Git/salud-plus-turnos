@@ -286,7 +286,7 @@ export function AgendaCalendar({
         <ModuleHeader
           centerId={centerId}
           title="Agenda"
-          description={`Consultá la actividad por día, semana o mes. Horarios en la zona del centro: ${timezone}.`}
+          description="Consultá la actividad por día, semana o mes."
           actions={
             <>
               {role !== "PROFESSIONAL" && (

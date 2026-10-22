@@ -109,8 +109,8 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       title: "Agenda",
       description:
         role === "PROFESSIONAL"
-          ? "Consultá tu actividad por día, semana o mes."
-          : "Consultá la actividad del centro por día, semana o mes.",
+          ? "Consultá tu actividad por día, semana o mes"
+          : "Consultá la actividad del centro por día, semana o mes",
       path: "agenda",
       icon: <Icon kind="agenda" />,
     },
@@ -118,8 +118,8 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       title: "Turnos",
       description:
         role === "PROFESSIONAL"
-          ? "Consultá tus turnos y su estado."
-          : "Consultá y gestioná los turnos del centro.",
+          ? "Consultá tus turnos y su estado"
+          : "Consultá y gestioná los turnos del centro",
       path: "appointments",
       icon: <Icon kind="appointments" />,
     },
@@ -128,7 +128,7 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       : [
           {
             title: "Pacientes",
-            description: "Buscá y administrá las fichas de pacientes.",
+            description: "Buscá y administrá las fichas de pacientes",
             path: "patients",
             icon: <Icon kind="patients" />,
           },
@@ -139,7 +139,7 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       ? [
           {
             title: "Profesionales",
-            description: "Gestioná el equipo de atención del centro.",
+            description: "Gestioná el equipo de atención del centro",
             path: "professionals",
             icon: <Icon kind="professionals" />,
           },
@@ -149,8 +149,8 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       title: "Disponibilidad",
       description:
         role === "PROFESSIONAL"
-          ? "Consultá y organizá tus horarios de atención."
-          : "Consultá y organizá los horarios de atención.",
+          ? "Consultá y organizá tus horarios de atención"
+          : "Consultá y organizá los horarios de atención",
       path: "availability",
       icon: <Icon kind="availability" />,
     },
@@ -158,13 +158,13 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
       ? [
           {
             title: "Especialidades",
-            description: "Administrá las especialidades del centro.",
+            description: "Administrá las especialidades del centro",
             path: "specialties",
             icon: <Icon kind="specialties" />,
           },
           {
             title: "Gestión de usuarios",
-            description: "Gestioná los accesos y roles del equipo.",
+            description: "Gestioná los accesos y roles del equipo",
             path: "users",
             icon: <Icon kind="users" />,
           },
