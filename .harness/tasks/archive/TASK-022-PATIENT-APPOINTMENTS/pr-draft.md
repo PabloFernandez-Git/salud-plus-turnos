@@ -1,4 +1,4 @@
-# PR propuesto — TASK-022
+# PR propuesto — TASK-022 (borrador histórico previo al PR #20)
 
 ## Título
 
@@ -77,7 +77,7 @@ fixtures remotos, ledgers ni reportes operativos crudos.
 - Documentación y evidencia curada: `.gitignore`, `docs/status.md`,
   `docs/modules/access.md`, `docs/modules/appointments.md`,
   `docs/modules/patients.md`,
-  `.harness/tasks/active/TASK-022-PATIENT-APPOINTMENTS/` y
+  `.harness/tasks/archive/TASK-022-PATIENT-APPOINTMENTS/` y
   `artifacts/task022-patient-history/`.
 
 ## Excluir expresamente
