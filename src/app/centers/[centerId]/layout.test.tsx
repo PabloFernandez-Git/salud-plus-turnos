@@ -78,4 +78,13 @@ describe("center layout", () => {
       CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
     ).rejects.toThrow("NOT_FOUND");
   });
+
+  it("propagates an internal query failure without turning it into a 404", async () => {
+    const queryError = new Error("internal query failure");
+    vi.mocked(requireCenterMembership).mockRejectedValueOnce(queryError);
+
+    await expect(
+      CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
+    ).rejects.toBe(queryError);
+  });
 });

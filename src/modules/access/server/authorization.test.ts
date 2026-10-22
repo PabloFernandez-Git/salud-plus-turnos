@@ -16,10 +16,12 @@ function fakeClient({
   centers,
   memberships,
   platformAdmins = [],
+  queryErrors = {},
 }: {
   centers: Row[];
   memberships: Row[];
   platformAdmins?: Row[];
+  queryErrors?: Record<string, Error>;
 }) {
   const tables: Record<string, Row[]> = {
     center_memberships: memberships,
@@ -51,6 +53,7 @@ function fakeClient({
           return builder;
         },
         maybeSingle: async () => {
+          if (queryErrors[table]) return { data: null, error: queryErrors[table] };
           const rows = (tables[table] ?? []).filter((row) =>
             filters.every(([column, value]) => row[column] === value),
           );
@@ -120,6 +123,23 @@ describe("requireCenterMembership", () => {
       ),
     ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "CENTER_ACCESS_DENIED" });
   });
+
+  it.each(["center_memberships", "centers"])(
+    "propagates a %s query error instead of reporting denied access",
+    async (table) => {
+      const queryError = new Error(`${table} query failed`);
+      await expect(
+        requireCenterMembership(
+          "center-a",
+          fakeClient({
+            centers: [activeCenterA],
+            memberships: [activeMembershipA],
+            queryErrors: { [table]: queryError },
+          }),
+        ),
+      ).rejects.toBe(queryError);
+    },
+  );
 
   it("does not turn PLATFORM_ADMIN into tenant access", async () => {
     await expect(

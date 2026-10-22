@@ -139,7 +139,8 @@ export async function requireCenterMembership(
     .eq("is_active", true)
     .maybeSingle();
 
-  if (membershipError || !membership) {
+  if (membershipError) throw membershipError;
+  if (!membership) {
     throw new AuthorizationError("CENTER_ACCESS_DENIED");
   }
 
@@ -150,7 +151,8 @@ export async function requireCenterMembership(
     .eq("is_active", true)
     .maybeSingle();
 
-  if (centerError || !center) {
+  if (centerError) throw centerError;
+  if (!center) {
     throw new AuthorizationError("CENTER_ACCESS_DENIED");
   }
 
