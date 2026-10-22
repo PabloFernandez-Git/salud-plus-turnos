@@ -2,7 +2,7 @@
 
 ## Veredicto
 
-**PASS condicionado del diseño; implementación y criterio 13 pendientes.** Revisión focal independiente de `.harness/tasks/active/TASK-022-PATIENT-APPOINTMENTS/{brief,plan}.md` contra migraciones, servicios y panel existentes. No se revisó SQL nuevo ejecutable porque no existe migration nueva.
+**PASS condicionado del diseño; implementación y criterio 13 pendientes (checkpoint histórico).** Revisión focal independiente de `.harness/tasks/archive/TASK-022-PATIENT-APPOINTMENTS/{brief,plan}.md` contra migraciones, servicios y panel existentes. No se revisó SQL nuevo ejecutable porque no existe migration nueva.
 
 ## Comprobaciones
 
@@ -18,7 +18,7 @@
 1. **P2 — reinicio del panel:** `PatientWorkspace` usa `detail?.updatedAt` como `key` (`patient-workspace.tsx`, aprox. línea 1132). La carga de turnos deberá usar identidad `(centerId, patientCenterId)` y descartar respuestas tardías, incluso al fallar detalle. Registrado en `plan.md`.
 2. **P2 — SQL pendiente:** no hay migration ni RPC nueva para ejecutar pruebas de aislamiento, paginación o planes de índice. Este PASS no valida la implementación; mantener el bloqueo hasta contar con contrato aplicado en un entorno autorizado.
 
-## Cierre
+## Cierre del checkpoint de diseño (histórico)
 
 No cerrar TASK-022 todavía. Ejecutar otro review focal de migration, servicio y UI cuando existan, después de pruebas locales y verificación autorizada.
 

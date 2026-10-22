@@ -201,3 +201,5 @@ El MVP está funcionalmente terminado cuando:
 13. La ficha del paciente refleja próximos turnos e historial.
 14. El Dashboard refleja la actividad del día.
 15. Un mismo profesional o usuario puede participar en más de un centro manteniendo separados roles, disponibilidad, pacientes y turnos.
+
+**Estado del criterio 13 (2026-10-22):** integrado en `main` mediante PR #20 (squash `8ba31f7262a558b2cfc8471965c4453ce85bb816`). La migration correspondiente se aplicó en DEV; su aplicación en PROD no está autorizada.

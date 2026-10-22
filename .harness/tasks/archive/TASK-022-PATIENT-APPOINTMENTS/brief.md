@@ -44,3 +44,15 @@ Las autorizaciones posteriores ampliaron el gate para aplicar la migration y
 ejecutar fixtures sintéticos únicamente en DEV. Ambas intervenciones se
 completaron con cleanup acreditado; PROD, commit, push y merge siguen fuera
 del alcance de esta preparación de PR. Ver `focused-dev-revalidation.md`.
+
+## Cierre posterior al merge (2026-10-22)
+
+**Estado: CLOSED / ARCHIVED.** Los criterios de aceptación están cumplidos y
+el criterio 13 de `docs/mvp.md` quedó integrado en `main` por el PR #20,
+mediante squash `8ba31f7262a558b2cfc8471965c4453ce85bb816`.
+La revisión independiente fue APPROVED y el CI posterior al merge fue
+SUCCESS, según la confirmación de la persona usuaria. La evidencia de SQL,
+DEV estructural y funcional y cleanup `residue=0` se conserva en este
+expediente. La migration se aplicó en DEV, pero no se autorizó ni se aplicó
+en PROD. La frase anterior sobre commit, push y merge describe el
+checkpoint previo al PR. Ver `retrospective.md` para el cierre documental.
