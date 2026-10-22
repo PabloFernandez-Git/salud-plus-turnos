@@ -79,6 +79,22 @@ describe("center layout", () => {
     ).rejects.toThrow("NOT_FOUND");
   });
 
+  it("returns not-found for an invalid center identifier before querying membership", async () => {
+    await expect(
+      CenterLayout({ params: Promise.resolve({ centerId: "invalid" }), children: null }),
+    ).rejects.toThrow("NOT_FOUND");
+    expect(requireCenterMembership).not.toHaveBeenCalledWith("invalid");
+  });
+
+  it("redirects an unauthenticated visitor to login", async () => {
+    vi.mocked(requireCenterMembership).mockRejectedValueOnce(
+      new AuthorizationError("UNAUTHENTICATED"),
+    );
+    await expect(
+      CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
+    ).rejects.toThrow("REDIRECT:/login");
+  });
+
   it("propagates an internal query failure without turning it into a 404", async () => {
     const queryError = new Error("internal query failure");
     vi.mocked(requireCenterMembership).mockRejectedValueOnce(queryError);

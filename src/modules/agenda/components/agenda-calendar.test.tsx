@@ -212,6 +212,8 @@ describe("AgendaCalendar", () => {
       />,
     );
     expect(screen.getByRole("heading", { name: "Agenda" })).toBeInTheDocument();
+    expect(screen.getByText("Consultá la actividad por día, semana o mes.")).toBeVisible();
+    expect(screen.queryByText(/Horarios en la zona del centro:/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /21: 1 turno\. Abrir día/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Crear turno" })).toBeInTheDocument();
   });
