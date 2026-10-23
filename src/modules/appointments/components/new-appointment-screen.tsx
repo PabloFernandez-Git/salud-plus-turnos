@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ModuleHeader } from "@/components/module-header";
+import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 import {
   createAppointmentAction,
   reconcileAppointmentCreateAction,
@@ -23,8 +23,7 @@ type CreateIntent = {
   startsAt: string;
   endsAt: string;
 };
-const buttonClass =
-  "min-h-11 rounded-md bg-sky-700 px-4 py-2 font-semibold text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50";
+const buttonClass = modulePrimaryActionClass;
 
 export function NewAppointmentScreen({
   centerId,
@@ -250,7 +249,7 @@ export function NewAppointmentScreen({
                   <label className="min-w-0 flex-1 text-sm font-semibold text-slate-800">
                     Buscar paciente activo
                     <input
-                      className="mt-1 h-11 w-full rounded border border-slate-300 px-3"
+                      className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
                       value={query}
                       onChange={(event) => invalidateSearch(event.target.value)}
                       maxLength={100}
@@ -346,7 +345,7 @@ export function NewAppointmentScreen({
             <label className="mt-3 block text-sm font-semibold text-slate-800">
               Nota
               <textarea
-                className="mt-1 min-h-28 w-full rounded border border-slate-300 p-3"
+                className="mt-1 min-h-28 w-full rounded-md border border-slate-300 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
                 value={note}
                 onChange={(event) => {
                   if (Array.from(event.target.value).length <= 2000) setNote(event.target.value);

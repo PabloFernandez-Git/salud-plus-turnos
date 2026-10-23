@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgendaCalendar } from "./agenda-calendar";
 
@@ -12,15 +12,85 @@ beforeEach(() => {
     },
   );
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  push.mockClear();
+});
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const centerId = "11111111-1111-4111-8111-111111111111";
 const professionalId = "22222222-2222-4222-8222-222222222222";
 
 afterEach(cleanup);
 
 describe("AgendaCalendar", () => {
+  it.each([
+    { date: "2026-10-21", index: 4, selected: "2026-10-23" },
+    { date: "2026-10-30", index: 6, selected: "2026-11-01" },
+    { date: "2026-12-31", index: 4, selected: "2027-01-01" },
+  ])(
+    "opens the civil Day from a Week date across month and year boundaries: $selected",
+    ({ date, index, selected }) => {
+      const { container } = render(
+        <AgendaCalendar
+          centerId={centerId}
+          centerName="Centro"
+          timezone="Pacific/Auckland"
+          today={date}
+          role="RECEPTION"
+          filters={{
+            date,
+            view: "week",
+            status: "CONFIRMED",
+            specialtyId: "33333333-3333-4333-8333-333333333333",
+            professionalCenterId: professionalId,
+          }}
+          loadFailed={false}
+          professionals={[]}
+          appointments={[]}
+        />,
+      );
+      const headers = container.querySelectorAll<HTMLButtonElement>(
+        ".agenda-calendar-week .rbc-time-header .rbc-header > button",
+      );
+      expect(headers).toHaveLength(7);
+      expect(headers[index]).toHaveTextContent("Abrir día");
+      fireEvent.click(headers[index]);
+      expect(push).toHaveBeenCalledTimes(1);
+      const url = new URL(push.mock.calls[0][0], "http://local.test");
+      expect(url.pathname).toBe("/centers/" + centerId + "/agenda");
+      expect(url.searchParams.get("view")).toBe("day");
+      expect(url.searchParams.get("date")).toBe(selected);
+      expect(url.searchParams.get("status")).toBe("CONFIRMED");
+      expect(url.searchParams.get("specialty")).toBe("33333333-3333-4333-8333-333333333333");
+      expect(url.searchParams.get("professional")).toBe(professionalId);
+      expect(screen.getByRole("link", { name: "Crear turno" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Lista de turnos" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("keeps appointment creation hidden from Professional while Week headings remain available", () => {
+    const { container } = render(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="America/Argentina/Buenos_Aires"
+        today="2026-10-23"
+        role="PROFESSIONAL"
+        filters={{ date: "2026-10-23", view: "week" }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Lista de turnos" })).not.toBeInTheDocument();
+    expect(container.querySelectorAll(".agenda-calendar-week .rbc-header > button")).toHaveLength(
+      7,
+    );
+  });
+
   it("keeps full event details available with a compact visual label", () => {
     const { container } = render(
       <AgendaCalendar

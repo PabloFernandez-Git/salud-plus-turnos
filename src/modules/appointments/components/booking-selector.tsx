@@ -36,7 +36,8 @@ type Slot = {
   local_end_date: string;
   local_end_time: string;
 };
-const selectClass = "mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3";
+const selectClass =
+  "mt-1 min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:bg-slate-50 disabled:text-slate-500";
 
 function slotOffset(slot: Slot) {
   // The civil fields come from PostgreSQL. Derive the offset from those fields

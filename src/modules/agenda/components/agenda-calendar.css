@@ -100,6 +100,21 @@
 .agenda-calendar-week .rbc-time-header.rbc-overflowing {
   border-color: #e2e8f0;
 }
+.agenda-calendar-week .rbc-time-header .rbc-header > .rbc-button-link {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.agenda-calendar-week .rbc-time-header .rbc-header > .rbc-button-link:hover {
+  background: #f0f9ff;
+  color: #0369a1;
+}
+.agenda-calendar-week .rbc-time-header .rbc-header > .rbc-button-link:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: -3px;
+}
 .agenda-calendar-day .rbc-time-content,
 .agenda-calendar-week .rbc-time-content {
   /* The calendar already accounts for its native vertical scrollbar in the header. */
