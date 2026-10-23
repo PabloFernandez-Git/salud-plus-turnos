@@ -19,6 +19,8 @@ export default defineConfig({
       "scripts/task007-gate-d/finalize-core.test.mjs",
       "scripts/task007-gate-d/ledger-lifecycle.test.mjs",
       "scripts/task022-functional-dev/*.test.mjs",
+      "scripts/task021-dev/*.test.mjs",
+      "scripts/task021-functional-dev/*.test.mjs",
     ],
     setupFiles: ["./vitest.setup.ts"],
   },
