@@ -25,7 +25,11 @@ export default async function CenterPage({ params }: { params: Promise<{ centerI
 
   return (
     <PageReveal>
-      <CenterDashboard centerId={context.center.id} role={context.membership.role} />
+      <CenterDashboard
+        centerId={context.center.id}
+        membershipId={context.membership.id}
+        role={context.membership.role}
+      />
     </PageReveal>
   );
 }
