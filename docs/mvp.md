@@ -203,3 +203,5 @@ El MVP está funcionalmente terminado cuando:
 15. Un mismo profesional o usuario puede participar en más de un centro manteniendo separados roles, disponibilidad, pacientes y turnos.
 
 **Estado del criterio 13 (2026-10-22):** integrado en `main` mediante PR #20 (squash `8ba31f7262a558b2cfc8471965c4453ce85bb816`). La migration correspondiente se aplicó en DEV; su aplicación en PROD no está autorizada.
+
+**Estado del criterio 14 (2026-10-23):** cumplido para el MVP mediante TASK-021, integrado en `main` por PR #22 (`5f0cead268adbc64ccdaf055e64e90ff87f4eb71`). El Dashboard muestra actividad diaria y próximos turnos con alcance por rol; Gate A/B DEV, pruebas y revisión técnica pasaron. La validación visual de escritorio y móvil de 390 px fue aprobada por la persona usuaria. La migration no se aplicó en PROD.
