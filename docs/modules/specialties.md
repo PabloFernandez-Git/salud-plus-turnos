@@ -39,6 +39,16 @@ no se reintenta automáticamente: se muestra el error y se refresca el listado. 
 conserva el token CAS según las RPCs de TASK-006B. Desactivar conserva todas las asociaciones
 existentes y exige confirmación explícita en la UI.
 
+Crear y editar comparten un modal centrado con nombre y descripción opcional. Si hay cambios sin
+guardar, Cancelar, X, Escape y el fondo solicitan confirmar el descarte; sin cambios cierran
+directamente. La desactivación se confirma en un modal centrado con acción roja y aviso de que las
+asociaciones existentes se conservan. La reactivación mantiene su confirmación de estado.
+
+En creación y edición, Nombre conserva las restricciones nativas `required` y `maxLength`; el
+mensaje nativo de campo vacío se reemplaza por «Ingresá el nombre de la especialidad.» bajo el
+campo, con borde rojo, foco y asociación accesible. Los nombres compuestos sólo por espacios se
+tratan como vacíos antes del envío; la validación del servidor permanece vigente.
+
 Una Specialty inactiva sigue reservando su nombre y conserva las filas de asociación activas.
 No puede agregarse a un ProfessionalCenter mientras está inactiva. Al reactivarse, las asociaciones
 conservadas vuelven a ser operativas sin crear filas nuevas. El editor de Profesionales distingue
