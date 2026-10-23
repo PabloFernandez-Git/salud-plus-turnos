@@ -39,3 +39,4 @@ supabase/.temp/
 .harness/tasks/archive/TASK-013/validation-ledger.json
 .harness/tasks/archive/TASK-013/attempts/
 .harness/tasks/archive/TASK-013/evidence/local-visual-before/
+.task021-functional-dev/
