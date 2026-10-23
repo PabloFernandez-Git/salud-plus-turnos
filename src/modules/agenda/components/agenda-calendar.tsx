@@ -10,14 +10,11 @@ import {
   dateFnsLocalizer,
   type DateHeaderProps,
   type EventProps,
+  type HeaderProps,
   type ResourceHeaderProps,
   type SlotInfo,
 } from "react-big-calendar";
-import {
-  ModuleHeader,
-  modulePrimaryActionClass,
-  moduleSecondaryActionClass,
-} from "@/components/module-header";
+import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 import type { AvailabilityProfessionalCenter } from "@/modules/availability/server/availability";
 import { appointmentStatusLabels } from "@/modules/appointments/components/appointments-list";
 import {
@@ -226,6 +223,14 @@ export function AgendaCalendar({
     () => ({
       event: AgendaEvent,
       resourceHeader: ResourceHeading,
+      week: {
+        header: ({ label }: HeaderProps) => (
+          <span>
+            {label}
+            <span className="sr-only">. Abrir día</span>
+          </span>
+        ),
+      },
       month: {
         dateHeader: ({ date: day, label, isOffRange, onDrillDown }: DateHeaderProps) => {
           const summary = counts.get(civilDate(day));
@@ -288,22 +293,14 @@ export function AgendaCalendar({
           title="Agenda"
           description="Consultá la actividad por día, semana o mes."
           actions={
-            <>
-              {role !== "PROFESSIONAL" && (
-                <Link
-                  className={modulePrimaryActionClass}
-                  href={`/centers/${centerId}/appointments/new`}
-                >
-                  Crear turno
-                </Link>
-              )}
+            role !== "PROFESSIONAL" ? (
               <Link
-                className={moduleSecondaryActionClass}
-                href={`/centers/${centerId}/appointments`}
+                className={modulePrimaryActionClass}
+                href={`/centers/${centerId}/appointments/new`}
               >
-                Lista de turnos
+                Crear turno
               </Link>
-            </>
+            ) : null
           }
         />
         <section
@@ -584,6 +581,9 @@ export function AgendaCalendar({
                     }}
                     onNavigate={() => undefined}
                     onView={() => undefined}
+                    getDrilldownView={(_day, view) =>
+                      view === "week" || view === "month" ? "day" : null
+                    }
                     onSelectEvent={(event) =>
                       router.push(`/centers/${centerId}/appointments/${event.id}`)
                     }

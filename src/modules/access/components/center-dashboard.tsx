@@ -22,18 +22,7 @@ export function CenterDashboard({
           membershipId={membershipId}
           role={role}
         />
-        <section aria-labelledby="dashboard-navigation-heading">
-          <div className="mb-8">
-            <h2
-              id="dashboard-navigation-heading"
-              className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl"
-            >
-              ¿Qué querés hacer hoy?
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">Elegí un módulo para empezar.</p>
-          </div>
-          <CenterNavigation centerId={centerId} role={role} />
-        </section>
+        <CenterNavigation centerId={centerId} role={role} />
       </div>
     </main>
   );

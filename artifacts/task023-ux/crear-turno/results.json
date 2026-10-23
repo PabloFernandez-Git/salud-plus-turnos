@@ -1,0 +1,16 @@
+[
+  {
+    "name": "desktop-1440",
+    "initial": true,
+    "ready": true,
+    "businessError": true,
+    "overflow": false
+  },
+  {
+    "name": "mobile-390",
+    "initial": true,
+    "ready": true,
+    "businessError": true,
+    "overflow": false
+  }
+]

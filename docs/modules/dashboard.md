@@ -34,3 +34,7 @@ Gate A estructural y Gate B funcional obtuvieron PASS en Supabase DEV, con 25 mi
 ## Evolución pendiente
 
 Las alertas operativas requieren una regla específica. Un checklist de onboarding para distinguir la ausencia de pacientes o profesionales activos requiere lecturas autorizadas adicionales; no se infiere de cero turnos. No hay métricas históricas ni gráficos en TASK-021.
+
+## Refinamiento UX TASK-023
+
+El inicio presenta las agrupaciones Operación diaria y Administración del centro directamente después del Dashboard operativo; se retiraron el encabezado y la descripción introductorios redundantes. Las tarjetas, rutas, permisos y distribución responsive se conservan.

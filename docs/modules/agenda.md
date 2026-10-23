@@ -98,3 +98,7 @@ Un botón permite volver a esa posición. Es una preferencia de presentación,
 no una inferencia de horario operativo ni de disponibilidad. Los filtros se
 ajustan al ancho mobile. Cuando hay desborde interno, las flechas recorren
 columnas completas y el scroll horizontal sigue disponible.
+
+## Refinamiento UX TASK-023
+
+En Semana, el botón de cada encabezado de fecha abre Día para esa fecha civil, conservando el Center y los filtros compatibles. Admite ratón, Enter y Espacio, con hover y foco visibles. La selección de franjas y la navegación de Mes se conservan. El encabezado del módulo muestra Crear turno sólo a staff y omite la acción redundante Lista de turnos; Turnos permanece en la navegación del centro.

@@ -114,3 +114,7 @@ verificó 23 migrations, contrato POST y la integración real.
 Patients conserva sólo la intención canónica `from=appointment` en su navegación
 interna. La advertencia de Availability omite CANCELLED e informa cuando una
 lectura falla; la búsqueda de pacientes descarta respuestas obsoletas.
+
+## Refinamiento visual TASK-023
+
+Crear turno permanece como página con el flujo y operaciones aprobados. Búsqueda, nota y selectores recibieron foco visible y estados visuales consistentes; los botones principales reutilizan el estilo compartido de encabezado. La auditoría detallada está en el expediente activo de TASK-023.
