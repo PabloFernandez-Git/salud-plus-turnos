@@ -26,6 +26,8 @@ type Selection = { mode: "create" } | { mode: "edit" | "state"; specialty: Speci
 
 const specialtyFieldClass = (error?: string) =>
   `w-full rounded-md border-2 px-3 py-2 focus:outline-none ${error ? "border-red-700 focus:border-red-700" : "border-slate-300 focus:border-sky-700"}`;
+const tableActionClass =
+  "inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm leading-5 font-normal text-sky-800 enabled:cursor-pointer enabled:hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function SpecialtiesScreen({
   centerId,
@@ -44,8 +46,10 @@ export function SpecialtiesScreen({
   const [feedback, setFeedback] = useState<SpecialtyActionState | null>(null);
   const [nameClientError, setNameClientError] = useState<string | null>(null);
   const [discardRequested, setDiscardRequested] = useState(false);
+  const [hasTableOverflow, setHasTableOverflow] = useState(false);
   const [isPending, startTransition] = useTransition();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const tableScrollRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const continueEditingRef = useRef<HTMLButtonElement>(null);
@@ -86,6 +90,24 @@ export function SpecialtiesScreen({
   useEffect(() => {
     if (isPending) dialogRef.current?.focus();
   }, [isPending]);
+
+  useEffect(() => {
+    const container = tableScrollRef.current;
+    if (!container || specialties.length === 0) return;
+    const syncOverflow = () =>
+      setHasTableOverflow(container.scrollWidth > container.clientWidth + 1);
+    syncOverflow();
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(syncOverflow);
+    observer?.observe(container);
+    const table = container.querySelector("table");
+    if (table) observer?.observe(table);
+    window.addEventListener("resize", syncOverflow);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", syncOverflow);
+    };
+  }, [loadFailed, specialties.length]);
 
   function select(next: Selection | null, trigger?: HTMLButtonElement) {
     if (trigger) triggerRef.current = trigger;
@@ -406,14 +428,20 @@ export function SpecialtiesScreen({
               </dialog>
             )}
 
+            {specialties.length > 0 && hasTableOverflow && (
+              <p className="text-xs leading-5 text-slate-500">
+                Deslizá horizontalmente para ver todas las columnas
+              </p>
+            )}
             <section
+              ref={tableScrollRef}
               className="overflow-x-auto rounded-xl border border-slate-200 bg-white"
               aria-label="Listado de especialidades"
             >
               {specialties.length === 0 ? (
                 <p className="p-6 text-slate-600">Todavía no hay especialidades en este centro.</p>
               ) : (
-                <table className="w-full text-left text-sm">
+                <table className="w-full min-w-[40rem] text-left text-sm">
                   <thead className="bg-slate-100 text-slate-700">
                     <tr>
                       <th className="p-4">Nombre</th>
@@ -430,27 +458,29 @@ export function SpecialtiesScreen({
                           {specialty.description ?? "Sin descripción"}
                         </td>
                         <td className="p-4">{specialty.is_active ? "Activa" : "Inactiva"}</td>
-                        <td className="flex flex-wrap gap-2 p-4">
-                          <button
-                            disabled={isPending}
-                            onClick={(event) =>
-                              select({ mode: "edit", specialty }, event.currentTarget)
-                            }
-                            type="button"
-                            className="rounded-md border border-slate-300 px-3 py-2 text-sky-800 disabled:opacity-50"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            disabled={isPending}
-                            onClick={(event) =>
-                              select({ mode: "state", specialty }, event.currentTarget)
-                            }
-                            type="button"
-                            className="rounded-md border border-slate-300 px-3 py-2 text-sky-800 disabled:opacity-50"
-                          >
-                            {specialty.is_active ? "Desactivar" : "Activar"}
-                          </button>
+                        <td className="min-w-max p-4 whitespace-nowrap">
+                          <div className="flex w-max flex-nowrap items-center gap-2">
+                            <button
+                              disabled={isPending}
+                              onClick={(event) =>
+                                select({ mode: "edit", specialty }, event.currentTarget)
+                              }
+                              type="button"
+                              className={tableActionClass}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              disabled={isPending}
+                              onClick={(event) =>
+                                select({ mode: "state", specialty }, event.currentTarget)
+                              }
+                              type="button"
+                              className={tableActionClass}
+                            >
+                              {specialty.is_active ? "Desactivar" : "Activar"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
