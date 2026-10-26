@@ -47,7 +47,11 @@ describe("Professional specialty Action", () => {
       },
       client,
     );
-    expect(result).toMatchObject({ status: "success", updatedAt: nextToken });
+    expect(result).toMatchObject({
+      status: "success",
+      message: "Especialidades del profesional actualizadas",
+      updatedAt: nextToken,
+    });
     expect(d.revalidate).toHaveBeenCalledWith(centerId);
   });
   it("does not call the RPC for an empty operation", async () => {

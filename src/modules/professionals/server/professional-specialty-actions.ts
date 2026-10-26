@@ -86,7 +86,7 @@ export async function performProfessionalSpecialtyAction(
     dependencies.revalidate(parsed.data.centerId);
     return {
       status: "success",
-      message: "Especialidades actualizadas.",
+      message: "Especialidades del profesional actualizadas",
       updatedAt: result.professional_center_updated_at,
     };
   } catch (error) {
