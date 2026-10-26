@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   useEffect,
@@ -11,6 +12,8 @@ import {
 } from "react";
 import { modulePrimaryActionClass } from "@/components/module-header";
 import { modalActionGroupClass } from "@/components/modal-action-group";
+import { FormFieldError, formFieldErrorProps } from "@/components/form-field-error";
+import countries from "@/modules/professionals/components/country-options.json";
 import {
   createPatientAction,
   deactivatePatientAction,
@@ -27,7 +30,25 @@ import {
   type PatientFilters,
 } from "../search/patient-search-params";
 import type { PatientDetail } from "../server/patient-management";
+import {
+  patientCenterDetailsSchema,
+  patientDocumentSchema,
+  patientEmailSchema,
+  patientIdentitySchema,
+  patientInsuranceSchema,
+  patientAdministrativeNotesSchema,
+  patientNameSchema,
+  patientNationalitySchema,
+  patientPhoneSchema,
+  trimPatientInput,
+} from "../schemas/patient-input";
 import { PatientAppointments } from "./patient-appointments";
+import {
+  birthDateFormatError,
+  birthDateToIso,
+  formatBirthDateInput,
+  isFutureBirthDate,
+} from "./patient-birth-date";
 const formatPatientBirthDate = (value: string) => {
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year}`;
@@ -46,6 +67,7 @@ const sameResolveIdentity = (left: ResolveIdentity, right: ResolveIdentity) =>
   left.documentNumber === right.documentNumber &&
   left.birthDate === right.birthDate;
 type Details = { phone: string; email: string; insuranceName: string; administrativeNotes: string };
+type RegistrationField = keyof Identity | keyof Details;
 const emptyIdentity: Identity = {
   firstName: "",
   lastName: "",
@@ -54,6 +76,45 @@ const emptyIdentity: Identity = {
   birthDate: "",
 };
 const emptyDetails: Details = { phone: "", email: "", insuranceName: "", administrativeNotes: "" };
+
+function registrationFieldError(field: RegistrationField, value: string, timezone: string): string {
+  switch (field) {
+    case "nationalityCode":
+      return patientNationalitySchema.safeParse(value).success ? "" : "Seleccioná un país.";
+    case "documentNumber":
+      return patientDocumentSchema.safeParse(value).success
+        ? ""
+        : trimPatientInput(value)
+          ? "Ingresá un documento válido."
+          : "Ingresá el documento.";
+    case "birthDate": {
+      const iso = birthDateToIso(value);
+      if (!iso) return birthDateFormatError;
+      return isFutureBirthDate(iso, timezone) ? "La fecha de nacimiento no puede ser futura." : "";
+    }
+    case "firstName":
+    case "lastName":
+      return patientNameSchema.safeParse(value).success
+        ? ""
+        : trimPatientInput(value)
+          ? `Revisá el ${field === "firstName" ? "nombre" : "apellido"}.`
+          : `Ingresá el ${field === "firstName" ? "nombre" : "apellido"}.`;
+    case "phone":
+      return patientPhoneSchema.safeParse(value).success
+        ? ""
+        : trimPatientInput(value)
+          ? "Revisá el teléfono."
+          : "Ingresá el teléfono.";
+    case "email":
+      return patientEmailSchema.safeParse(value).success ? "" : "Ingresá un email válido.";
+    case "insuranceName":
+      return patientInsuranceSchema.safeParse(value).success ? "" : "Revisá la cobertura.";
+    case "administrativeNotes":
+      return patientAdministrativeNotesSchema.safeParse(value).success
+        ? ""
+        : "Revisá las notas administrativas.";
+  }
+}
 
 function PatientDialog({
   children,
@@ -206,7 +267,7 @@ function PatientDialog({
           <div
             className={
               centered
-                ? "flex min-w-0 items-start justify-between gap-4 px-5 pt-5 pb-2 sm:px-6 sm:pt-6"
+                ? "sticky top-0 z-10 flex min-w-0 items-start justify-between gap-4 border-b border-slate-200 bg-white px-5 py-4 sm:px-6"
                 : "sticky top-0 z-10 flex items-start justify-between gap-4 border-b bg-white p-4 sm:p-6"
             }
           >
@@ -281,17 +342,31 @@ function Field({
   type = "text",
   required = false,
   multiline = false,
+  disabled = false,
+  onBlur,
+  inputMode,
+  placeholder,
+  hint,
 }: {
   name: string;
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, isDeleting: boolean, input: HTMLInputElement | null) => void;
   error?: string;
   type?: string;
   required?: boolean;
   multiline?: boolean;
+  disabled?: boolean;
+  onBlur?: (value: string) => void;
+  inputMode?: "numeric";
+  placeholder?: string;
+  hint?: string;
 }) {
   const id = `patient-${name}`;
+  const describedBy =
+    [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") ||
+    undefined;
+  const fieldClass = `w-full rounded border-2 bg-white focus:outline-none ${error ? "border-red-700 focus:border-red-700" : "border-slate-300 focus:border-sky-700"}`;
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-sm font-semibold text-slate-800">
@@ -302,29 +377,42 @@ function Field({
           id={id}
           name={name}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${id}-error` : undefined}
-          className="min-h-28 w-full rounded border border-slate-300 p-3"
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value, false, null)}
+          onBlur={(e) => onBlur?.(e.target.value)}
+          {...formFieldErrorProps(error, `${id}-error`)}
+          aria-describedby={describedBy}
+          className={`min-h-28 p-3 ${fieldClass}`}
         />
       ) : (
         <input
           id={id}
           name={name}
           type={type}
+          inputMode={inputMode}
+          placeholder={placeholder}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            onChange(
+              e.target.value,
+              (e.nativeEvent as InputEvent).inputType?.startsWith("delete") ?? false,
+              e.target,
+            )
+          }
+          onBlur={(e) => onBlur?.(e.target.value)}
           required={required}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${id}-error` : undefined}
-          className="min-h-11 w-full rounded border border-slate-300 px-3"
+          {...formFieldErrorProps(error, `${id}-error`)}
+          aria-describedby={describedBy}
+          className={`min-h-11 px-3 ${fieldClass}`}
         />
       )}
-      {error && (
-        <p id={`${id}-error`} className="text-sm text-rose-700">
-          {error}
+      {hint && (
+        <p id={`${id}-hint`} className="text-xs text-slate-600">
+          {hint}
         </p>
       )}
+      <FormFieldError id={`${id}-error`} message={error} />
     </div>
   );
 }
@@ -339,13 +427,17 @@ function Feedback({ result }: { result: PatientActionResult | null }) {
 
 function Registration({
   centerId,
+  timezone,
   filters,
   onClose,
+  onNotice,
   returnToAppointments,
 }: {
   centerId: string;
+  timezone: string;
   filters: PatientFilters;
   onClose: () => void;
+  onNotice: (message: string, tone?: "success" | "info") => void;
   returnToAppointments: boolean;
 }) {
   const router = useRouter();
@@ -357,8 +449,34 @@ function Registration({
   const [resolution, setResolution] = useState<PatientResolveRow | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [feedback, setFeedback] = useState<PatientActionResult | null>(null);
+  const [clientErrors, setClientErrors] = useState<Partial<Record<RegistrationField, string>>>({});
+  const identityFormRef = useRef<HTMLFormElement>(null);
+  const detailsFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
-  const errors = feedback?.status === "error" ? feedback.fields : undefined;
+  const serverErrors = feedback?.status === "error" ? feedback.fields : undefined;
+  const fieldError = (field: RegistrationField) => clientErrors[field] || serverErrors?.[field];
+  function validateFields(fields: RegistrationField[], form: HTMLFormElement | null): boolean {
+    const next: Partial<Record<RegistrationField, string>> = {};
+    for (const field of fields) {
+      const value =
+        field in identityRef.current
+          ? identityRef.current[field as keyof Identity]
+          : details[field as keyof Details];
+      next[field] = registrationFieldError(field, value, timezone);
+    }
+    setClientErrors((previous) => ({ ...previous, ...next }));
+    const invalid = fields.find((field) => next[field]);
+    if (invalid) form?.querySelector<HTMLElement>(`[name="${invalid}"]`)?.focus();
+    return !invalid;
+  }
+  function validateOnBlur(field: RegistrationField, value: string) {
+    const formatted = field === "birthDate" ? formatBirthDateInput(value) : value;
+    if (field === "birthDate" && formatted !== value) changeIdentity("birthDate", formatted);
+    setClientErrors((previous) => ({
+      ...previous,
+      [field]: registrationFieldError(field, formatted, timezone),
+    }));
+  }
   function runSafely(work: () => Promise<void>) {
     startTransition(async () => {
       try {
@@ -379,6 +497,8 @@ function Registration({
     const next = { ...identityRef.current, [field]: value };
     identityRef.current = next;
     setIdentity(next);
+    setClientErrors((previous) => ({ ...previous, [field]: "" }));
+    setFeedback(null);
     setConfirm(false);
     if (field === "nationalityCode" || field === "documentNumber" || field === "birthDate") {
       resolveGeneration.current += 1;
@@ -389,6 +509,8 @@ function Registration({
   }
   function changeDetails(field: keyof Details, value: string) {
     setDetails((previous) => ({ ...previous, [field]: value }));
+    setClientErrors((previous) => ({ ...previous, [field]: "" }));
+    setFeedback(null);
     setConfirm(false);
   }
   function acceptResult(result: PatientActionResult) {
@@ -412,20 +534,38 @@ function Registration({
       typeof data.patient_center_id === "string"
     ) {
       onClose();
-      router.push(
-        patientRegistrationDestination(
-          centerId,
-          data.patient_center_id,
-          filters,
-          returnToAppointments,
-        ),
-      );
+      if (returnToAppointments || ("outcome" in data && data.outcome === "REACTIVATED")) {
+        router.push(
+          patientRegistrationDestination(
+            centerId,
+            data.patient_center_id,
+            filters,
+            returnToAppointments,
+          ),
+        );
+      } else {
+        const outcome = "outcome" in data ? data.outcome : "";
+        onNotice(
+          outcome === "CREATED"
+            ? "Paciente registrado correctamente"
+            : outcome === "LINKED"
+              ? "Paciente vinculado correctamente"
+              : "El paciente ya estaba vinculado a este centro.",
+          outcome === "ALREADY_ACTIVE" ? "info" : "success",
+        );
+      }
       router.refresh();
     }
   }
   function resolve(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
+    if (
+      !validateFields(["nationalityCode", "documentNumber", "birthDate"], identityFormRef.current)
+    )
+      return;
+    const birthDate = birthDateToIso(identityRef.current.birthDate);
+    if (!birthDate) return;
     const requestGeneration = ++resolveGeneration.current;
     const snapshot: ResolveIdentity = {
       nationalityCode: identityRef.current.nationalityCode,
@@ -440,7 +580,7 @@ function Registration({
     resolvedIdentity.current = null;
     startTransition(async () => {
       try {
-        const result = await resolvePatientAction({ centerId, ...snapshot });
+        const result = await resolvePatientAction({ centerId, ...snapshot, birthDate });
         if (!isCurrent()) return;
         if (
           result.status === "success" &&
@@ -475,12 +615,31 @@ function Registration({
       (resolution.identity_status === "FOUND" && !resolution.birth_date_matches)
     )
       return;
-    const common = {
-      centerId,
-      nationalityCode: identity.nationalityCode,
-      documentNumber: identity.documentNumber,
-      birthDate: identity.birthDate,
-    };
+    if (showDetails) {
+      const fields: RegistrationField[] = [
+        ...(resolution.identity_status === "NOT_FOUND" ? (["firstName", "lastName"] as const) : []),
+        "phone",
+        "email",
+        "insuranceName",
+        "administrativeNotes",
+      ];
+      if (!validateFields(fields, detailsFormRef.current)) {
+        setConfirm(false);
+        return;
+      }
+    }
+    const birthDate = birthDateToIso(identity.birthDate);
+    if (!birthDate) return;
+    if (!normalizedIdentity.success) return;
+    const common = normalizedIdentity.data;
+    const actionDetails = review
+      ? {
+          phone: review.phone,
+          email: review.email,
+          insuranceName: review.insuranceName,
+          administrativeNotes: review.administrativeNotes,
+        }
+      : details;
     setFeedback(null);
     runSafely(async () => {
       let result: PatientActionResult;
@@ -491,9 +650,9 @@ function Registration({
         }
         result = await createPatientAction({
           ...common,
-          firstName: identity.firstName,
-          lastName: identity.lastName,
-          ...details,
+          firstName: review?.firstName ?? identity.firstName,
+          lastName: review?.lastName ?? identity.lastName,
+          ...actionDetails,
         });
       } else if (resolution.relationship_state === "NOT_LINKED") {
         if (!confirm) {
@@ -503,7 +662,7 @@ function Registration({
         result = await linkPatientAction({
           ...common,
           personId: resolution.person_id,
-          ...details,
+          ...actionDetails,
           confirmed: true,
         });
       } else if (resolution.relationship_state === "INACTIVE") {
@@ -536,6 +695,34 @@ function Registration({
   const showDetails =
     resolution?.identity_status === "NOT_FOUND" ||
     (matched && resolution.relationship_state === "NOT_LINKED");
+  const normalizedIdentity = patientIdentitySchema.safeParse({
+    centerId,
+    nationalityCode: identity.nationalityCode,
+    documentNumber: identity.documentNumber,
+    birthDate: birthDateToIso(identity.birthDate) ?? "",
+  });
+  const normalizedDetails = patientCenterDetailsSchema.safeParse(details);
+  const normalizedFirstName = patientNameSchema.safeParse(identity.firstName);
+  const normalizedLastName = patientNameSchema.safeParse(identity.lastName);
+  const review =
+    confirm &&
+    normalizedIdentity.success &&
+    normalizedDetails.success &&
+    (resolution?.identity_status !== "NOT_FOUND" ||
+      (normalizedFirstName.success && normalizedLastName.success))
+      ? {
+          ...normalizedIdentity.data,
+          ...normalizedDetails.data,
+          firstName:
+            resolution?.identity_status === "NOT_FOUND" && normalizedFirstName.success
+              ? normalizedFirstName.data
+              : (resolution?.first_name ?? ""),
+          lastName:
+            resolution?.identity_status === "NOT_FOUND" && normalizedLastName.success
+              ? normalizedLastName.data
+              : (resolution?.last_name ?? ""),
+        }
+      : null;
   const hasUnsavedChanges =
     identity.nationalityCode !== emptyIdentity.nationalityCode ||
     identity.documentNumber !== "" ||
@@ -557,34 +744,73 @@ function Registration({
       hasUnsavedChanges={hasUnsavedChanges}
       isPending={pending}
     >
-      <form className="space-y-4" onSubmit={resolve}>
-        <h3 className="font-semibold">1. Identidad</h3>
-        <Field
-          name="nationalityCode"
-          label="Nacionalidad (código ISO de dos letras)"
-          value={identity.nationalityCode}
-          onChange={(v) => changeIdentity("nationalityCode", v)}
-          error={errors?.nationalityCode}
-          required
-        />
-        <Field
-          name="documentNumber"
-          label="Documento"
-          value={identity.documentNumber}
-          onChange={(v) => changeIdentity("documentNumber", v)}
-          error={errors?.documentNumber}
-          required
-        />
+      <form ref={identityFormRef} noValidate className="space-y-4" onSubmit={resolve}>
+        <h3 className="font-semibold text-slate-950">1. Identidad</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label
+              htmlFor="patient-nationalityCode"
+              className="block text-sm font-semibold text-slate-800"
+            >
+              Nacionalidad
+            </label>
+            <select
+              id="patient-nationalityCode"
+              name="nationalityCode"
+              value={identity.nationalityCode}
+              onChange={(event) => changeIdentity("nationalityCode", event.target.value)}
+              onBlur={(event) => validateOnBlur("nationalityCode", event.target.value)}
+              {...formFieldErrorProps(
+                fieldError("nationalityCode"),
+                "patient-nationalityCode-error",
+              )}
+              className={`min-h-11 w-full cursor-pointer rounded border-2 bg-white px-3 focus:outline-none ${fieldError("nationalityCode") ? "border-red-700 focus:border-red-700" : "border-slate-300 focus:border-sky-700"}`}
+            >
+              {countries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+            <FormFieldError
+              id="patient-nationalityCode-error"
+              message={fieldError("nationalityCode")}
+            />
+          </div>
+          <Field
+            name="documentNumber"
+            label="Documento"
+            value={identity.documentNumber}
+            onChange={(v) => changeIdentity("documentNumber", v)}
+            error={fieldError("documentNumber")}
+            onBlur={(value) => validateOnBlur("documentNumber", value)}
+            required
+          />
+        </div>
         <Field
           name="birthDate"
           label="Fecha de nacimiento"
-          type="date"
+          type="text"
+          inputMode="numeric"
+          placeholder="DD/MM/AAAA"
+          hint="Formato DD/MM/AAAA"
           value={identity.birthDate}
-          onChange={(v) => changeIdentity("birthDate", v)}
-          error={errors?.birthDate}
+          onChange={(value, isDeleting, input) => {
+            const formatted = formatBirthDateInput(value, isDeleting);
+            const caret = input?.selectionStart;
+            changeIdentity("birthDate", formatted);
+            if (input && caret !== null && caret !== undefined && formatted !== value) {
+              const nextCaret = formatBirthDateInput(value.slice(0, caret), isDeleting).length;
+              requestAnimationFrame(() => {
+                if (document.activeElement === input) input.setSelectionRange(nextCaret, nextCaret);
+              });
+            }
+          }}
+          onBlur={(value) => validateOnBlur("birthDate", value)}
+          error={fieldError("birthDate")}
           required
         />
-        <div className={modalActionGroupClass}>
+        <div className={`${modalActionGroupClass} border-t border-slate-200 pt-4`}>
           <button
             disabled={pending}
             className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50"
@@ -597,23 +823,30 @@ function Registration({
       <Feedback result={feedback} />
       {resolution?.identity_status === "FOUND" && !resolution.birth_date_matches && (
         <p role="alert" className="rounded bg-amber-50 p-3">
-          Los datos ingresados no coinciden con la identidad registrada.
+          No pudimos comprobar la identidad con los datos ingresados. Revisá el documento y la fecha
+          de nacimiento.
         </p>
       )}
       {resolution && (resolution.identity_status === "NOT_FOUND" || matched) && (
-        <form className="space-y-4 border-t pt-4" onSubmit={submit}>
+        <form
+          ref={detailsFormRef}
+          noValidate
+          className="space-y-4 border-t border-slate-200 pt-4"
+          onSubmit={submit}
+        >
           <h3 className="font-semibold">
             2.{" "}
             {resolution.identity_status === "NOT_FOUND" ? "Datos del nuevo paciente" : "Resultado"}
           </h3>
           {resolution.identity_status === "NOT_FOUND" ? (
-            <>
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 name="firstName"
                 label="Nombre"
                 value={identity.firstName}
                 onChange={(v) => changeIdentity("firstName", v)}
-                error={errors?.firstName}
+                error={fieldError("firstName")}
+                onBlur={(value) => validateOnBlur("firstName", value)}
                 required
               />
               <Field
@@ -621,10 +854,11 @@ function Registration({
                 label="Apellido"
                 value={identity.lastName}
                 onChange={(v) => changeIdentity("lastName", v)}
-                error={errors?.lastName}
+                error={fieldError("lastName")}
+                onBlur={(value) => validateOnBlur("lastName", value)}
                 required
               />
-            </>
+            </div>
           ) : (
             <p>
               Identidad encontrada:{" "}
@@ -643,13 +877,14 @@ function Registration({
             </p>
           )}
           {showDetails && (
-            <>
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 name="phone"
                 label="Teléfono"
                 value={details.phone}
                 onChange={(v) => changeDetails("phone", v)}
-                error={errors?.phone}
+                error={fieldError("phone")}
+                onBlur={(value) => validateOnBlur("phone", value)}
                 required
               />
               <Field
@@ -658,38 +893,116 @@ function Registration({
                 type="email"
                 value={details.email}
                 onChange={(v) => changeDetails("email", v)}
-                error={errors?.email}
+                error={fieldError("email")}
+                onBlur={(value) => validateOnBlur("email", value)}
               />
               <Field
                 name="insuranceName"
                 label="Obra social / prepaga (opcional)"
                 value={details.insuranceName}
                 onChange={(v) => changeDetails("insuranceName", v)}
-                error={errors?.insuranceName}
+                error={fieldError("insuranceName")}
+                onBlur={(value) => validateOnBlur("insuranceName", value)}
               />
-              <Field
-                name="administrativeNotes"
-                label="Notas administrativas (opcional)"
-                value={details.administrativeNotes}
-                onChange={(v) => changeDetails("administrativeNotes", v)}
-                error={errors?.administrativeNotes}
-                multiline
-              />
+              <div className="sm:col-span-2">
+                <Field
+                  name="administrativeNotes"
+                  label="Notas administrativas (opcional)"
+                  value={details.administrativeNotes}
+                  onChange={(v) => changeDetails("administrativeNotes", v)}
+                  error={fieldError("administrativeNotes")}
+                  onBlur={(value) => validateOnBlur("administrativeNotes", value)}
+                  multiline
+                />
+              </div>
               <p className="text-sm text-slate-600">
                 Uso administrativo. No registrar información clínica.
               </p>
-            </>
+            </div>
           )}
           {confirm && (
-            <p role="alert" className="rounded bg-sky-50 p-3">
-              {resolution.identity_status === "NOT_FOUND"
-                ? "Confirmá la creación del paciente."
-                : resolution.relationship_state === "NOT_LINKED"
-                  ? "Confirmá el vínculo con este centro."
-                  : "Confirmá la reactivación en este centro."}
-            </p>
+            <section
+              aria-label="Revisión y confirmación"
+              className="space-y-3 rounded border border-sky-200 bg-sky-50 p-3 text-sm"
+            >
+              <h3 className="font-semibold">3. Revisión y confirmación</h3>
+              <p>
+                {resolution.identity_status === "NOT_FOUND"
+                  ? "Revisá los datos antes de crear el paciente."
+                  : resolution.relationship_state === "NOT_LINKED"
+                    ? "Revisá los datos antes de vincular el paciente con este centro."
+                    : "Confirmá la reactivación en este centro."}
+              </p>
+              {showDetails && review && (
+                <>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Identidad</h4>
+                    <dl className="mt-1 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-slate-600">Nombre y apellido</dt>
+                        <dd className="break-words font-medium">
+                          {review.firstName} {review.lastName}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-600">Nacionalidad</dt>
+                        <dd className="break-words font-medium">
+                          {countries.find((country) => country.code === review.nationalityCode)
+                            ?.name ?? review.nationalityCode}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-600">Documento</dt>
+                        <dd className="break-words font-medium">{review.documentNumber}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-600">Fecha de nacimiento</dt>
+                        <dd className="font-medium">{formatPatientBirthDate(review.birthDate)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">Datos administrativos</h4>
+                    <dl className="mt-1 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                      <div>
+                        <dt className="text-slate-600">Teléfono</dt>
+                        <dd className="break-words font-medium">{review.phone}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-600">Email</dt>
+                        <dd className="break-words font-medium">{review.email ?? "—"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-slate-600">Obra social / prepaga</dt>
+                        <dd className="break-words font-medium">{review.insuranceName ?? "—"}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-slate-600">Notas administrativas</dt>
+                        <dd className="whitespace-pre-wrap break-words font-medium">
+                          {review.administrativeNotes ?? "Sin notas"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <button
+                    type="button"
+                    className="min-h-11 rounded px-2 font-semibold text-sky-800 underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                    onClick={() => {
+                      setConfirm(false);
+                      requestAnimationFrame(() =>
+                        detailsFormRef.current
+                          ?.querySelector<HTMLElement>('[name="phone"]')
+                          ?.focus(),
+                      );
+                    }}
+                  >
+                    Corregir datos
+                  </button>
+                </>
+              )}
+            </section>
           )}
-          <div className={modalActionGroupClass}>
+          <div className={`${modalActionGroupClass} border-t border-slate-200 pt-4`}>
             <button
               disabled={pending}
               type="submit"
@@ -722,6 +1035,8 @@ function Administration({
   detailFailed,
   onClose,
   onNotice,
+  notice,
+  noticeTone,
   returnToAppointments,
 }: {
   centerId: string;
@@ -730,7 +1045,9 @@ function Administration({
   detail: PatientDetail | null;
   detailFailed: boolean;
   onClose: () => void;
-  onNotice: (message: string) => void;
+  onNotice: (message: string, tone?: "success" | "info") => void;
+  notice: string;
+  noticeTone: "success" | "info";
   returnToAppointments: boolean;
 }) {
   const router = useRouter();
@@ -750,9 +1067,15 @@ function Administration({
     administrativeNotes: detail?.administrativeNotes ?? "",
   });
   const [savedForm, setSavedForm] = useState(form);
-  const hasUnsavedChanges = Object.keys(form).some(
-    (key) => form[key as keyof Details] !== savedForm[key as keyof Details],
-  );
+  const parsedForm = patientCenterDetailsSchema.safeParse(form);
+  const parsedSavedForm = patientCenterDetailsSchema.safeParse(savedForm);
+  const hasUnsavedChanges =
+    parsedForm.success && parsedSavedForm.success
+      ? JSON.stringify(parsedForm.data) !== JSON.stringify(parsedSavedForm.data)
+      : Object.keys(form).some(
+          (key) => form[key as keyof Details] !== savedForm[key as keyof Details],
+        );
+  const canSave = hasUnsavedChanges && parsedForm.success;
   function selectTab(tab: "data" | "appointments") {
     if (pending) return;
     setActiveTab(tab);
@@ -785,6 +1108,7 @@ function Administration({
   }
   function change(field: keyof Details, value: string) {
     setForm((previous) => ({ ...previous, [field]: value }));
+    onNotice("");
   }
   function complete(result: PatientActionResult, deactivate = false) {
     setFeedback(result);
@@ -796,7 +1120,8 @@ function Administration({
       result.data && typeof result.data === "object" && "outcome" in result.data
         ? result.data.outcome
         : "";
-    if (!deactivate) setSavedForm(form);
+    if (!deactivate && outcome === "UPDATED") setSavedForm(form);
+    if (outcome === "UPDATED") onNotice("Datos administrativos guardados.");
     if (
       returnToAppointments &&
       (outcome === "REACTIVATED" || outcome === "UNCHANGED") &&
@@ -807,17 +1132,13 @@ function Administration({
       router.push(patientRegistrationDestination(centerId, detail.patientCenterId, filters, true));
       return;
     }
-    onNotice(
-      deactivate
-        ? outcome === "UNCHANGED"
-          ? "El paciente ya estaba inactivo."
-          : "Paciente desactivado."
-        : outcome === "REACTIVATED"
-          ? "Paciente reactivado. Se conservaron sus datos administrativos."
-          : outcome === "UNCHANGED"
-            ? "No había cambios para guardar."
-            : "Datos administrativos guardados.",
-    );
+    if (deactivate)
+      onNotice(
+        outcome === "UNCHANGED" ? "El paciente ya estaba inactivo." : "Paciente desactivado.",
+        outcome === "UNCHANGED" ? "info" : "success",
+      );
+    else if (outcome === "REACTIVATED")
+      onNotice("Paciente reactivado. Se conservaron sus datos administrativos.");
     if (deactivate && filters.state === "ACTIVE") {
       onClose();
       router.refresh();
@@ -828,7 +1149,9 @@ function Administration({
   }
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || pending || stale) return;
+    if (!detail || pending || stale || !canSave || !detail.isActive) return;
+    setFeedback(null);
+    onNotice("");
     runSafely(async () =>
       complete(
         await updatePatientAction({
@@ -842,6 +1165,8 @@ function Administration({
   }
   function deactivate() {
     if (!detail || pending || stale) return;
+    setFeedback(null);
+    onNotice("");
     runSafely(async () =>
       complete(
         await deactivatePatientAction({
@@ -859,6 +1184,7 @@ function Administration({
     if (!detail || pending || stale) return;
     setReactivation(null);
     setFeedback(null);
+    onNotice("");
     runSafely(async () => {
       const result = await resolvePatientAction({
         centerId,
@@ -906,6 +1232,8 @@ function Administration({
       stale
     )
       return;
+    setFeedback(null);
+    onNotice("");
     runSafely(async () =>
       complete(
         await reactivatePatientAction({
@@ -994,6 +1322,14 @@ function Administration({
               <dd>{detail.isActive ? "Activo" : "Inactivo"}</dd>
             </dl>
             <Feedback result={feedback} />
+            {notice && (
+              <p
+                role="status"
+                className={`rounded border p-3 text-sm ${noticeTone === "info" ? "border-slate-200 bg-slate-50 text-slate-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
+              >
+                {notice}
+              </p>
+            )}
             {stale && (
               <button
                 type="button"
@@ -1014,6 +1350,7 @@ function Administration({
                 value={form.phone}
                 onChange={(v) => change("phone", v)}
                 error={errors?.phone}
+                disabled={pending}
                 required
               />
               <Field
@@ -1023,6 +1360,7 @@ function Administration({
                 value={form.email}
                 onChange={(v) => change("email", v)}
                 error={errors?.email}
+                disabled={pending}
               />
               <Field
                 name="insuranceName"
@@ -1030,6 +1368,7 @@ function Administration({
                 value={form.insuranceName}
                 onChange={(v) => change("insuranceName", v)}
                 error={errors?.insuranceName}
+                disabled={pending}
               />
               <Field
                 name="administrativeNotes"
@@ -1037,13 +1376,14 @@ function Administration({
                 value={form.administrativeNotes}
                 onChange={(v) => change("administrativeNotes", v)}
                 error={errors?.administrativeNotes}
+                disabled={pending}
                 multiline
               />
               <p className="text-sm text-slate-600">
                 Uso administrativo. No registrar información clínica.
               </p>
               <button
-                disabled={pending || stale || !detail.isActive}
+                disabled={pending || stale || !detail.isActive || !canSave}
                 type="submit"
                 className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
               >
@@ -1176,7 +1516,11 @@ export function PatientWorkspace({
   const router = useRouter();
   const selected = detail || detailFailed;
   const [registerOpen, setRegisterOpen] = useState(returnToAppointments && !selected);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{
+    message: string;
+    source: "registration" | "administration";
+    tone: "success" | "info";
+  } | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   function closeRegister() {
     setRegisterOpen(false);
@@ -1197,26 +1541,30 @@ export function PatientWorkspace({
         ref={trigger}
         type="button"
         onClick={() => {
-          setNotice("");
+          setNotice(null);
           setRegisterOpen(true);
         }}
         className={modulePrimaryActionClass}
       >
         Registrar paciente
       </button>
-      {notice && (
+      {notice && !selected && (
         <p
           role="status"
-          className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+          className={`rounded border p-3 text-sm ${notice.tone === "info" ? "border-slate-200 bg-slate-50 text-slate-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}
         >
-          {notice}
+          {notice.message}
         </p>
       )}
       {registerOpen && (
         <Registration
           centerId={centerId}
+          timezone={timezone}
           filters={filters}
           onClose={closeRegister}
+          onNotice={(message, tone = "success") =>
+            setNotice({ message, source: "registration", tone })
+          }
           returnToAppointments={returnToAppointments}
         />
       )}
@@ -1229,7 +1577,11 @@ export function PatientWorkspace({
           detail={detail}
           detailFailed={detailFailed}
           onClose={closeDetail}
-          onNotice={setNotice}
+          onNotice={(message, tone = "success") =>
+            setNotice(message ? { message, source: "administration", tone } : null)
+          }
+          notice={notice?.source === "administration" ? notice.message : ""}
+          noticeTone={notice?.tone ?? "success"}
           returnToAppointments={returnToAppointments}
         />
       )}
