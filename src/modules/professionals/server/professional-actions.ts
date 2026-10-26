@@ -26,6 +26,7 @@ export type ProfessionalActionState = {
   message: string;
   resolution?: Awaited<ReturnType<typeof resolveProfessional>>;
   fieldErrors?: Record<string, string[]>;
+  updatedAt?: string;
 };
 type Operation = "resolve" | "create" | "link" | "update" | "setActive";
 type Dependencies = {
@@ -169,19 +170,26 @@ export async function performProfessionalAction(
     if (operation === "create")
       await dependencies.create(createProfessionalWithCenterSchema.parse(values), client);
     if (operation === "link") await dependencies.link(linkProfessionalSchema.parse(values), client);
-    if (operation === "update")
-      await dependencies.update(updateProfessionalCenterSchema.parse(values), client);
+    const updatedCenter =
+      operation === "update"
+        ? await dependencies.update(updateProfessionalCenterSchema.parse(values), client)
+        : null;
     if (operation === "setActive")
       await dependencies.setActive(setProfessionalCenterActiveSchema.parse(values), client);
     dependencies.revalidate(centerId.data);
     return {
       status: "success",
+      updatedAt: updatedCenter?.updated_at,
       message:
         operation === "create"
           ? "Profesional creado y vinculado al centro."
           : operation === "link"
             ? "Profesional vinculado o reactivado en el centro."
-            : "Configuración del profesional actualizada.",
+            : operation === "update"
+              ? "Configuración del profesional actualizada"
+              : values.isActive
+                ? "Profesional activado correctamente"
+                : "Profesional desactivado correctamente",
     };
   } catch (error) {
     return errorState(error);

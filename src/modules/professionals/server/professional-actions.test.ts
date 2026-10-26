@@ -117,7 +117,13 @@ describe("Professional Server Actions", () => {
   });
   it("updates only local fields with CAS, including no-op values", async () => {
     const d = deps();
-    await performProfessionalAction("update", form({ licenseNumber: "  " }), d);
+    d.update.mockResolvedValueOnce({ updated_at: "2026-10-09T12:01:00+00:00" } as never);
+    expect(
+      await performProfessionalAction("update", form({ licenseNumber: "  " }), d),
+    ).toMatchObject({
+      status: "success",
+      updatedAt: "2026-10-09T12:01:00+00:00",
+    });
     expect(d.update).toHaveBeenCalledWith(
       {
         centerId,
@@ -139,6 +145,24 @@ describe("Professional Server Actions", () => {
       { centerId, professionalCenterId, expectedUpdatedAt, isActive: false, confirmed: true },
       client,
     );
+  });
+  it.each([
+    ["false", "Profesional desactivado correctamente"],
+    ["true", "Profesional activado correctamente"],
+  ] as const)("returns the exact success message for isActive=%s", async (isActive, message) => {
+    const d = deps();
+    expect(await performProfessionalAction("setActive", form({ isActive }), d)).toMatchObject({
+      status: "success",
+      message,
+    });
+    expect(d.setActive).toHaveBeenCalledOnce();
+  });
+  it("returns the configuration message only for update", async () => {
+    const d = deps();
+    expect(await performProfessionalAction("update", form(), d)).toMatchObject({
+      status: "success",
+      message: "Configuración del profesional actualizada",
+    });
   });
   it.each(["update", "setActive"] as const)("maps stale %s without retry", async (operation) => {
     const d = deps();
