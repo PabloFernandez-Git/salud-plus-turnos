@@ -1,6 +1,6 @@
 # Personas y pacientes
 
-## TASK-028 — Refinamiento UX en revisión
+## TASK-028 — Refinamiento UX integrado
 
 El registro conserva las etapas de identidad, datos y confirmación en un modal con encabezado visible durante el desplazamiento, campos en dos columnas desde `sm` y una columna en móvil. Nacionalidad muestra nombres del catálogo utilizado por Profesionales y envía códigos ISO alpha-2 sin cambiar la validación de servidor. Tras crear o vincular en el flujo normal, se cierra Registro, se refresca el listado con los mismos filtros y se muestra una confirmación específica; Administración se abre sólo mediante su acción existente. El flujo iniciado desde crear turno conserva la navegación al turno.
 
@@ -8,7 +8,9 @@ El registro valida los campos al perder el foco o al avanzar, con `noValidate`, 
 
 Cuando resolve informa `FOUND` con `birth_date_matches: false`, Registro muestra la advertencia neutral «No pudimos comprobar la identidad con los datos ingresados. Revisá el documento y la fecha de nacimiento». Conserva los campos para corregirlos y bloquea alta/vínculo sin mostrar datos de la identidad resuelta. Los errores de validación, permisos o red conservan sus mensajes propios. La comprobación local de esta ronda usa mocks para los cuatro resultados de identidad; no acredita por sí sola la unicidad ni la autorización de PostgreSQL en una sesión real.
 
-En Administración, Guardar cambios requiere un valor válido distinto del último confirmado según la normalización existente del schema. Se deshabilita al revertir y tras guardar, conserva el borrador ante error y evita anunciar `UNCHANGED` como guardado. Los avisos del modal permanecen junto a los datos del paciente. Descarte, pestañas y acciones de estado conservan el comportamiento anterior. La persona usuaria aprobó la revisión visual de TASK-028 en `localhost:3000`; la tarea sigue activa hasta su integración.
+En Administración, Guardar cambios requiere un valor válido distinto del último confirmado según la normalización existente del schema. Se deshabilita al revertir y tras guardar, conserva el borrador ante error y evita anunciar `UNCHANGED` como guardado. Los avisos del modal permanecen junto a los datos del paciente. Descarte, pestañas y acciones de estado conservan el comportamiento anterior. La persona usuaria aprobó la revisión visual de TASK-028 en `localhost:3000`; el cambio funcional se integró mediante el [PR #34](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/34). El [cierre documental](../../.harness/tasks/archive/TASK-028/closure.md) está propuesto en una rama aparte.
+
+**Privacidad PRE-PROD pendiente:** el contrato de resolve puede devolver `FOUND` y nombres al cliente autorizado aun si `birth_date_matches` es falso. La advertencia neutral sólo evita mostrar esos datos en pantalla; la respuesta de red conserva una exposición potencial. Se requiere una tarea independiente de seguridad antes de utilizar datos personales reales en producción. TASK-028 no remedió este contrato ni autoriza ese uso.
 
 ## TASK-022 — Turnos en la ficha
 
