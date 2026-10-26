@@ -1,0 +1,12 @@
+# Revisión del cierre documental — TASK-028
+
+**Resultado: PASS (alcance documental).** El [PR #34](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/34) está fusionado en `main` mediante `971e6553172cb368daef6a92fe049d2a32441927`; la rama documental parte de ese `origin/main`. El PR de cierre sigue pendiente de integración.
+
+- Los cuatro archivos originales se trasladaron de `.harness/tasks/active/TASK-028/` a `.harness/tasks/archive/TASK-028/` sin cambiar sus Git blob SHA: `brief.md` `6633a4ae733bf18f689aaf95fa41b0343d06c0b0`, `implementation-report.md` `fb455a107e26d531b3a44b8893025fab7e8ca531`, `plan.md` `9d9c40216f27bc81bbba5508c2652c85fa916d28` y `review.md` `48a54cd2b50203883a0065352dd4719a840cce78`.
+- [closure.md](closure.md) registra el alcance, [CI de implementación](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40366070407) `success`, 824/824 Vitest, 31/31 tooling, 167/167 pruebas focales de Pacientes, TypeScript, ESLint, Prettier focal, review independiente y aprobación visual manual.
+- Se distinguen pruebas con mocks y datos sintéticos, revisión visual manual en `localhost:3000` y la ausencia de comprobaciones reales contra Supabase DEV/PROD para TASK-028. No se incluyeron datos personales de la revisión.
+- [retrospective.md](retrospective.md), [docs/status.md](../../../../docs/status.md) y [docs/modules/patients.md](../../../../docs/modules/patients.md) mantienen visible el riesgo de `FOUND` y nombres en la respuesta de red cuando la fecha no coincide. La advertencia neutral no se presenta como remediación y se exige una tarea de seguridad independiente antes de datos personales reales en producción.
+- Las referencias de actividad en los cuatro documentos originales son registros históricos anteriores al merge. La fotografía actual del estado y el documento del módulo reflejan la integración funcional y el cierre documental propuesto.
+- El diff revisado se limita a documentación y al traslado íntegro del expediente. Los enlaces relativos resuelven, Prettier pasa para los tres Markdown nuevos y `git diff --check` pasa. `docs/status.md` y `docs/modules/patients.md` ya fallan Prettier en `origin/main` por formato histórico; no se reformatearon completos. Los archivos locales preexistentes quedaron fuera del staging.
+
+Esta revisión no repite pruebas funcionales, no accede a Supabase y no modifica el servidor local. El CI del PR documental se consultará después de publicarlo. No se hará merge sin aprobación de la persona usuaria.
