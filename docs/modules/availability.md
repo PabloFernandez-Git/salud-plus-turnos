@@ -63,3 +63,26 @@ Tras cada cambio de horario, una helper privada de sólo lectura informa si exis
 no cancelados fuera de cualquier franja habitual, usando la zona del centro. La UI muestra sólo un
 aviso booleano: no revela turnos ni pacientes y no mueve, cancela ni elimina appointments. La
 resolución de esos turnos y la generación de slots corresponden a Agenda (TASK-009).
+
+## Interfaz de Disponibilidad (TASK-027)
+
+El detalle conserva los siete días y muestra el nombre del profesional sin exponer la zona horaria
+en el encabezado; las horas siguen siendo locales al centro. Crear y editar una franja utiliza un
+modal nativo centrado con las mismas entradas de hora y validación del servidor. Cerrar un formulario
+con cambios solicita confirmación de descarte. Quitar una franja requiere confirmar día y horas en
+un modal antes de llamar a la misma Action de desactivación lógica. La duración sólo se puede guardar
+cuando el valor cumple las reglas existentes y difiere del último valor confirmado.
+
+Tras la revisión visual de TASK-027, el detalle ofrece «Volver a disponibilidad» hacia el índice del
+mismo centro para ADMIN y RECEPTION. Los campos de hora de Agregar y Editar aceptan texto `HH:mm`
+en formato de 24 horas, con un ejemplo visible y teclado numérico móvil. Tras escribir dos dígitos
+se agrega `:`; también se aceptan valores completos pegados con o sin separador. El campo permite
+borrar y reemplazar texto sin una máscara rígida ni selector nativo. Al perder el foco o intentar
+guardar, la UI reutiliza los esquemas existentes para mostrar errores debajo de cada campo;
+las Actions mantienen la validación y autoridad de servidor. Los botones y enlaces habilitados usan
+cursor de interacción y los botones deshabilitados muestran cursor no disponible.
+
+Las franjas guardadas se presentan como filas compactas dentro de la tarjeta de cada día, separadas
+por líneas sutiles. Cada fila muestra un reloj, el rango horario local y la duración calculada en
+minutos (`3 h 30 min`, `4 h`, `30 min`). Las acciones «Editar» y «Quitar» mantienen los modales y la
+confirmación existentes; en móvil permanecen juntas debajo del horario cuando falta ancho.
