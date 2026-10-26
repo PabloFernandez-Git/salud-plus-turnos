@@ -101,6 +101,47 @@ describe("SpecialtiesScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/No pudimos cargar/);
   });
 
+  it("shows the scroll hint only while the table overflows", () => {
+    show();
+    const scroller = screen.getByRole("region", { name: "Listado de especialidades" });
+    const hint = "Deslizá horizontalmente para ver todas las columnas";
+    Object.defineProperty(scroller, "clientWidth", { configurable: true, value: 390 });
+    Object.defineProperty(scroller, "scrollWidth", { configurable: true, value: 640 });
+    fireEvent(window, new Event("resize"));
+    expect(screen.getByText(hint)).toHaveClass("text-xs", "text-slate-500");
+    Object.defineProperty(scroller, "clientWidth", { configurable: true, value: 640 });
+    fireEvent(window, new Event("resize"));
+    expect(screen.queryByText(hint)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [true, "Desactivar"],
+    [false, "Activar"],
+  ])("keeps actions in one row for active=%s", (isActive, stateAction) => {
+    show([{ ...specialty, is_active: isActive }]);
+    const row = screen.getByRole("row", { name: /Cardiología/ });
+    const edit = within(row).getByRole("button", { name: "Editar" });
+    const state = within(row).getByRole("button", { name: stateAction });
+    expect(screen.getByRole("table")).toHaveClass("min-w-[40rem]");
+    expect(edit.parentElement).toHaveClass("flex", "w-max", "flex-nowrap", "gap-2");
+    expect(edit.parentElement?.parentElement).toHaveClass("min-w-max", "whitespace-nowrap");
+    for (const action of [edit, state])
+      expect(action).toHaveClass(
+        "inline-flex",
+        "min-h-11",
+        "items-center",
+        "justify-center",
+        "px-3",
+        "py-2",
+        "text-sm",
+        "leading-5",
+        "enabled:cursor-pointer",
+        "focus-visible:outline-sky-700",
+        "disabled:cursor-not-allowed",
+        "disabled:opacity-50",
+      );
+  });
+
   it("creates, closes the form and refreshes", async () => {
     create.mockResolvedValue({ status: "success", message: "Especialidad creada." });
     show([]);

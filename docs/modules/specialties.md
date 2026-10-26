@@ -3,6 +3,7 @@
 La especialidad pertenece al centro.
 
 Campos principales:
+
 - nombre;
 - descripción opcional;
 - estado activo/inactivo.
@@ -43,6 +44,10 @@ Crear y editar comparten un modal centrado con nombre y descripción opcional. S
 guardar, Cancelar, X, Escape y el fondo solicitan confirmar el descarte; sin cambios cierran
 directamente. La desactivación se confirma en un modal centrado con acción roja y aviso de que las
 asociaciones existentes se conservan. La reactivación mantiene su confirmación de estado.
+
+La tabla conserva Editar y Activar/Desactivar en una sola fila con acciones de 44 px. En pantallas
+angostas, desplaza horizontalmente dentro de su contenedor y muestra una indicación discreta sólo
+cuando existe desbordamiento real.
 
 En creación y edición, Nombre conserva las restricciones nativas `required` y `maxLength`; el
 mensaje nativo de campo vacío se reemplaza por «Ingresá el nombre de la especialidad.» bajo el
