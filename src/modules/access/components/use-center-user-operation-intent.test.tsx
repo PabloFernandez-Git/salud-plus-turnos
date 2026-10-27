@@ -131,6 +131,8 @@ describe("useCenterUserOperationIntent", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(storedIntentValues()).toHaveLength(0);
+    expect(screen.getByTestId("pending")).toHaveTextContent("");
+    expect(screen.getByTestId("recovery-status")).toHaveTextContent("absent");
   });
 
   it.each([

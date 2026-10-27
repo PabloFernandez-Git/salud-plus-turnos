@@ -158,16 +158,20 @@ export function useCenterUserOperationIntent(
 
   const clearPendingIntent = useCallback(() => {
     removeCenterUserOperationIntent(window.sessionStorage, actorUserId, centerId);
+    setIntentState((current) => ({
+      ...current,
+      pendingIntent: null,
+      recoveryStatus: "absent",
+      wasRecovered: false,
+    }));
   }, [actorUserId, centerId]);
 
   const startNewIntent = useCallback(() => {
     try {
       removeCenterUserOperationIntent(window.sessionStorage, actorUserId, centerId);
     } catch {
-      setAbandonError(
-        "No pudimos abandonar la intención pendiente. No se inició una operación nueva.",
-      );
-      return;
+      setAbandonError("No pudimos descartar el alta pendiente. No se inició otra alta.");
+      return false;
     }
 
     setAbandonError(null);
@@ -177,6 +181,7 @@ export function useCenterUserOperationIntent(
       recoveryStatus: "absent",
       wasRecovered: false,
     });
+    return true;
   }, [actorUserId, centerId, createOperationId]);
 
   return {

@@ -35,11 +35,13 @@ function professionalLabel(professional: ManageableProfessionalCenter) {
 export function ManageCenterMembershipPanel({
   activeAdminCount,
   centerId,
+  fullWidth = false,
   professionalCenters,
   user,
 }: {
   activeAdminCount: number;
   centerId: string;
+  fullWidth?: boolean;
   professionalCenters: ManageableProfessionalCenter[];
   user: CenterUserListItem;
 }) {
@@ -81,10 +83,30 @@ export function ManageCenterMembershipPanel({
   const hasProfessionalChoice =
     eligibleProfessionalCenters.length > 0 || user.role === "PROFESSIONAL";
   const userName = `${user.firstName} ${user.lastName}`;
+  const targetProfessionalCenterId = role === "PROFESSIONAL" ? professionalCenterId || null : null;
   const isDirty =
     role !== user.role ||
     isActive !== user.isActive ||
-    (professionalCenterId || null) !== (user.professional?.id ?? null);
+    targetProfessionalCenterId !== (user.professional?.id ?? null);
+  const isLastActiveAdminChange =
+    user.role === "ADMIN" &&
+    user.isActive &&
+    activeAdminCount === 1 &&
+    (!isActive || role !== "ADMIN");
+  const isPureProfessionalDeactivation =
+    user.role === "PROFESSIONAL" &&
+    role === user.role &&
+    !isActive &&
+    targetProfessionalCenterId === (user.professional?.id ?? null);
+  const isProfessionalSelectionValid =
+    role !== "PROFESSIONAL" ||
+    (Boolean(targetProfessionalCenterId) &&
+      (isPureProfessionalDeactivation ||
+        eligibleProfessionalCenters.some(
+          (professional) => professional.id === targetProfessionalCenterId,
+        )));
+  const canReview =
+    isDirty && !isLastActiveAdminChange && isProfessionalSelectionValid && !isPending;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -182,44 +204,17 @@ export function ManageCenterMembershipPanel({
     event.preventDefault();
     setResult(undefined);
 
-    if (role === "PROFESSIONAL" && !professionalCenterId) {
-      setClientError(
-        "No hay un ProfessionalCenter activo y disponible para asignar en este centro.",
-      );
+    if (!isProfessionalSelectionValid) {
+      setClientError("Seleccioná un profesional activo y disponible para este centro.");
       return;
     }
-    if (
-      role === "PROFESSIONAL" &&
-      isActive &&
-      user.professional?.id === professionalCenterId &&
-      !currentProfessionalIsEligible
-    ) {
-      setClientError(
-        user.professional?.isActive
-          ? "El vínculo profesional actual ya está ocupado por otra membership activa. Elegí otro vínculo disponible."
-          : "El vínculo profesional actual está inactivo. Podés desactivar este acceso o elegir otro vínculo activo.",
-      );
-      return;
-    }
-    if (
-      user.role === "ADMIN" &&
-      user.isActive &&
-      activeAdminCount === 1 &&
-      (!isActive || role !== "ADMIN")
-    ) {
+    if (isLastActiveAdminChange) {
       setClientError(
         "Este es el único Administrador activo. Prepará otro Administrador antes de quitarle ese acceso.",
       );
       return;
     }
-    if (
-      role === user.role &&
-      isActive === user.isActive &&
-      (professionalCenterId || null) === (user.professional?.id ?? null)
-    ) {
-      setClientError("No hay cambios para guardar.");
-      return;
-    }
+    if (!isDirty || isPending) return;
 
     setClientError(undefined);
     setIsConfirming(true);
@@ -272,9 +267,9 @@ export function ManageCenterMembershipPanel({
     : undefined;
 
   return (
-    <div className="min-w-44">
+    <div className={fullWidth ? "w-full min-w-0" : "min-w-44"}>
       <button
-        className="min-h-10 rounded-md border border-sky-300 px-3 py-2 font-semibold text-sky-800 hover:bg-sky-50"
+        className={`min-h-11 rounded-md border border-sky-300 px-3 py-2 font-semibold text-sky-800 hover:bg-sky-50 ${fullWidth ? "w-full" : ""}`}
         onClick={() => setIsOpen(true)}
         ref={triggerRef}
         type="button"
@@ -432,15 +427,20 @@ export function ManageCenterMembershipPanel({
 
                       {role === "PROFESSIONAL" && eligibleProfessionalCenters.length === 0 ? (
                         <p className="text-sm text-amber-800">
-                          No hay otro ProfessionalCenter activo y libre. El vínculo actual sólo
-                          puede conservarse si sigue siendo válido; una desactivación pura continúa
-                          permitida.
+                          No hay otro profesional activo y disponible. Podés desactivar este acceso;
+                          para reactivarlo, elegí un profesional disponible.
                         </p>
                       ) : null}
 
                       {clientError ? (
                         <p className="text-sm font-medium text-red-700" role="alert">
                           {clientError}
+                        </p>
+                      ) : null}
+                      {isLastActiveAdminChange ? (
+                        <p className="text-sm font-medium text-amber-800" role="status">
+                          Este es el único Administrador activo. Prepará otro Administrador antes de
+                          quitarle ese acceso.
                         </p>
                       ) : null}
                       {result?.message || serverValidationError ? (
@@ -504,7 +504,7 @@ export function ManageCenterMembershipPanel({
                       </button>
                       <button
                         className="h-11 rounded-md bg-sky-700 px-4 font-semibold text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={isPending}
+                        disabled={!canReview}
                         form={formId}
                         type="submit"
                       >

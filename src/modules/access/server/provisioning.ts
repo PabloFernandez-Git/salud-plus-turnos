@@ -505,7 +505,8 @@ async function provisionCenterUserWithRuntime(
     professionalCenterId: parsed.professionalCenterId,
   });
   const completed = userResult(operation);
-  if (operation.operation_status === "SUCCEEDED" && completed) return completed;
+  if (operation.operation_status === "SUCCEEDED" && completed)
+    return { ...completed, identityCreated: operation.auth_user_was_created === true };
 
   const identity = await resolveOrCreateIdentity({
     runtime,
@@ -528,7 +529,7 @@ async function provisionCenterUserWithRuntime(
     },
   });
 
-  return persistWithAuthReconciliation<UserProvisioningResult>({
+  const result = await persistWithAuthReconciliation<UserProvisioningResult>({
     operationId: parsed.operationId,
     authUserId: identity.authUserId,
     authUserWasCreated: identity.authUserWasCreated,
@@ -561,6 +562,7 @@ async function provisionCenterUserWithRuntime(
       return reconciliation(current, userResult(current));
     },
   });
+  return { ...result, identityCreated: identity.authUserWasCreated };
 }
 
 export async function createCenterWithFirstAdmin(

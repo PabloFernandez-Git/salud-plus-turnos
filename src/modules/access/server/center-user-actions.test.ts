@@ -66,6 +66,7 @@ function dependencies(resolution: CenterIdentityResolution = newIdentity) {
         user_id: "user-id",
         membership_id: "membership-id",
         application_user_created: !resolution.identity_exists,
+        identityCreated: !resolution.identity_exists,
       };
     }),
     revalidateUsers: vi.fn(),
@@ -144,7 +145,7 @@ describe("performProvisionCenterUserAction", () => {
 
     const state = await performProvisionCenterUserAction({ status: "idle" }, provisionForm(), deps);
 
-    expect(state).toMatchObject({ status: "success" });
+    expect(state).toMatchObject({ status: "success", identityCreated: true });
     expect(deps.provisionUser).toHaveBeenCalledWith(
       {
         operationId,
@@ -161,6 +162,20 @@ describe("performProvisionCenterUserAction", () => {
       client,
     );
     expect(deps.revalidateUsers).toHaveBeenCalledWith(centerId);
+  });
+
+  it("reports actual identity creation even if it differs from the earlier resolution", async () => {
+    const deps = dependencies();
+    deps.provisionUser.mockResolvedValueOnce({
+      user_id: "user-id",
+      membership_id: "membership-id",
+      application_user_created: true,
+      identityCreated: false,
+    });
+
+    const state = await performProvisionCenterUserAction({ status: "idle" }, provisionForm(), deps);
+
+    expect(state).toMatchObject({ status: "success", identityCreated: false });
   });
 
   it("reuses canonical existing identity data and never forwards a submitted password", async () => {

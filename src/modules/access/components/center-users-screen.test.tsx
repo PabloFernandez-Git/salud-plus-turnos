@@ -123,6 +123,22 @@ describe("CenterUsersScreen", () => {
     expect(
       within(professionalRow).getByRole("button", { name: "Administrar acceso" }),
     ).toBeVisible();
+
+    const cards = screen.getAllByRole("article");
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toHaveTextContent("Ana Admin");
+    expect(cards[0]).toHaveTextContent("ana@example.test");
+    expect(cards[0]).toHaveTextContent("Administrador");
+    expect(cards[0]).toHaveTextContent("Activo");
+    expect(within(cards[0]!).getByRole("button", { name: "Administrar acceso" })).toHaveClass(
+      "w-full",
+    );
+    expect(cards[1]).toHaveTextContent("Pablo Profesional");
+    expect(cards[1]).toHaveTextContent("pablo@example.test");
+    expect(cards[1]).toHaveTextContent("Inactivo");
+    expect(cards[1]).toHaveTextContent("Paula Médica");
+    expect(cards[1]).toHaveTextContent("Matrícula: MP 1234");
+    expect(screen.getByRole("table").parentElement).toHaveClass("hidden", "md:block");
   });
 
   it("renders an explicit empty state", () => {

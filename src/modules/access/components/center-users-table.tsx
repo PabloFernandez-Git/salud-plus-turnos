@@ -49,53 +49,101 @@ export function CenterUsersTable({
   const activeAdminCount = users.filter((user) => user.role === "ADMIN" && user.isActive).length;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <table className="w-full min-w-[900px] border-collapse text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
-          <tr>
-            {["Nombre", "Email", "Rol", "Estado", "Profesional asociado", "Acciones"].map(
-              (heading) => (
-                <th className="whitespace-nowrap border-b border-slate-200 px-4 py-3" key={heading}>
-                  {heading}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {users.map((user) => (
-            <tr className="align-top text-slate-700" key={user.id}>
-              <td className="px-4 py-4 font-semibold text-slate-950">
-                {user.firstName} {user.lastName}
-              </td>
-              <td className="px-4 py-4">{user.email}</td>
-              <td className="px-4 py-4">{roleLabels[user.role]}</td>
-              <td className="px-4 py-4">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    user.isActive
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-slate-200 text-slate-700"
-                  }`}
-                >
-                  {user.isActive ? "Activo" : "Inactivo"}
-                </span>
-              </td>
-              <td className={`px-4 py-4${user.professional ? "" : " text-center"}`}>
-                <ProfessionalAssociation user={user} />
-              </td>
-              <td className="px-4 py-4">
-                <ManageCenterMembershipPanel
-                  activeAdminCount={activeAdminCount}
-                  centerId={centerId}
-                  professionalCenters={professionalCenters}
-                  user={user}
-                />
-              </td>
+    <>
+      <div className="space-y-3 md:hidden" aria-label="Usuarios del centro">
+        {users.map((user) => (
+          <article
+            className="min-w-0 space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            key={user.id}
+          >
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="break-words font-semibold text-slate-950">
+                  {user.firstName} {user.lastName}
+                </h3>
+                <p className="break-all text-sm text-slate-600">{user.email}</p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  user.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {user.isActive ? "Activo" : "Inactivo"}
+              </span>
+            </div>
+            <dl className="grid min-w-0 gap-3 text-sm">
+              <div>
+                <dt className="text-slate-500">Rol en el centro</dt>
+                <dd className="font-medium text-slate-900">{roleLabels[user.role]}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Profesional asociado</dt>
+                <dd className="min-w-0 break-words text-slate-700">
+                  <ProfessionalAssociation user={user} />
+                </dd>
+              </div>
+            </dl>
+            <ManageCenterMembershipPanel
+              activeAdminCount={activeAdminCount}
+              centerId={centerId}
+              professionalCenters={professionalCenters}
+              user={user}
+              fullWidth
+            />
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm md:block">
+        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+            <tr>
+              {["Nombre", "Email", "Rol", "Estado", "Profesional asociado", "Acciones"].map(
+                (heading) => (
+                  <th
+                    className="whitespace-nowrap border-b border-slate-200 px-4 py-3"
+                    key={heading}
+                  >
+                    {heading}
+                  </th>
+                ),
+              )}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {users.map((user) => (
+              <tr className="align-top text-slate-700" key={user.id}>
+                <td className="px-4 py-4 font-semibold text-slate-950">
+                  {user.firstName} {user.lastName}
+                </td>
+                <td className="px-4 py-4">{user.email}</td>
+                <td className="px-4 py-4">{roleLabels[user.role]}</td>
+                <td className="px-4 py-4">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      user.isActive
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {user.isActive ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+                <td className={`px-4 py-4${user.professional ? "" : " text-center"}`}>
+                  <ProfessionalAssociation user={user} />
+                </td>
+                <td className="px-4 py-4">
+                  <ManageCenterMembershipPanel
+                    activeAdminCount={activeAdminCount}
+                    centerId={centerId}
+                    professionalCenters={professionalCenters}
+                    user={user}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

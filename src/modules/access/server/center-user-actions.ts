@@ -284,7 +284,7 @@ export async function performProvisionCenterUserAction(
   }
 
   try {
-    await dependencies.provisionUser(
+    const provisioned = await dependencies.provisionUser(
       {
         operationId: parsed.data.operationId,
         centerId: parsed.data.centerId,
@@ -303,6 +303,7 @@ export async function performProvisionCenterUserAction(
         }
       : {
           status: "success",
+          identityCreated: provisioned.identityCreated,
           message: "Usuario agregado al centro.",
         };
   } catch (error) {

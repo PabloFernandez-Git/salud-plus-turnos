@@ -14,6 +14,7 @@ queda fuera de TASK-005.
 de `CenterMembership`, no pertenece al enum de roles del centro y no concede acceso tenant.
 
 `CenterMembership` relaciona usuario + centro y define:
+
 - rol;
 - estado activo/inactivo.
 
@@ -34,6 +35,7 @@ membership inactiva no bloquea. El administrador debe desactivar o reasignar pri
 membership como efecto lateral.
 
 Roles MVP:
+
 - Administrator;
 - Reception;
 - Professional.
@@ -50,7 +52,7 @@ Center autorizado, identidad proyectada, rol, estado y la asociación Profession
 existe. La ruta, sus queries y sus mutaciones requieren `ADMIN` tenant activo; ocultar el enlace es
 sólo una ayuda de UX.
 
-En «Usuarios del centro», la ausencia de profesional asociado se representa con `—` centrado en su celda, también cuando la tabla se desplaza horizontalmente en móvil. Si existe un profesional, su nombre y matrícula conservan alineación de lectura a la izquierda.
+En escritorio, «Usuarios del centro» conserva la tabla; en móvil presenta tarjetas en el mismo orden y con los mismos datos autorizados. La ausencia de profesional asociado se representa con `—`. Nombre, email, rol, estado y profesional conservan su lectura sin desplazamiento horizontal.
 
 Desde esa pantalla, **Agregar usuario** resuelve el email exacto en servidor. Si la identidad ya
 existe, se reutiliza sin cambiar email, password, nombre, apellido ni accesos de otros Centers. Si
@@ -65,12 +67,32 @@ invariantes B3A siguen siendo autoridad ante carreras o selecciones manipuladas.
 de rol, activación/desactivación y edición o reasignación del vínculo profesional se resuelven en
 una acción **Administrar acceso** separada sobre la membership existente.
 
-En Gestión de usuarios, el primer paso de **Agregar usuario** presenta Email y Continuar alineados
-en desktop y apilados en mobile. **Administrar acceso** abre un modal que conserva la revisión y confirmación
+En Gestión de usuarios, **Agregar usuario** abre un modal accesible desde una tarjeta compacta. Sus
+etapas son email, datos/acceso y revisión. El diálogo tiene ancho acotado en escritorio y scroll
+interno en móvil; el listado no cambia de posición al abrir. Cerrar con un borrador solicita
+confirmación dentro del mismo diálogo. Si el resultado de un alta es incierto, cerrar conserva la
+intención no secreta para reabrir y verificarla con el mismo `operation_id`; la contraseña se limpia.
+**Administrar acceso** abre otro modal que conserva la revisión y confirmación
 del cambio, muestra errores sin descartar la edición y pide confirmar el descarte de cambios sin
 guardar al cancelar. El listado permanece sin filas expandidas.
 La X del encabezado, el fondo, Escape y Cancelar usan la misma protección de descarte; el footer
 alinea Cancelar y Revisar cambios sin alterar su acción ni el flujo de confirmación.
+
+TASK-032 añade una revisión local previa a la incorporación: nombre, email, rol, profesional y
+estado inicial. Para una cuenta nueva indica que se configuró la contraseña sin mostrarla. La
+revisión no ejecuta ninguna mutación; la acción se invoca sólo al confirmar. Para identidad nueva,
+el segundo paso exige repetir exactamente la contraseña inicial; la confirmación permanece sólo en
+memoria y no se envía al servidor. Ambas contraseñas se borran al finalizar el intento o descartar.
+Tras éxito, el modal distingue creación de identidad, incorporación de una cuenta existente y
+confirmación idempotente; permite cerrar o empezar otra alta con una intención nueva.
+Cambiar el email con datos editados pide confirmar el descarte dentro del modal. La cuenta ya
+vinculada al centro continúa como resultado terminal; la reactivación corresponde a
+**Administrar acceso**.
+
+**Administrar acceso** sólo habilita «Revisar cambios» cuando el estado propuesto difiere
+semánticamente del original y es completo. El último ADMIN activo y los vínculos profesionales no
+válidos se explican en el formulario y bloquean esa revisión. Las verificaciones de servidor y la
+RPC siguen siendo la autoridad, incluso ante datos obsoletos o cambios concurrentes.
 
 La administración de una membership muestra únicamente identidad global de solo lectura y el rol,
 estado y vínculo profesional del Center actual. Cada submit incluye el snapshot visible para detectar
@@ -97,6 +119,7 @@ Una desactivación pura conserva rol/vínculo y puede completarse aunque el Prof
 quedado inactivo; reactivar, cambiar hacia `PROFESSIONAL` o cambiar el vínculo vuelve a validar todo.
 
 El administrador crea directamente al usuario con:
+
 - nombre;
 - apellido;
 - email;
