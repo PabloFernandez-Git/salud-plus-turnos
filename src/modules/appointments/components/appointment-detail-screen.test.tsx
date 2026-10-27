@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   rescheduleAppointmentAction,
@@ -51,6 +51,7 @@ const patientCenterId = "33333333-3333-4333-8333-333333333333";
 const professionalCenterId = "44444444-4444-4444-8444-444444444444";
 const specialtyId = "55555555-5555-4555-8555-555555555555";
 const token = "2026-10-19T12:00:00.123456+00:00";
+const beforeStart = Date.parse("2026-10-20T11:00:00+00:00");
 const base = {
   appointment_id: appointmentId,
   starts_at: "2026-10-20T12:00:00+00:00",
@@ -70,12 +71,13 @@ const staff = {
   professional_last_name: "Sol",
   administrative_note: null,
 };
-function renderStaff(appointment: StaffAppointment = staff) {
+function renderStaff(appointment: StaffAppointment = staff, serverNow = beforeStart) {
   render(
     <AppointmentDetailScreen
       centerId={centerId}
       centerName="Centro"
       timezone="America/Argentina/Buenos_Aires"
+      serverNow={serverNow}
       detail={{ kind: "STAFF", appointment }}
       outsideAvailability
     />,
@@ -90,7 +92,10 @@ beforeEach(() => {
     this.removeAttribute("open");
   };
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("appointment detail flow", () => {
   it("lays out four staff actions as two mobile columns without changing their order", () => {
@@ -144,6 +149,7 @@ describe("appointment detail flow", () => {
         centerId={centerId}
         centerName="Centro"
         timezone="UTC"
+        serverNow={beforeStart}
         detail={{ kind: "STAFF", appointment: staff }}
         outsideAvailability={null}
       />,
@@ -157,7 +163,15 @@ describe("appointment detail flow", () => {
         centerId={centerId}
         centerName="Centro"
         timezone="UTC"
-        detail={{ kind: "PROFESSIONAL", appointment: base }}
+        serverNow={beforeStart}
+        detail={{
+          kind: "PROFESSIONAL",
+          appointment: {
+            ...base,
+            starts_at: "2026-10-19T10:00:00+00:00",
+            ends_at: "2026-10-19T10:30:00+00:00",
+          },
+        }}
         outsideAvailability={false}
       />,
     );
@@ -191,12 +205,18 @@ describe("appointment detail flow", () => {
         centerId={centerId}
         centerName="Centro"
         timezone="UTC"
+        serverNow={Date.parse("2026-10-20T13:00:00Z")}
         detail={{ kind: "PROFESSIONAL", appointment: base }}
         outsideAvailability={false}
       />,
     );
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Marcar atendido" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Marcar turno como atendido" })).getByRole(
+        "button",
+        { name: "Marcar atendido" },
+      ),
+    );
     await waitFor(() =>
       expect(transitionAppointmentStatusAction).toHaveBeenCalledWith({
         centerId,
@@ -282,7 +302,6 @@ describe("appointment detail flow", () => {
     expect(refresh).toHaveBeenCalled();
   });
   it("asks before cancellation and prevents another status mutation after UNKNOWN_RESULT", async () => {
-    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     vi.mocked(transitionAppointmentStatusAction).mockResolvedValue({
       status: "UNKNOWN_RESULT",
       reconcile: "RELOAD_APPOINTMENTS_BEFORE_RETRY",
@@ -290,9 +309,23 @@ describe("appointment detail flow", () => {
     renderStaff();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar turno" }));
     expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Cancelar turno" })).getByRole("button", {
+        name: "Volver",
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Cancelar turno" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Cancelar turno" })).getByRole("button", {
+        name: "Cancelar turno",
+      }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent("pudo haberse completado");
-    fireEvent.click(screen.getByRole("button", { name: "Marcar atendido" }));
+    expect(
+      within(screen.getByRole("dialog", { name: "Cancelar turno" })).getByRole("button", {
+        name: "Volver",
+      }),
+    ).toBeDisabled();
     expect(transitionAppointmentStatusAction).toHaveBeenCalledTimes(1);
   });
   it("protects an unsaved note before changing status or leaving", () => {
@@ -348,4 +381,199 @@ describe("appointment detail flow", () => {
     ).toBeEnabled();
     expect(screen.getAllByRole("alert")).toHaveLength(1);
   });
+  it.each([
+    ["2026-10-20T11:59:59.999Z", false, true, true],
+    ["2026-10-20T12:00:00.000Z", true, false, true],
+    ["2026-10-20T12:30:00.000Z", true, false, false],
+  ])(
+    "applies exact presentation limits at %s",
+    (instant, confirmBlocked, attendedBlocked, absentBlocked) => {
+      renderStaff(staff, Date.parse(instant));
+      expect(screen.getByRole("button", { name: "Confirmar" }).hasAttribute("disabled")).toBe(
+        confirmBlocked,
+      );
+      expect(screen.getByRole("button", { name: "Marcar atendido" }).hasAttribute("disabled")).toBe(
+        attendedBlocked,
+      );
+      expect(screen.getByRole("button", { name: "Marcar ausente" }).hasAttribute("disabled")).toBe(
+        absentBlocked,
+      );
+      expect(screen.getByRole("button", { name: "Cancelar turno" })).toBeEnabled();
+    },
+  );
+  it("spaces and associates only the messages for actions blocked by time", () => {
+    renderStaff(staff, beforeStart);
+    const attended = screen.getByRole("button", { name: "Marcar atendido" });
+    const absent = screen.getByRole("button", { name: "Marcar ausente" });
+    const attendedHint = screen
+      .getByText("Podés marcar el turno como atendido desde su hora de inicio.")
+      .closest("p")!;
+    const absentHint = screen
+      .getByText("Podés registrar la ausencia cuando finalice el turno.")
+      .closest("p")!;
+    expect(attendedHint.parentElement).toHaveClass("mt-5", "space-y-2", "text-sm");
+    for (const hint of [attendedHint, absentHint]) {
+      expect(hint).toHaveClass("flex", "items-start", "gap-2");
+      const icon = hint.querySelector("svg");
+      expect(icon).toHaveAttribute("aria-hidden", "true");
+      expect(icon).toHaveAttribute("width", "17");
+      expect(icon).toHaveAttribute("height", "17");
+      expect(icon).toHaveAttribute("stroke", "currentColor");
+    }
+    expect(attended).toHaveAttribute("aria-describedby", attendedHint.id);
+    expect(absent).toHaveAttribute("aria-describedby", absentHint.id);
+    expect(attended).toHaveAccessibleDescription(
+      "Podés marcar el turno como atendido desde su hora de inicio.",
+    );
+    expect(absent).toHaveAccessibleDescription(
+      "Podés registrar la ausencia cuando finalice el turno.",
+    );
+    expect(screen.getByRole("button", { name: "Confirmar" })).not.toHaveAttribute(
+      "aria-describedby",
+    );
+    expect(screen.getByRole("button", { name: "Cancelar turno" })).not.toHaveAttribute(
+      "aria-describedby",
+    );
+  });
+  it("removes temporal explanations as actions become available", () => {
+    renderStaff(staff, Date.parse(staff.ends_at));
+    expect(screen.getByText("El turno ya comenzó; no se puede confirmar.")).toBeInTheDocument();
+    expect(screen.queryByText(/Podés marcar el turno como atendido/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Podés registrar la ausencia/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Marcar ausente" })).not.toHaveAttribute(
+      "aria-describedby",
+    );
+  });
+  it.each([
+    ["Confirmar", "Confirmar turno", beforeStart],
+    ["Marcar atendido", "Marcar turno como atendido", Date.parse("2026-10-20T13:00:00Z")],
+    ["Marcar ausente", "Registrar ausencia", Date.parse("2026-10-20T13:00:00Z")],
+    ["Cancelar turno", "Cancelar turno", beforeStart],
+  ])("centers the %s footer while preserving action order", (label, title, at) => {
+    renderStaff(staff, at);
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    const dialog = screen.getByRole("dialog", { name: title });
+    const back = within(dialog).getByRole("button", { name: "Volver" });
+    const confirm = within(dialog).getByRole("button", { name: label });
+    expect(back.parentElement).toHaveClass("justify-center", "gap-3");
+    expect(back.parentElement?.children[0]).toBe(back);
+    expect(back.parentElement?.children[1]).toBe(confirm);
+    expect(back).toHaveClass("min-h-11");
+    expect(confirm).toHaveClass("min-h-11");
+    if (label === "Cancelar turno") expect(confirm).toHaveClass("bg-red-700");
+  });
+  it("shows appointment identity and closes without mutation, restoring trigger focus", () => {
+    renderStaff(staff, Date.parse("2026-10-20T13:00:00Z"));
+    const trigger = screen.getByRole("button", { name: "Marcar atendido" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Marcar turno como atendido" });
+    expect(within(dialog).getByText("Ana Paz")).toBeInTheDocument();
+    expect(within(dialog).getByText("20/10/2026")).toBeInTheDocument();
+    expect(within(dialog).getByText("09:00–09:30")).toBeInTheDocument();
+    expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+  });
+  it("prevents double submit and keeps an uncertain result open for recovery", async () => {
+    let resolve!: (value: Awaited<ReturnType<typeof transitionAppointmentStatusAction>>) => void;
+    vi.mocked(transitionAppointmentStatusAction).mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    renderStaff();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar turno" }));
+    const dialog = screen.getByRole("dialog", { name: "Cancelar turno" });
+    const confirm = within(dialog).getByRole("button", { name: "Cancelar turno" });
+    fireEvent.click(confirm);
+    expect(confirm).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Volver" })).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(transitionAppointmentStatusAction).toHaveBeenCalledTimes(1);
+    expect(dialog).toBeInTheDocument();
+    await act(async () =>
+      resolve({ status: "UNKNOWN_RESULT", reconcile: "RELOAD_APPOINTMENTS_BEFORE_RETRY" }),
+    );
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("pudo haberse completado");
+    expect(
+      within(dialog).getByRole("button", { name: "Recargar y verificar el turno" }),
+    ).toBeEnabled();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    expect(dialog).toBeInTheDocument();
+  });
+  it("does not allow an expired Confirmar action to start a mutation", () => {
+    renderStaff(staff, Date.parse(staff.starts_at));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    expect(screen.queryByRole("dialog", { name: "Confirmar turno" })).not.toBeInTheDocument();
+    expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+  });
+  it("updates availability while open and refreshes the server reference on focus", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-20T11:59:59Z"));
+    renderStaff(staff, Date.now());
+    const confirm = screen.getByRole("button", { name: "Confirmar" });
+    const attended = screen.getByRole("button", { name: "Marcar atendido" });
+    expect(confirm).toBeEnabled();
+    expect(attended).toBeDisabled();
+    fireEvent.click(confirm);
+    const dialog = screen.getByRole("dialog", { name: "Confirmar turno" });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(confirm).toBeDisabled();
+    expect(attended).toBeEnabled();
+    expect(
+      within(dialog).getByText(/El turno ya comenzó; no se puede confirmar/),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    fireEvent.focus(window);
+    expect(refresh).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Volver" }));
+    fireEvent.focus(window);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+  });
+  it("shows a temporal server rejection inside the dialogue with safe recovery", async () => {
+    vi.mocked(transitionAppointmentStatusAction).mockResolvedValue({
+      status: "BUSINESS_ERROR",
+      code: "APPOINTMENT_TIME_RESTRICTION",
+      reload: true,
+    });
+    renderStaff();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    const dialog = screen.getByRole("dialog", { name: "Confirmar turno" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Todavía no se puede");
+    expect(
+      within(dialog).getByRole("button", { name: "Recargar y verificar el turno" }),
+    ).toBeEnabled();
+    expect(transitionAppointmentStatusAction).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ["Confirmar", "Confirmar turno", "CONFIRMED", beforeStart],
+    ["Marcar ausente", "Registrar ausencia", "NO_SHOW", Date.parse("2026-10-20T13:00:00Z")],
+  ] as const)(
+    "executes only %s after explicit modal confirmation",
+    async (label, title, status, at) => {
+      vi.mocked(transitionAppointmentStatusAction).mockResolvedValue({
+        status: "SUCCESS",
+        data: { appointment_id: appointmentId, status, updated_at: "2026-10-20T13:01:00Z" },
+      });
+      renderStaff(staff, at);
+      fireEvent.click(screen.getByRole("button", { name: label }));
+      const dialog = screen.getByRole("dialog", { name: title });
+      expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+      fireEvent.click(within(dialog).getByRole("button", { name: label }));
+      await waitFor(() => expect(transitionAppointmentStatusAction).toHaveBeenCalledTimes(1));
+      expect(transitionAppointmentStatusAction).toHaveBeenCalledWith({
+        centerId,
+        appointmentId,
+        expectedUpdatedAt: token,
+        requestedStatus: status,
+      });
+    },
+  );
 });

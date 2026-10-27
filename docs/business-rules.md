@@ -146,6 +146,10 @@ Datos opcionales:
 8. La doble reserva se controla por ProfesionalEnCentro, no globalmente por Profesional.
 9. Pendiente, Confirmado, Atendido y Ausente bloquean horario; Cancelado conserva historia pero
    libera el slot.
+10. Confirmar sólo permite PENDING → CONFIRMED mientras el instante actual de PostgreSQL es estrictamente anterior a `starts_at`.
+11. Marcar Atendido permite PENDING/CONFIRMED → ATTENDED desde `starts_at` inclusive, sin plazo máximo retrospectivo.
+12. Marcar Ausente permite PENDING/CONFIRMED → NO_SHOW desde `ends_at` inclusive, sin plazo máximo retrospectivo.
+13. Las restricciones anteriores se suman a rol, centro, estado y CAS. Cancelar y Reprogramar conservan sus reglas actuales, incluso para turnos iniciados o finalizados; cualquier cambio de esas reglas se difiere a otra decisión funcional.
 
 Estados:
 

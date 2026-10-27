@@ -25,12 +25,58 @@ import { BookingSelector, type BookingChoice } from "./booking-selector";
 type StaffDetail = { kind: "STAFF"; appointment: StaffAppointment };
 type ProfessionalDetail = { kind: "PROFESSIONAL"; appointment: ProfessionalAppointment };
 type Detail = StaffDetail | ProfessionalDetail;
+type Transition = "CONFIRMED" | "ATTENDED" | "NO_SHOW" | "CANCELLED";
+const transitionCopy: Record<Transition, { title: string; description: string; button: string }> = {
+  CONFIRMED: {
+    title: "Confirmar turno",
+    description:
+      "¿Confirmás este turno? Revisá el paciente, la fecha y el horario antes de continuar.",
+    button: "Confirmar",
+  },
+  ATTENDED: {
+    title: "Marcar turno como atendido",
+    description: "¿Confirmás que el paciente fue atendido? Esta acción no se puede deshacer.",
+    button: "Marcar atendido",
+  },
+  NO_SHOW: {
+    title: "Registrar ausencia",
+    description:
+      "¿Confirmás que el paciente no asistió al turno? Esta acción no se puede deshacer.",
+    button: "Marcar ausente",
+  },
+  CANCELLED: {
+    title: "Cancelar turno",
+    description: "¿Confirmás que querés cancelar este turno? Esta acción no se puede deshacer.",
+    button: "Cancelar turno",
+  },
+};
 const buttonClass =
   "min-h-11 cursor-pointer rounded-md bg-sky-700 px-4 py-2 font-semibold text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 const secondaryClass =
   "min-h-11 cursor-pointer rounded-md border border-sky-700 px-4 py-2 font-semibold text-sky-800 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 const dangerClass =
   "min-h-11 cursor-pointer rounded-md border border-red-300 px-4 py-2 font-semibold text-red-800 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-50";
+
+function ClockIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="mt-[3px] shrink-0"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 6v6h4" />
+    </svg>
+  );
+}
 
 function Details({
   appointment,
@@ -109,16 +155,19 @@ function availableTransitions(status: ProfessionalAppointment["status"], staff: 
 function AppointmentDetailBody({
   centerId,
   timezone,
+  serverNow,
   detail,
   outsideAvailability,
 }: {
   centerId: string;
   centerName: string;
   timezone: string;
+  serverNow: number;
   detail: Detail;
   outsideAvailability: boolean | null;
 }) {
   const router = useRouter();
+  const refresh = router.refresh;
   const [appointment, setAppointment] = useState(detail.appointment);
   const [note, setNote] = useState(
     detail.kind === "STAFF" ? detail.appointment.administrative_note : null,
@@ -128,6 +177,8 @@ function AppointmentDetailBody({
   const [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [now, setNow] = useState(serverNow);
+  const [confirmation, setConfirmation] = useState<Transition | null>(null);
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [scheduleDirty, setScheduleDirty] = useState(false);
   const [discardSchedule, setDiscardSchedule] = useState(false);
@@ -135,8 +186,46 @@ function AppointmentDetailBody({
   const inFlight = useRef(false);
   const scheduleDialog = useRef<HTMLDialogElement>(null);
   const scheduleTrigger = useRef<HTMLButtonElement>(null);
+  const confirmationDialog = useRef<HTMLDialogElement>(null);
+  const confirmationTrigger = useRef<HTMLButtonElement | null>(null);
+  const actionsHeading = useRef<HTMLHeadingElement>(null);
   const staff = detail.kind === "STAFF";
   const base = `/centers/${centerId}/appointments`;
+
+  useEffect(() => {
+    const offset = serverNow - Date.now();
+    const update = () => setNow(Date.now() + offset);
+    update();
+    const timer = window.setInterval(update, 1000);
+    const refreshOnResume = () => {
+      update();
+      if (!confirmation && !pending && !blocked && !editingSchedule) refresh();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshOnResume();
+    };
+    window.addEventListener("focus", refreshOnResume);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshOnResume);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [refresh, serverNow, confirmation, pending, blocked, editingSchedule]);
+
+  useEffect(() => {
+    const dialog = confirmationDialog.current;
+    if (!confirmation || !dialog) return;
+    const trigger = confirmationTrigger.current;
+    const heading = actionsHeading.current;
+    dialog.showModal();
+    dialog.querySelector<HTMLElement>("h2")?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      if (trigger?.isConnected) trigger.focus();
+      else heading?.focus();
+    };
+  }, [confirmation]);
 
   useEffect(() => {
     const dialog = scheduleDialog.current;
@@ -159,7 +248,7 @@ function AppointmentDetailBody({
     complete: (data: T) => void,
     message: string,
   ) {
-    if (inFlight.current || blocked) return;
+    if (inFlight.current || blocked) return false;
     inFlight.current = true;
     setPending(true);
     setFeedback(null);
@@ -170,12 +259,15 @@ function AppointmentDetailBody({
         complete(result.data);
         setNotice(message);
         router.refresh();
+        return true;
       } else {
         setFeedback(result);
         if (
           result.status === "UNKNOWN_RESULT" ||
           result.status === "UNEXPECTED_ERROR" ||
-          (result.status === "BUSINESS_ERROR" && result.code === "STALE_APPOINTMENT_STATE")
+          (result.status === "BUSINESS_ERROR" &&
+            (result.code === "STALE_APPOINTMENT_STATE" ||
+              result.code === "APPOINTMENT_TIME_RESTRICTION"))
         )
           setBlocked(true);
       }
@@ -186,16 +278,19 @@ function AppointmentDetailBody({
       setPending(false);
       inFlight.current = false;
     }
+    return false;
   }
-  function changeStatus(requestedStatus: "CONFIRMED" | "ATTENDED" | "NO_SHOW" | "CANCELLED") {
-    const confirmation = {
-      CONFIRMED: null,
-      ATTENDED: "¿Marcar este turno como atendido? Esta acción no se puede deshacer.",
-      NO_SHOW: "¿Marcar este turno como ausente? Esta acción no se puede deshacer.",
-      CANCELLED: "¿Cancelar este turno? El horario volverá a estar disponible.",
-    }[requestedStatus];
-    if (confirmation && !window.confirm(confirmation)) return;
-    void execute(
+  async function changeStatus(requestedStatus: Transition) {
+    if (
+      !confirmation ||
+      confirmation !== requestedStatus ||
+      !availableTransitions(appointment.status, staff).some(
+        (status) => status === requestedStatus,
+      ) ||
+      isTimeBlocked(requestedStatus, appointment, now)
+    )
+      return;
+    const succeeded = await execute(
       () =>
         transitionAppointmentStatusAction({
           centerId,
@@ -211,6 +306,18 @@ function AppointmentDetailBody({
         })),
       "Estado actualizado.",
     );
+    if (succeeded) setConfirmation(null);
+  }
+
+  function isTimeBlocked(status: Transition, current: Detail["appointment"], at: number) {
+    if (status === "CONFIRMED") return at >= Date.parse(current.starts_at);
+    if (status === "ATTENDED") return at < Date.parse(current.starts_at);
+    if (status === "NO_SHOW") return at < Date.parse(current.ends_at);
+    return false;
+  }
+  function closeConfirmation() {
+    if (pending || inFlight.current || blocked) return;
+    setConfirmation(null);
   }
   function saveNote(value: string | null) {
     if (!staff) return;
@@ -267,7 +374,9 @@ function AppointmentDetailBody({
       "Turno reprogramado.",
     );
   }
-  const initialDate = appointmentLocalParts(appointment.starts_at, timezone).date;
+  const localStart = appointmentLocalParts(appointment.starts_at, timezone);
+  const localEnd = appointmentLocalParts(appointment.ends_at, timezone);
+  const initialDate = localStart.date;
   const noteDirty =
     note !== ("administrative_note" in appointment ? appointment.administrative_note : null);
   const actions = availableTransitions(appointment.status, staff);
@@ -344,7 +453,9 @@ function AppointmentDetailBody({
           )}
         </section>
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-semibold text-slate-900">Acciones del turno</h2>
+          <h2 ref={actionsHeading} tabIndex={-1} className="text-xl font-semibold text-slate-900">
+            Acciones del turno
+          </h2>
           <div
             className={`mt-4 grid gap-2 sm:flex sm:flex-wrap ${actions.length <= 1 ? "grid-cols-1" : "grid-cols-2"}`}
           >
@@ -359,8 +470,29 @@ function AppointmentDetailBody({
                       ? dangerClass
                       : secondaryClass
                 } min-w-0 w-full text-sm leading-tight sm:w-auto sm:text-base ${actions.length === 3 && index === 0 ? "col-span-2 sm:col-auto" : ""}`}
-                disabled={pending || blocked || (editingNote && noteDirty)}
-                onClick={() => changeStatus(status)}
+                aria-describedby={
+                  isTimeBlocked(status, appointment, now) ? `time-${status}` : undefined
+                }
+                title={
+                  isTimeBlocked(status, appointment, now)
+                    ? status === "CONFIRMED"
+                      ? "El turno ya comenzó"
+                      : status === "ATTENDED"
+                        ? "Disponible desde el inicio del turno"
+                        : "Disponible cuando finalice el turno"
+                    : undefined
+                }
+                onClick={(event) => {
+                  confirmationTrigger.current = event.currentTarget;
+                  setFeedback(null);
+                  setConfirmation(status);
+                }}
+                disabled={
+                  pending ||
+                  blocked ||
+                  (editingNote && noteDirty) ||
+                  isTimeBlocked(status, appointment, now)
+                }
               >
                 {status === "CONFIRMED"
                   ? "Confirmar"
@@ -372,6 +504,120 @@ function AppointmentDetailBody({
               </button>
             ))}
           </div>
+          {actions.some((status) => isTimeBlocked(status, appointment, now)) && (
+            <div className="mt-5 space-y-2 text-sm leading-6 text-slate-600">
+              {actions
+                .filter((status) => isTimeBlocked(status, appointment, now))
+                .map((status) => (
+                  <p
+                    key={status}
+                    id={`time-${status}`}
+                    className={status === "CONFIRMED" ? undefined : "flex items-start gap-2"}
+                  >
+                    {status !== "CONFIRMED" && <ClockIcon />}
+                    <span className="min-w-0">
+                      {status === "CONFIRMED"
+                        ? "El turno ya comenzó; no se puede confirmar."
+                        : status === "ATTENDED"
+                          ? "Podés marcar el turno como atendido desde su hora de inicio."
+                          : "Podés registrar la ausencia cuando finalice el turno."}
+                    </span>
+                  </p>
+                ))}
+            </div>
+          )}
+          {confirmation && (
+            <dialog
+              ref={confirmationDialog}
+              aria-labelledby="status-dialog-title"
+              aria-describedby="status-dialog-description"
+              aria-modal="true"
+              onCancel={(event) => {
+                event.preventDefault();
+                closeConfirmation();
+              }}
+              className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-950/50"
+            >
+              <div className="space-y-4 p-5 sm:p-6">
+                <div>
+                  <h2
+                    id="status-dialog-title"
+                    tabIndex={-1}
+                    className="text-xl font-semibold text-slate-950"
+                  >
+                    {transitionCopy[confirmation].title}
+                  </h2>
+                  <p id="status-dialog-description" className="mt-2 text-slate-700">
+                    {transitionCopy[confirmation].description}
+                  </p>
+                </div>
+                <dl className="min-w-0 rounded-lg bg-slate-50 p-4 text-sm text-slate-800">
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Paciente:</dt>
+                    <dd className="break-words">
+                      {appointment.patient_first_name} {appointment.patient_last_name}
+                    </dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Fecha:</dt>
+                    <dd>{readableCivilDate(localStart.date)}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Horario:</dt>
+                    <dd>
+                      {localStart.time}–{localEnd.time}
+                      {localEnd.date !== localStart.date
+                        ? ` (${readableCivilDate(localEnd.date)})`
+                        : ""}
+                      {appointmentHasAmbiguousLocalTime(appointment.starts_at, timezone)
+                        ? ` · ${appointmentTimezoneLabel(appointment.starts_at, timezone)}`
+                        : ""}
+                    </dd>
+                  </div>
+                </dl>
+                {isTimeBlocked(confirmation, appointment, now) && (
+                  <p
+                    role="status"
+                    className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+                  >
+                    {confirmation === "CONFIRMED"
+                      ? "El turno ya comenzó; no se puede confirmar. Volvé al detalle y recargá el turno."
+                      : confirmation === "ATTENDED"
+                        ? "Disponible desde el inicio del turno."
+                        : "Disponible cuando finalice el turno."}
+                  </p>
+                )}
+                <AppointmentFeedback result={feedback} />
+                {blocked && (
+                  <button
+                    type="button"
+                    className={secondaryClass}
+                    onClick={() => window.location.reload()}
+                  >
+                    Recargar y verificar el turno
+                  </button>
+                )}
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    className={`${secondaryClass} min-w-0 flex-1 text-center sm:flex-none`}
+                    disabled={pending || blocked}
+                    onClick={closeConfirmation}
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="button"
+                    className={`${confirmation === "CANCELLED" ? "min-h-11 rounded-md bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50" : buttonClass} min-w-0 flex-1 text-center leading-tight sm:flex-none`}
+                    disabled={pending || blocked || isTimeBlocked(confirmation, appointment, now)}
+                    onClick={() => void changeStatus(confirmation)}
+                  >
+                    {transitionCopy[confirmation].button}
+                  </button>
+                </div>
+              </div>
+            </dialog>
+          )}
           {editingNote && noteDirty && (
             <p className="mt-3 text-sm text-slate-600">
               Guardá o cancelá la edición de la nota para cambiar el estado.
@@ -608,8 +854,8 @@ function AppointmentDetailBody({
               {notice}
             </p>
           )}
-          {!editingSchedule && <AppointmentFeedback result={feedback} />}
-          {blocked && !editingSchedule && (
+          {!editingSchedule && !confirmation && <AppointmentFeedback result={feedback} />}
+          {blocked && !editingSchedule && !confirmation && (
             <button
               type="button"
               className={secondaryClass}
@@ -628,6 +874,7 @@ export function AppointmentDetailScreen(props: {
   centerId: string;
   centerName: string;
   timezone: string;
+  serverNow: number;
   detail: Detail;
   outsideAvailability: boolean | null;
 }) {

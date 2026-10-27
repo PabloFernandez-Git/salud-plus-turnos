@@ -15,6 +15,7 @@ export const appointmentBusinessCodes = [
   "AMBIGUOUS_LOCAL_TIME",
   "STALE_APPOINTMENT_STATE",
   "INVALID_STATUS_TRANSITION",
+  "APPOINTMENT_TIME_RESTRICTION",
   "APPOINTMENT_NOT_FOUND",
   "INVALID_TIMEZONE",
   "INVALID_INPUT",
@@ -35,6 +36,7 @@ const sqlErrors: Readonly<Record<string, AppointmentBusinessCode>> = {
   "22023:AMBIGUOUS_LOCAL_TIME": "AMBIGUOUS_LOCAL_TIME",
   "P0001:STALE_APPOINTMENT_STATE": "STALE_APPOINTMENT_STATE",
   "P0001:INVALID_STATUS_TRANSITION": "INVALID_STATUS_TRANSITION",
+  "P0001:APPOINTMENT_TIME_RESTRICTION": "APPOINTMENT_TIME_RESTRICTION",
   "P0002:APPOINTMENT_NOT_FOUND": "APPOINTMENT_NOT_FOUND",
   "22023:INVALID_TIMEZONE": "INVALID_TIMEZONE",
   "22023:INVALID_INPUT": "INVALID_INPUT",
@@ -86,7 +88,12 @@ export function mapAppointmentError(error: unknown, mutation: boolean): Appointm
     const code = sqlErrors[`${error.code}:${error.message}`];
     if (code === "ACCESS_DENIED") return { status: "AUTH_ERROR", code };
     if (code === "INVALID_INPUT") return { status: "BUSINESS_ERROR", code, reload: false };
-    if (code) return { status: "BUSINESS_ERROR", code, reload: code === "STALE_APPOINTMENT_STATE" };
+    if (code)
+      return {
+        status: "BUSINESS_ERROR",
+        code,
+        reload: code === "STALE_APPOINTMENT_STATE" || code === "APPOINTMENT_TIME_RESTRICTION",
+      };
     return { status: "UNEXPECTED_ERROR" };
   }
   if (mutation && error instanceof AppointmentOutcomeUnknown) {
