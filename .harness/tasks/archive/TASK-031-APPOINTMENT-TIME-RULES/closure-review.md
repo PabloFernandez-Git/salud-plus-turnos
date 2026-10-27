@@ -1,0 +1,15 @@
+# Revisión independiente del cierre documental — TASK-031
+
+**Veredicto: APPROVED.** Sin hallazgos documentales bloqueantes. Revisión limitada al archivo y la documentación de cierre; no se repitieron pruebas funcionales, SQL, E2E ni operaciones en Supabase.
+
+## Comprobaciones
+
+1. **Integración:** GitHub confirma [PR #38](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/38) como `merged`, con `merge_commit_sha` `e0f7c6bf54905abcdc2212f52c07b76740f0ba70`; Git confirma que el commit pertenece a `origin/main`. El PR describe las mismas tres condiciones temporales, la autoridad PostgreSQL y la UX citadas en [closure.md](closure.md).
+2. **CI:** el job `verify` `122316085934` del run `40540164882` está `completed` con conclusión `success`, posterior al merge según la evidencia de integración proporcionada. [Job](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40540164882/job/122316085934).
+3. **Archivo e integridad:** el árbol de integración contenía 21 archivos en `active/TASK-031/`: brief, plan, informe, review, dos scripts, JSON y 14 PNG. Los 21 existen en el destino y cada `git hash-object` coincide con el blob del árbol original. [Manifiesto](integrity-manifest.md). El traslado preservó contenido y evidencias.
+4. **Enlaces:** se comprobaron los enlaces Markdown relativos de los documentos del expediente y los dos documentos actualizados; todos resuelven. Las rutas externas a PR, CI y commit permanecen. Las menciones a `active/TASK-031/` dentro del brief y los scripts son registros históricos preservados sin reescritura; los scripts no se ejecutaron desde el archivo.
+5. **Estado:** `docs/status.md` registra la implementación integrada y el cierre `CLOSED / ARCHIVED` sólo como propuesta efectiva tras aprobar y fusionar el PR documental. El expediente original conserva su contexto histórico. TASK-029 no aparece en el diff documental y su rama local sigue en `a04f8a749781288ebdea55a2ebb868fd0aa6de1e`.
+6. **Límite de despliegue:** `closure.md`, `docs/status.md` y `docs/modules/appointments.md` dicen expresamente que la migración está en el repositorio y que su aplicación y verificación en Supabase DEV/PROD siguen pendientes de autorización. No confunden merge con despliegue.
+7. **Alcance y datos:** las modificaciones propias del cierre son documentación y traslado de archivos idénticos. No hay diff funcional en `src/`, migraciones, tests, dependencias ni infraestructura. No se incorporaron secretos ni datos personales reales en la documentación nueva. El script histórico de concurrencia contiene sólo la contraseña local conocida `postgres` para la base desechable, idéntica al archivo original; las capturas históricas usan datos sintéticos. `next-env.d.ts` figura modificado previamente y queda fuera del alcance.
+
+`git diff --check` y `git diff --cached --check` pasaron al momento de esta revisión. El commit y el PR documentales aún no existían al emitir este veredicto; el staging explícito debe conservar el mismo alcance.
