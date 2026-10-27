@@ -74,3 +74,16 @@ En el MVP, un `ProfessionalCenter` representa la actividad propia de como máxim
 membership `PROFESSIONAL` activa. Puede conservar asociaciones inactivas históricas, pero no se usa
 para modelar cuentas compartidas, asistentes o delegados. Ese caso futuro requerirá una relación y
 permisos explícitos diferentes.
+
+## Interfaz de administración (TASK-025)
+
+Nuevo profesional verifica nacionalidad (país elegido por nombre, enviado como código ISO alpha-2)
+y documento antes de mostrar el alta o la confirmación de vínculo/reactivación. Configurar mantiene
+guardados independientes para configuración y especialidades. Ambos formularios se presentan en
+modales amplios; activar/desactivar usa una confirmación centrada y la desactivación conserva sus
+datos. La tabla muestra las especialidades activas asociadas a cada profesional, o «Sin
+especialidades» cuando no hay ninguna; el ancho mínimo conserva nombres y acciones legibles en
+móvil con desplazamiento horizontal. En Configurar, Cerrar, X, Escape y fondo piden confirmar el
+descarte sólo si quedan cambios sin guardar.
+Después de guardar una sección, el modal conserva los cambios pendientes de la otra y usa el nuevo
+token `updated_at` para el siguiente guardado.

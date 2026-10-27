@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { updateProfessionalSpecialtiesAction } from "../actions/professional-specialty-action";
 import type { ProfessionalSpecialtyActionState } from "../server/professional-specialty-actions";
 import type {
@@ -15,12 +15,21 @@ export function ProfessionalSpecialtiesEditor({
   specialties,
   associations,
   onResult,
+  onSubmitStart,
+  onDirtyChange,
+  onPendingChange,
 }: {
   centerId: string;
   professional: ProfessionalListItem;
   specialties: ProfessionalSpecialtyOption[];
   associations: ProfessionalSpecialtyAssociation[];
-  onResult: (result: ProfessionalSpecialtyActionState) => void;
+  onResult: (
+    result: ProfessionalSpecialtyActionState,
+    changes: { activateIds: string[]; deactivateIds: string[] },
+  ) => void;
+  onSubmitStart?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const current = new Set(associations.filter((row) => row.isActive).map((row) => row.specialtyId));
   const [selectedIds, setSelectedIds] = useState(() => new Set(current));
@@ -43,6 +52,9 @@ export function ProfessionalSpecialtiesEditor({
   deactivateIds.push(...removeRetainedIds);
   const hasChanges = activateIds.length > 0 || deactivateIds.length > 0;
 
+  useEffect(() => onDirtyChange?.(hasChanges), [hasChanges, onDirtyChange]);
+  useEffect(() => onPendingChange?.(isPending), [isPending, onPendingChange]);
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isPending || !hasChanges) return;
@@ -52,14 +64,18 @@ export function ProfessionalSpecialtiesEditor({
     form.set("expectedUpdatedAt", professional.updatedAt);
     for (const id of activateIds) form.append("activateSpecialtyIds", id);
     for (const id of deactivateIds) form.append("deactivateSpecialtyIds", id);
+    onSubmitStart?.();
     startTransition(async () => {
       try {
-        onResult(await updateProfessionalSpecialtiesAction(form));
+        onResult(await updateProfessionalSpecialtiesAction(form), { activateIds, deactivateIds });
       } catch {
-        onResult({
-          status: "stale",
-          message: "No pudimos confirmar el guardado. Revisá el listado actualizado.",
-        });
+        onResult(
+          {
+            status: "stale",
+            message: "No pudimos confirmar el guardado. Revisá el listado actualizado.",
+          },
+          { activateIds, deactivateIds },
+        );
       }
     });
   }
@@ -128,7 +144,7 @@ export function ProfessionalSpecialtiesEditor({
       <button
         type="submit"
         disabled={isPending || !hasChanges}
-        className="rounded-md bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
+        className="min-h-11 rounded-md bg-sky-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:opacity-50"
       >
         {isPending ? "Guardando…" : "Guardar especialidades"}
       </button>

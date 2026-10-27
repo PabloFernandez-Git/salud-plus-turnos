@@ -71,7 +71,10 @@ describe("ProfessionalSpecialtiesEditor", () => {
     expect(data.getAll("deactivateSpecialtyIds")).toEqual([specialties[0].id]);
     expect(data.getAll("deactivateSpecialtyIds")).not.toContain(specialties[1].id);
     expect(data.get("expectedUpdatedAt")).toBe(professional.updatedAt);
-    expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ updatedAt: "new-token" }));
+    expect(onResult).toHaveBeenCalledWith(
+      expect.objectContaining({ updatedAt: "new-token" }),
+      expect.objectContaining({ activateIds: expect.any(Array), deactivateIds: expect.any(Array) }),
+    );
   });
   it("only removes an inactive retained association after explicit Desasociar", async () => {
     save.mockResolvedValue({ status: "success", message: "Guardado" });
