@@ -54,7 +54,7 @@ export function CenterUsersScreen({
                   Usuarios del centro
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  El listado incluye accesos activos e inactivos visibles para este ADMIN.
+                  Consultá los usuarios con acceso activo o inactivo a este centro.
                 </p>
               </div>
               <CenterUsersTable

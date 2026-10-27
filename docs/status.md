@@ -1,5 +1,7 @@
 # Estado actual
 
+**TASK-032 — ACTIVE / validación visual aprobada; integración pendiente.** El refinamiento UX local de Gestión de usuarios se trabaja en `codex/task-032-users-ux` desde `origin/main` (`25bc3b7`). La persona usuaria aprobó el listado móvil, el modal de tres etapas, la confirmación exacta de la contraseña inicial, el estado de éxito y la administración de accesos. La tarjeta principal permanece compacta y el listado no se mueve al abrir el modal. El diagnóstico, las pruebas, las capturas sintéticas y la revisión independiente constan en [el expediente activo](../.harness/tasks/active/TASK-032/brief.md). El gate técnico, commit y PR están autorizados; no hay autorización para merge, despliegue ni acceso a Supabase DEV/PROD. TASK-029 permanece ACTIVE / PRE-PROD BLOCKED y su checkpoint está intacto.
+
 **TASK-031 — CLOSED / ARCHIVED propuesto en este PR documental; efectivo sólo tras su aprobación y merge.** Las restricciones temporales de Confirmar, Atendido y Ausente y los diálogos accesibles de estado se integraron en `main` mediante [PR #38](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/38), commit `e0f7c6bf54905abcdc2212f52c07b76740f0ba70`. El [CI posterior al merge](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40540164882/job/122316085934) terminó en SUCCESS; la revisión independiente fue APPROVED y la persona usuaria aprobó visualmente el resultado responsive. El [expediente y cierre](../.harness/tasks/archive/TASK-031-APPOINTMENT-TIME-RULES/closure.md) se archivan íntegramente en este PR. La migración está en el repositorio, pero su aplicación y verificación en Supabase DEV/PROD siguen pendientes de autorización separada. Este PR no modifica producto ni despliega la aplicación; TASK-029 conserva su estado.
 
 **TASK-030 — CLOSED / ARCHIVED (propuesto en este PR documental; cierre formal al integrarlo).** El refinamiento UX de Turnos se integró en `main` mediante [PR #36](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/36), commit `d8baf097f4f0114a1eceb9c6dca0e6cddfc49bea`; el job `verify` posterior al merge terminó en [SUCCESS](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40525457158/job/122263689050). Las cuatro iteraciones recibieron aprobación visual en escritorio y móvil, y la revisión independiente final fue APPROVED. El [expediente](../.harness/tasks/archive/TASK-030-APPOINTMENTS-UX/closure.md) y sus evidencias se archivan en este PR. Las restricciones temporales de Confirmar, Atendido y Ausente quedan diferidas a una tarea funcional posterior; se conservan las reglas actuales de Cancelar y Reprogramar. Este PR no modifica funcionalidad ni despliega la aplicación.
@@ -107,12 +109,14 @@
 **Integración previa:** TASK-005 completada y PR #4 integrada en `main`.
 
 <!-- TASK007_FINALIZER_STATUS_START -->
+
 ## TASK-007C+D — finalización automatizada
 
 - Run DEV exacto `c9818e40-2d4d-4c1b-a392-14a9404a5111`: integración DB y E2E PASS previos. Smoke humano: **DEFERRED — non-blocking for current portfolio MVP due to harness/session fixture friction**; no se afirma smoke PASS.
 - Ownership por UUID exacto, cleanup y auditoría posterior PASS; inventario DEV restaurado. Sin nuevos fixtures ni E2E.
 - Paridad 19/19, dry-run sin pendientes, DB lint, schema/API y Baseline V2 exacto PASS (15/15 componentes; digest `24e7b314358764556d9692ba6301eae67d4010eb722814595ef536eb63817359`).
 - `next-env.d.ts` M, unstaged y con SHA exacto. El re-review independiente posterior fue PASS; en ese checkpoint TASK-007 quedó cerrada documentalmente y lista para PR. PR #8 se integró después.
+
 <!-- TASK007_FINALIZER_STATUS_END -->
 
 ## TASK-007 — remediación del review final (2026-10-15)

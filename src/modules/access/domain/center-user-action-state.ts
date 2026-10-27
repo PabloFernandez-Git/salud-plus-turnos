@@ -2,6 +2,7 @@ export type CenterUserActionStatus = "idle" | "error" | "success" | "confirmed";
 
 export type CenterUserActionState = {
   fieldErrors?: Record<string, string[]>;
+  identityCreated?: boolean;
   message?: string;
   retryMode?: "same-operation" | "new-operation";
   status: CenterUserActionStatus;

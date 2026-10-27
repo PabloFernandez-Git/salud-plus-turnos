@@ -134,12 +134,27 @@ describe("ManageCenterMembershipPanel", () => {
     expect(dialog).toBeVisible();
     const cancel = within(dialog).getByRole("button", { name: "Cancelar" });
     const review = within(dialog).getByRole("button", { name: "Revisar cambios" });
+    expect(review).toBeDisabled();
     expect(cancel.parentElement).toBe(review.parentElement);
     expect(cancel.compareDocumentPosition(review) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(dialog).getByRole("button", { name: "Cerrar" })).toHaveAttribute(
       "aria-label",
       "Cerrar",
     );
+  });
+
+  it("enables review only for a valid semantic change and disables it after reverting", () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole("button", { name: "Administrar acceso" }));
+    const review = screen.getByRole("button", { name: "Revisar cambios" });
+    expect(review).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Rol en este centro"), {
+      target: { value: "RECEPTION" },
+    });
+    expect(review).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("Rol en este centro"), { target: { value: "ADMIN" } });
+    expect(review).toBeDisabled();
+    expect(screen.queryByText("No hay cambios para guardar.")).not.toBeInTheDocument();
   });
 
   it("shows only Center access data and requires an explicit role-change confirmation", async () => {
@@ -199,9 +214,8 @@ describe("ManageCenterMembershipPanel", () => {
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "inactive" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Revisar cambios" }));
-
-    expect(screen.getByRole("alert")).toHaveTextContent("único Administrador activo");
+    expect(screen.getByRole("button", { name: "Revisar cambios" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("único Administrador activo");
     expect(
       screen.queryByRole("group", { name: "Confirmar cambio de acceso" }),
     ).not.toBeInTheDocument();
@@ -273,8 +287,10 @@ describe("ManageCenterMembershipPanel", () => {
     fireEvent.change(screen.getByLabelText("Estado del acceso"), {
       target: { value: "active" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Revisar cambios" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("vínculo profesional actual está inactivo");
+    expect(screen.getByRole("button", { name: "Revisar cambios" })).toBeDisabled();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "No hay otro profesional activo y disponible",
+    );
   });
 
   it("uses the safe navigation returned after self-admin loses authorization", async () => {
