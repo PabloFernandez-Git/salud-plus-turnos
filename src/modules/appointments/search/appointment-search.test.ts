@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   addCivilDays,
   appointmentLocalParts,
+  appointmentHasAmbiguousLocalTime,
+  appointmentTimezoneLabel,
   appointmentSearchUrl,
   centerLocalDate,
   parseAppointmentSearch,
+  readableCivilDate,
 } from "./appointment-search";
 
 const centerId = "11111111-1111-4111-8111-111111111111";
@@ -23,6 +26,25 @@ describe("appointment list search and center time", () => {
   it("uses civil day arithmetic across month boundaries", () => {
     expect(addCivilDays("2026-10-19", 30)).toBe("2026-11-18");
     expect(addCivilDays("2026-11-01", -30)).toBe("2026-10-02");
+  });
+  it("formats civil dates and distinguishes repeated DST hours by offset", () => {
+    expect(readableCivilDate("2026-10-27")).toBe("27/10/2026");
+    const zone = "America/New_York";
+    expect(appointmentLocalParts("2026-11-01T05:30:00Z", zone)).toEqual({
+      date: "2026-11-01",
+      time: "01:30",
+    });
+    expect(appointmentLocalParts("2026-11-01T06:30:00Z", zone)).toEqual({
+      date: "2026-11-01",
+      time: "01:30",
+    });
+    expect(appointmentTimezoneLabel("2026-11-01T05:30:00Z", zone)).toContain("UTC-4");
+    expect(appointmentTimezoneLabel("2026-11-01T06:30:00Z", zone)).toContain("UTC-5");
+    expect(appointmentHasAmbiguousLocalTime("2026-11-01T05:30:00Z", zone)).toBe(true);
+    expect(appointmentHasAmbiguousLocalTime("2026-11-01T06:30:00Z", zone)).toBe(true);
+    expect(
+      appointmentHasAmbiguousLocalTime("2026-10-20T12:00:00Z", "America/Argentina/Buenos_Aires"),
+    ).toBe(false);
   });
   it("preserves the exact cursor timestamp and filters in page links", () => {
     const cursor = { startsAt: "2026-10-20T12:00:00.123456+00:00", id: appointmentId };

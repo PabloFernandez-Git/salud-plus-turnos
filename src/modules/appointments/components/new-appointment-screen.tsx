@@ -10,6 +10,7 @@ import {
   searchAppointmentPatientsAction,
 } from "../actions/appointment-actions";
 import type { AppointmentFailure } from "../server/appointment-errors";
+import { readableCivilDate } from "../search/appointment-search";
 import { AppointmentFeedback } from "./appointment-feedback";
 import { BookingSelector, type BookingChoice } from "./booking-selector";
 
@@ -23,7 +24,11 @@ type CreateIntent = {
   startsAt: string;
   endsAt: string;
 };
-const buttonClass = modulePrimaryActionClass;
+const buttonClass = `${modulePrimaryActionClass} cursor-pointer disabled:cursor-not-allowed`;
+const secondaryButtonClass =
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-md border border-sky-700 bg-white px-4 py-2 font-semibold text-sky-800 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700";
+const textActionClass =
+  "cursor-pointer font-semibold text-sky-700 underline hover:text-sky-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed";
 
 export function NewAppointmentScreen({
   centerId,
@@ -53,6 +58,7 @@ export function NewAppointmentScreen({
   const [patientState, setPatientState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [choice, setChoice] = useState<BookingChoice | null>(null);
   const [selectorKey, setSelectorKey] = useState(0);
+  const [handoffAvailable, setHandoffAvailable] = useState(true);
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState<AppointmentFailure | null>(null);
   const [pending, setPending] = useState(false);
@@ -66,6 +72,13 @@ export function NewAppointmentScreen({
   const queryRef = useRef(query);
   const storageKey = `appointment-create-uncertain:${centerId}`;
   const intent = useRef<CreateIntent | null>(null);
+
+  function changePatient(next: Patient | null) {
+    setPatient(next);
+    setChoice(null);
+    if (patient) setHandoffAvailable(false);
+    setSelectorKey((value) => value + 1);
+  }
 
   useEffect(() => {
     let active = true;
@@ -199,6 +212,7 @@ export function NewAppointmentScreen({
         ].includes(result.code)
       ) {
         setChoice(null);
+        setHandoffAvailable(false);
         setSelectorKey((value) => value + 1);
       }
     } catch {
@@ -222,19 +236,21 @@ export function NewAppointmentScreen({
           <div className="w-full max-w-[800px]">
             <h2 className="text-xl font-semibold text-slate-900">1. Paciente</h2>
             {patient ? (
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <p>
-                  Seleccionado:{" "}
-                  <strong>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-800">
+                    Paciente seleccionado
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-950">
                     {patient.firstName} {patient.lastName}
-                  </strong>
-                </p>
+                  </p>
+                </div>
                 <button
                   type="button"
-                  className="font-semibold text-sky-700 underline"
-                  onClick={() => setPatient(null)}
+                  className={textActionClass}
+                  onClick={() => changePatient(null)}
                 >
-                  Cambiar
+                  Cambiar paciente
                 </button>
               </div>
             ) : (
@@ -272,21 +288,22 @@ export function NewAppointmentScreen({
                 )}
                 {patientState === "ready" &&
                   (patients.length ? (
-                    <ul className="mt-3 space-y-2">
+                    <ul className="mt-4 space-y-2" aria-label="Resultados de pacientes">
                       {patients.map((item) => (
                         <li
                           key={item.patientCenterId}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded border p-3"
+                          className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <span>
+                          <span className="min-w-0 break-words font-semibold text-slate-950">
                             {item.firstName} {item.lastName}
                           </span>
                           <button
                             type="button"
-                            className="font-semibold text-sky-700 underline"
-                            onClick={() => setPatient(item)}
+                            className={`${secondaryButtonClass} w-full sm:w-auto`}
+                            aria-label={`Seleccionar paciente: ${item.firstName} ${item.lastName}`}
+                            onClick={() => changePatient(item)}
                           >
-                            Seleccionar
+                            Seleccionar paciente
                           </button>
                         </li>
                       ))}
@@ -297,14 +314,14 @@ export function NewAppointmentScreen({
                 {patientState === "ready" && hasNext && (
                   <button
                     type="button"
-                    className="mt-3 font-semibold text-sky-700 underline"
+                    className={`mt-3 ${textActionClass}`}
                     onClick={() => void search(patientPage + 1)}
                   >
                     Siguiente página de pacientes
                   </button>
                 )}
                 <Link
-                  className="mt-4 inline-block font-semibold text-sky-700 underline"
+                  className={`mt-4 inline-block ${textActionClass}`}
                   href={`/centers/${centerId}/patients?from=appointment`}
                 >
                   Registrar o reactivar paciente
@@ -319,7 +336,9 @@ export function NewAppointmentScreen({
               2. Especialidad, profesional y horario
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Elegí un horario ofrecido por el centro. La disponibilidad se confirma al crear.
+              {patient
+                ? "Elegí un horario ofrecido por el centro. La disponibilidad se confirma al crear."
+                : "Seleccioná primero un paciente para habilitar la especialidad, el profesional, la fecha y los horarios."}
             </p>
             {initialBookingUnavailable && (
               <p role="alert" className="mt-2 text-sm text-amber-900">
@@ -332,7 +351,8 @@ export function NewAppointmentScreen({
                 centerId={centerId}
                 timezone={timezone}
                 onChange={setChoice}
-                initial={initialBooking ?? undefined}
+                disabled={!patient}
+                initial={patient && handoffAvailable ? (initialBooking ?? undefined) : undefined}
               />
             </div>
           </div>
@@ -378,13 +398,16 @@ export function NewAppointmentScreen({
                 </div>
                 <div>
                   <dt className="font-semibold">Fecha local</dt>
-                  <dd>{choice.localDate}</dd>
+                  <dd>{readableCivilDate(choice.localDate)}</dd>
                 </div>
                 <div>
                   <dt className="font-semibold">Horario</dt>
                   <dd>
                     {choice.localStartTime}–{choice.localEndTime}
-                    {choice.localEndDate !== choice.localDate ? ` (${choice.localEndDate})` : ""}
+                    {choice.displayOffset ? ` (${choice.displayOffset})` : ""}
+                    {choice.localEndDate !== choice.localDate
+                      ? ` (${readableCivilDate(choice.localEndDate)})`
+                      : ""}
                   </dd>
                 </div>
                 <div>
@@ -398,7 +421,9 @@ export function NewAppointmentScreen({
               </dl>
             ) : (
               <p className="mt-3 text-slate-600">
-                Seleccioná paciente y horario para revisar el turno.
+                {patient
+                  ? "Elegí una especialidad, un profesional, una fecha y un horario para revisar el turno."
+                  : "Seleccioná un paciente para comenzar. Después podrás elegir el horario y revisar el turno."}
               </p>
             )}
             <div className="mt-5 space-y-4 border-t border-slate-200 pt-5">
@@ -421,7 +446,7 @@ export function NewAppointmentScreen({
                     <p>
                       Se encontró un turno coincidente.{" "}
                       <Link
-                        className="font-semibold text-sky-700 underline"
+                        className={textActionClass}
                         href={`/centers/${centerId}/appointments/${matchId}`}
                       >
                         Ver detalle

@@ -16,10 +16,17 @@ vi.mock("../actions/appointment-actions", () => ({
   updateAppointmentNoteAction: vi.fn(),
 }));
 vi.mock("./booking-selector", () => ({
-  BookingSelector: ({ onChange }: { onChange: (value: unknown) => void }) => (
+  BookingSelector: ({
+    onChange,
+    onInteraction,
+  }: {
+    onChange: (value: unknown) => void;
+    onInteraction?: () => void;
+  }) => (
     <button
       type="button"
-      onClick={() =>
+      onClick={() => {
+        onInteraction?.();
         onChange({
           specialtyId: "55555555-5555-4555-8555-555555555555",
           professionalCenterId: "66666666-6666-4666-8666-666666666666",
@@ -27,11 +34,12 @@ vi.mock("./booking-selector", () => ({
           localStartTime: "10:00",
           localEndDate: "2026-10-21",
           localEndTime: "10:30",
+          displayOffset: "UTC−04:00",
           startsAt: "2026-10-21T13:00:00+00:00",
           endsAt: "2026-10-21T13:30:00+00:00",
           duration: 30,
-        })
-      }
+        });
+      }}
     >
       Elegir nuevo slot
     </button>
@@ -73,10 +81,63 @@ function renderStaff(appointment: StaffAppointment = staff) {
     />,
   );
 }
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute("open");
+  };
+});
 afterEach(cleanup);
 
 describe("appointment detail flow", () => {
+  it("lays out four staff actions as two mobile columns without changing their order", () => {
+    renderStaff();
+    const buttons = ["Confirmar", "Marcar atendido", "Marcar ausente", "Cancelar turno"].map(
+      (name) => screen.getByRole("button", { name }),
+    );
+    expect(buttons[0].parentElement).toHaveClass("grid-cols-2", "sm:flex");
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Confirmar",
+      "Marcar atendido",
+      "Marcar ausente",
+      "Cancelar turno",
+    ]);
+    expect(buttons.every((button) => button.className.includes("min-h-11"))).toBe(true);
+    expect(buttons[0]).not.toHaveClass("col-span-2");
+  });
+  it("makes the leading action full width when three are visible", () => {
+    renderStaff({ ...staff, status: "CONFIRMED" });
+    const attended = screen.getByRole("button", { name: "Marcar atendido" });
+    expect(attended).toHaveClass("col-span-2", "sm:col-auto");
+    expect(screen.getByRole("button", { name: "Marcar ausente" })).not.toHaveClass("col-span-2");
+    expect(screen.getByRole("button", { name: "Cancelar turno" })).not.toHaveClass("col-span-2");
+    expect(screen.queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
+  });
+  it("shows a direct return action to the same center and hides deletion for an empty note", () => {
+    renderStaff({ ...staff, administrative_note: "" });
+    expect(screen.getByRole("link", { name: "Volver a turnos" })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/appointments`,
+    );
+    expect(screen.getByText("Sin nota administrativa.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agregar nota" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Eliminar nota" })).not.toBeInTheDocument();
+  });
+  it("uses the same empty presentation for NULL while preserving its edit value", () => {
+    renderStaff();
+    expect(screen.getByText("Sin nota administrativa.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar nota" }));
+    expect(screen.getByRole("textbox", { name: "Editar nota" })).toHaveValue("");
+  });
+  it("offers deletion only for saved nonempty text", () => {
+    renderStaff({ ...staff, administrative_note: "Aviso administrativo" });
+    expect(screen.getByText("Aviso administrativo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar nota" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Eliminar nota" })).toBeInTheDocument();
+  });
   it("shows an indeterminate Availability check explicitly", () => {
     render(
       <AppointmentDetailScreen
@@ -102,6 +163,9 @@ describe("appointment detail flow", () => {
     );
     expect(screen.getByRole("button", { name: "Marcar atendido" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Marcar ausente" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Marcar atendido" }).parentElement).toHaveClass(
+      "grid-cols-2",
+    );
     expect(screen.queryByText("Nota administrativa")).not.toBeInTheDocument();
     expect(screen.queryByText("Reprogramar")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirmar" })).not.toBeInTheDocument();
@@ -114,6 +178,7 @@ describe("appointment detail flow", () => {
       screen.getByText("El estado es terminal; no permite nuevas transiciones."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Elegir nuevo horario" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Marcar atendido" })).not.toBeInTheDocument();
   });
   it("updates Professional status and CAS from the returned result", async () => {
     const nextToken = "2026-10-19T12:00:01.123456+00:00";
@@ -130,6 +195,7 @@ describe("appointment detail flow", () => {
         outsideAvailability={false}
       />,
     );
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Marcar atendido" }));
     await waitFor(() =>
       expect(transitionAppointmentStatusAction).toHaveBeenCalledWith({
@@ -155,8 +221,9 @@ describe("appointment detail flow", () => {
       code: "STALE_APPOINTMENT_STATE",
       reload: true,
     });
-    renderStaff();
-    fireEvent.click(screen.getByRole("button", { name: "Quitar nota (NULL)" }));
+    renderStaff({ ...staff, administrative_note: "Texto previo" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar nota" }));
     await waitFor(() =>
       expect(updateAppointmentNoteAction).toHaveBeenCalledWith({
         centerId,
@@ -165,6 +232,10 @@ describe("appointment detail flow", () => {
         administrativeNote: null,
       }),
     );
+    fireEvent.click(screen.getByRole("button", { name: "Agregar nota" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Editar nota" }), {
+      target: { value: "" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Guardar nota" }));
     const conflict = await within(screen.getByRole("main")).findByRole("alert");
     expect(conflict.textContent).toBe("El turno cambió. Recargá el detalle antes de continuar.");
@@ -196,6 +267,7 @@ describe("appointment detail flow", () => {
     renderStaff();
     fireEvent.click(screen.getByRole("button", { name: "Elegir nuevo horario" }));
     fireEvent.click(screen.getByRole("button", { name: "Elegir nuevo slot" }));
+    expect(screen.getByText(/Nuevo horario:.*UTC−04:00/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Guardar reprogramación" }));
     await waitFor(() => expect(rescheduleAppointmentAction).toHaveBeenCalledTimes(1));
     expect(rescheduleAppointmentAction).toHaveBeenCalledWith({
@@ -222,5 +294,58 @@ describe("appointment detail flow", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("pudo haberse completado");
     fireEvent.click(screen.getByRole("button", { name: "Marcar atendido" }));
     expect(transitionAppointmentStatusAction).toHaveBeenCalledTimes(1);
+  });
+  it("protects an unsaved note before changing status or leaving", () => {
+    vi.spyOn(window, "confirm")
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true);
+    renderStaff();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar nota" }));
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Elegir nuevo horario" })).toBeDisabled();
+    const shellLink = document.createElement("a");
+    shellLink.href = "/centers";
+    shellLink.textContent = "Volver al inicio";
+    document.body.append(shellLink);
+    expect(fireEvent.click(shellLink)).toBe(false);
+    shellLink.remove();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar edición" }));
+    expect(screen.getByRole("textbox", { name: "Editar nota" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar edición" }));
+    expect(screen.queryByRole("textbox", { name: "Editar nota" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled();
+  });
+  it("confirms discarding a reprogramming selection and restores the trigger", () => {
+    renderStaff();
+    fireEvent.click(screen.getByRole("button", { name: "Elegir nuevo horario" }));
+    const dialog = screen.getByRole("dialog", { name: "Reprogramar turno" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Elegir nuevo slot" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(
+      within(dialog).getByRole("heading", { name: "¿Descartar cambios?" }),
+    ).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Seguir editando" }));
+    expect(within(dialog).getByRole("heading", { name: "Reprogramar turno" })).toHaveFocus();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Descartar cambios" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Elegir nuevo horario" })).toHaveFocus();
+  });
+  it("keeps recovery available inside the modal after an uncertain reprogramming result", async () => {
+    vi.mocked(rescheduleAppointmentAction).mockResolvedValue({
+      status: "UNKNOWN_RESULT",
+      reconcile: "RELOAD_APPOINTMENTS_BEFORE_RETRY",
+    });
+    renderStaff();
+    fireEvent.click(screen.getByRole("button", { name: "Elegir nuevo horario" }));
+    const dialog = screen.getByRole("dialog", { name: "Reprogramar turno" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Elegir nuevo slot" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Guardar reprogramación" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("pudo haberse completado");
+    expect(
+      within(dialog).getByRole("button", { name: "Recargar y verificar el turno" }),
+    ).toBeEnabled();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
   });
 });

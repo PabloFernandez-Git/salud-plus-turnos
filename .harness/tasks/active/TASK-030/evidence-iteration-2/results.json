@@ -1,0 +1,26 @@
+[
+  {
+    "name": "desktop-1440",
+    "create": true,
+    "calendar": true,
+    "twelveSlots": true,
+    "reschedule": true,
+    "returnLink": true,
+    "emptyNote": true,
+    "pointer": true,
+    "overflow": false,
+    "pageErrors": 0
+  },
+  {
+    "name": "mobile-390",
+    "create": true,
+    "calendar": true,
+    "twelveSlots": true,
+    "reschedule": true,
+    "returnLink": true,
+    "emptyNote": true,
+    "pointer": true,
+    "overflow": false,
+    "pageErrors": 0
+  }
+]

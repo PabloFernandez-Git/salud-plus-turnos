@@ -42,6 +42,51 @@ const common = {
 afterEach(cleanup);
 
 describe("appointment list", () => {
+  it("keeps mobile quick links equal and identifies the active date preset from existing filters", () => {
+    const { rerender } = render(
+      <AppointmentsList
+        {...common}
+        filters={{ fromDate: "2026-10-19", toDate: "2026-11-18" }}
+        role="RECEPTION"
+        result={{ kind: "STAFF", rows: [], hasMore: false, nextCursor: null }}
+      />,
+    );
+    const upcoming = screen.getByRole("link", { name: "Próximos turnos" });
+    const recent = screen.getByRole("link", { name: "Últimos 30 días, incluidos cancelados" });
+    expect(upcoming.parentElement).toHaveClass("flex-col", "sm:flex-row");
+    for (const link of [upcoming, recent])
+      expect(link).toHaveClass("w-full", "min-h-12", "sm:w-auto");
+    expect(upcoming).toHaveAttribute("aria-current", "true");
+    expect(recent).not.toHaveAttribute("aria-current");
+    expect(upcoming).toHaveAttribute("href", `/centers/${centerId}/appointments`);
+    expect(
+      new URL(recent.getAttribute("href")!, "http://local.test").searchParams.get("from"),
+    ).toBe("2026-09-19");
+    rerender(
+      <AppointmentsList
+        {...common}
+        filters={{ fromDate: "2026-09-19", toDate: "2026-10-19" }}
+        role="RECEPTION"
+        result={{ kind: "STAFF", rows: [], hasMore: false, nextCursor: null }}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: "Últimos 30 días, incluidos cancelados" }),
+    ).toHaveAttribute("aria-current", "true");
+    rerender(
+      <AppointmentsList
+        {...common}
+        role="RECEPTION"
+        result={{ kind: "STAFF", rows: [], hasMore: false, nextCursor: null }}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Próximos turnos" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(
+      screen.getByRole("link", { name: "Últimos 30 días, incluidos cancelados" }),
+    ).not.toHaveAttribute("aria-current");
+  });
   it("shows staff filters, a historical cancelled turn and a cursor link with exact instant", () => {
     render(
       <AppointmentsList
@@ -66,7 +111,7 @@ describe("appointment list", () => {
     expect(screen.getByRole("link", { name: "Crear turno" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Profesional" })).toHaveValue(professionalCenterId);
     expect(screen.getByRole("combobox", { name: "Estado" })).toHaveValue("CANCELLED");
-    expect(screen.getByText("2026-10-19 · 22:00–22:30")).toBeInTheDocument();
+    expect(screen.getByText("19/10/2026 · 22:00–22:30")).toBeInTheDocument();
     expect(screen.getAllByText("Cancelado")).toHaveLength(2);
     const next = screen.getByRole("link", { name: "Siguiente página" }).getAttribute("href") ?? "";
     expect(new URL(next, "http://local.test").searchParams.get("cursorStartsAt")).toBe(

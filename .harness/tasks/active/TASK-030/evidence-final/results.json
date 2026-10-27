@@ -1,0 +1,24 @@
+[
+  {
+    "name": "desktop-1440",
+    "quickLinks": true,
+    "fourActions": true,
+    "threeActions": true,
+    "emptyNote": true,
+    "textNote": true,
+    "twoProfessionalActions": true,
+    "overflow": false,
+    "pageErrors": 0
+  },
+  {
+    "name": "mobile-390",
+    "quickLinks": true,
+    "fourActions": true,
+    "threeActions": true,
+    "emptyNote": true,
+    "textNote": true,
+    "twoProfessionalActions": true,
+    "overflow": false,
+    "pageErrors": 0
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "desktop-1440",
+    "patientFirst": true,
+    "patientResults": true,
+    "disabledGaps": true,
+    "calendar": true,
+    "rescheduleLoading": true,
+    "reschedule": true,
+    "returnLink": true,
+    "emptyNote": true,
+    "pointer": true,
+    "overflow": false,
+    "pageErrors": 0
+  },
+  {
+    "name": "mobile-390",
+    "patientFirst": true,
+    "patientResults": true,
+    "disabledGaps": true,
+    "calendar": true,
+    "rescheduleLoading": true,
+    "reschedule": true,
+    "returnLink": true,
+    "emptyNote": true,
+    "pointer": true,
+    "overflow": false,
+    "pageErrors": 0
+  }
+]

@@ -44,6 +44,47 @@ export function appointmentLocalParts(instant: string, timezone: string) {
   };
 }
 
+export function readableCivilDate(date: string): string {
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+export function appointmentTimezoneLabel(instant: string, timezone: string): string {
+  const date = new Date(instant);
+  const name = new Intl.DateTimeFormat("es-AR", {
+    timeZone: timezone,
+    timeZoneName: "longGeneric",
+  })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+  const offset =
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "shortOffset",
+    })
+      .formatToParts(date)
+      .find((part) => part.type === "timeZoneName")?.value ?? "GMT";
+  return `${name ?? "Hora del centro"} (${offset.replace("GMT", "UTC")})`;
+}
+
+export function appointmentHasAmbiguousLocalTime(instant: string, timezone: string): boolean {
+  const timestamp = Date.parse(instant);
+  if (!Number.isFinite(timestamp)) return false;
+  const local = appointmentLocalParts(instant, timezone);
+  // Offset changes can be 30, 60 or more minutes. Compare neighboring instants
+  // at 15-minute steps so the detail only explains the offset for repeated times.
+  for (let delta = 15; delta <= 180; delta += 15) {
+    for (const direction of [-1, 1]) {
+      const candidate = appointmentLocalParts(
+        new Date(timestamp + direction * delta * 60000).toISOString(),
+        timezone,
+      );
+      if (candidate.date === local.date && candidate.time === local.time) return true;
+    }
+  }
+  return false;
+}
+
 export function appointmentSearchUrl(centerId: string, filters: AppointmentFilters): string {
   const params = new URLSearchParams();
   params.set("from", filters.fromDate);
