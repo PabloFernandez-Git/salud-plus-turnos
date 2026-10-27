@@ -6,6 +6,7 @@ import {
   createAppointmentAction,
   getAppointmentAvailabilityAction,
   rescheduleAppointmentAction,
+  transitionAppointmentStatusAction,
   updateAppointmentNoteAction,
 } from "./appointment-actions";
 
@@ -39,6 +40,44 @@ beforeEach(() => {
 });
 
 describe("appointment mutation actions", () => {
+  it("returns the typed PostgreSQL time rejection without reporting success", async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === "staff_get_appointment")
+        return {
+          data: [
+            {
+              appointment_id: appointmentId,
+              patient_center_id: patientCenterId,
+              professional_center_id: professionalCenterId,
+              specialty_id: specialtyId,
+              patient_first_name: "Ana",
+              patient_last_name: "Paz",
+              professional_first_name: "Dr",
+              professional_last_name: "Sol",
+              specialty_name: "Clínica",
+              administrative_note: null,
+              starts_at: "2030-01-01T10:00:00+00:00",
+              ends_at: "2030-01-01T10:30:00+00:00",
+              status: "PENDING",
+              updated_at: token,
+            },
+          ],
+          error: null,
+        };
+      if (name === "staff_transition_appointment_status")
+        return { data: null, error: { code: "P0001", message: "APPOINTMENT_TIME_RESTRICTION" } };
+      throw new Error(`Unexpected RPC: ${name}`);
+    });
+    expect(
+      await transitionAppointmentStatusAction({
+        centerId,
+        appointmentId,
+        expectedUpdatedAt: token,
+        requestedStatus: "ATTENDED",
+      }),
+    ).toEqual({ status: "BUSINESS_ERROR", code: "APPOINTMENT_TIME_RESTRICTION", reload: true });
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
   it("limits the Availability classification read to staff in the same Center", async () => {
     vi.mocked(getAvailabilityForProfessionalCenter).mockResolvedValue({
       intervals: [{ id: "a", weekday: 2, startTime: "09:00", endTime: "10:00", updatedAt: token }],

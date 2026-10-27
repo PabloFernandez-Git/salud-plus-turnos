@@ -16,6 +16,8 @@ const messages: Record<string, string> = {
   OUTSIDE_AVAILABILITY: "El horario quedó fuera de la disponibilidad vigente.",
   APPOINTMENT_IN_PAST: "No se puede crear o reprogramar un turno en el pasado.",
   INVALID_STATUS_TRANSITION: "El estado actual ya no permite esa acción.",
+  APPOINTMENT_TIME_RESTRICTION:
+    "Todavía no se puede realizar esa acción en este turno. Recargá el detalle para comprobar el horario.",
   APPOINTMENT_NOT_FOUND: "El turno ya no está disponible.",
   INVALID_TIMEZONE: "La zona horaria del centro no es válida. Contactá a administración.",
   INVALID_INPUT: "Revisá los datos y volvé a elegir un horario.",

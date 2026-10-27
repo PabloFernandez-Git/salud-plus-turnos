@@ -1,0 +1,42 @@
+[
+  {
+    "size": "desktop-1440",
+    "status": "CONFIRMED",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "desktop-1440",
+    "status": "ATTENDED",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "desktop-1440",
+    "status": "NO_SHOW",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "desktop-1440",
+    "status": "CANCELLED",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "mobile-390",
+    "status": "CONFIRMED",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "mobile-390",
+    "status": "ATTENDED",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "mobile-390",
+    "status": "NO_SHOW",
+    "horizontalOverflow": false
+  },
+  {
+    "size": "mobile-390",
+    "status": "CANCELLED",
+    "horizontalOverflow": false
+  }
+]

@@ -314,9 +314,13 @@ begin
     '91000000-0000-0000-0000-000000000001','2030-01-07','2030-01-07')
   where starts_at at time zone 'America/Argentina/Buenos_Aires' = '2030-01-07 11:00'::timestamp;
   if v_id is null then raise exception 'Professional own projection missing'; end if;
-  select status into v_status from public.staff_transition_appointment_status(
-    '91000000-0000-0000-0000-000000000001',v_id,v_token,'NO_SHOW');
-  if v_status <> 'NO_SHOW' then raise exception 'Professional own NO_SHOW failed'; end if;
+  begin
+    perform * from public.staff_transition_appointment_status(
+      '91000000-0000-0000-0000-000000000001',v_id,v_token,'NO_SHOW');
+    raise exception 'Professional marked future NO_SHOW';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'APPOINTMENT_TIME_RESTRICTION' then raise; end if;
+  end;
   begin
     perform * from public.staff_update_appointment_note(
       '91000000-0000-0000-0000-000000000001',v_id,v_token,'forbidden');
@@ -482,10 +486,119 @@ begin
       select updated_at into v_token from public.staff_transition_appointment_status(
         '91000000-0000-0000-0000-000000000001',v_id,v_token,'CONFIRMED');
     end if;
-    select status into v_status from public.staff_transition_appointment_status(
-      '91000000-0000-0000-0000-000000000001',v_id,v_token,v_targets[i]);
-    if v_status::text <> v_targets[i] then raise exception 'Status matrix mismatch at %',i; end if;
+    if i in (2,3,5,6) then
+      begin
+        perform * from public.staff_transition_appointment_status(
+          '91000000-0000-0000-0000-000000000001',v_id,v_token,v_targets[i]);
+        raise exception 'Future status accepted at %',i;
+      exception when sqlstate 'P0001' then
+        if sqlerrm <> 'APPOINTMENT_TIME_RESTRICTION' then raise; end if;
+      end;
+    else
+      select status into v_status from public.staff_transition_appointment_status(
+        '91000000-0000-0000-0000-000000000001',v_id,v_token,v_targets[i]);
+      if v_status::text <> v_targets[i] then raise exception 'Status matrix mismatch at %',i; end if;
+    end if;
   end loop;
+end;
+$test$;
+
+-- TASK-031: the ordinary RPC receives only IDs, CAS and target status. The test
+-- creates timestamps around PostgreSQL's clock; no test-only clock argument exists.
+reset role;
+insert into public.appointments
+  (id,center_id,patient_center_id,professional_center_id,specialty_id,starts_at,ends_at,status)
+values
+  ('91000000-0000-0000-0000-000000000072',
+   '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000061',
+   '91000000-0000-0000-0000-000000000031','91000000-0000-0000-0000-000000000041',
+   pg_catalog.clock_timestamp()-interval '5 minutes',pg_catalog.clock_timestamp()+interval '5 minutes','PENDING'),
+  ('91000000-0000-0000-0000-000000000073',
+   '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000061',
+   '91000000-0000-0000-0000-000000000031','91000000-0000-0000-0000-000000000041',
+   pg_catalog.clock_timestamp()-interval '2 hours',pg_catalog.clock_timestamp()-interval '90 minutes','PENDING'),
+  ('91000000-0000-0000-0000-000000000074',
+   '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000061',
+   '91000000-0000-0000-0000-000000000031','91000000-0000-0000-0000-000000000041',
+   pg_catalog.clock_timestamp()-interval '4 hours',pg_catalog.clock_timestamp()-interval '210 minutes','PENDING'),
+  ('91000000-0000-0000-0000-000000000075',
+   '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000061',
+   '91000000-0000-0000-0000-000000000031','91000000-0000-0000-0000-000000000041',
+   pg_catalog.clock_timestamp()-interval '6 hours',pg_catalog.clock_timestamp()-interval '330 minutes','PENDING'),
+  ('91000000-0000-0000-0000-000000000076',
+   '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000061',
+   '91000000-0000-0000-0000-000000000031','91000000-0000-0000-0000-000000000041',
+   pg_catalog.clock_timestamp()-interval '8 hours',pg_catalog.clock_timestamp()-interval '450 minutes','PENDING');
+select set_config('request.jwt.claim.sub','91000000-0000-0000-0000-000000000011',true);
+set local role authenticated;
+do $test$
+declare v_token timestamptz;
+begin
+  select updated_at into v_token from public.staff_get_appointment(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000072');
+  begin
+    perform * from public.staff_transition_appointment_status(
+      '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000072',v_token,'CONFIRMED');
+    raise exception 'Retroactive confirmation accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'APPOINTMENT_TIME_RESTRICTION' then raise; end if;
+  end;
+  begin
+    perform * from public.staff_transition_appointment_status(
+      '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000072',v_token,'NO_SHOW');
+    raise exception 'In-progress NO_SHOW accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'APPOINTMENT_TIME_RESTRICTION' then raise; end if;
+  end;
+  perform * from public.staff_transition_appointment_status(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000072',v_token,'ATTENDED');
+  select updated_at into v_token from public.staff_get_appointment(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000073');
+  perform * from public.staff_transition_appointment_status(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000073',v_token,'NO_SHOW');
+  select updated_at into v_token from public.staff_get_appointment(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000074');
+  perform * from public.staff_transition_appointment_status(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000074',v_token,'ATTENDED');
+end;
+$test$;
+reset role;
+select set_config('request.jwt.claim.sub','91000000-0000-0000-0000-000000000012',true);
+set local role authenticated;
+do $test$
+declare v_token timestamptz;
+begin
+  select updated_at into v_token from public.staff_get_appointment(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000076');
+  perform * from public.staff_transition_appointment_status(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000076',v_token,'ATTENDED');
+end;
+$test$;
+reset role;
+select set_config('request.jwt.claim.sub','91000000-0000-0000-0000-000000000013',true);
+set local role authenticated;
+do $test$
+declare v_token timestamptz;
+begin
+  select updated_at into v_token from public.professional_get_own_appointment(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000075');
+  perform * from public.staff_transition_appointment_status(
+    '91000000-0000-0000-0000-000000000001','91000000-0000-0000-0000-000000000075',v_token,'NO_SHOW');
+end;
+$test$;
+
+-- The equality truth table is deterministic; the production RPC does not expose
+-- an injectable clock and uses these same strict comparisons after FOR UPDATE.
+do $test$
+declare v_start timestamptz := '2026-01-01 10:00+00'; v_end timestamptz := '2026-01-01 10:30+00';
+begin
+  if not ('2026-01-01 09:59:59.999999+00'::timestamptz < v_start)
+    or ('2026-01-01 10:00+00'::timestamptz < v_start)
+    or not ('2026-01-01 10:00+00'::timestamptz >= v_start)
+    or ('2026-01-01 10:29:59.999999+00'::timestamptz >= v_end)
+    or not ('2026-01-01 10:30+00'::timestamptz >= v_end)
+    or not ('2026-01-01 10:30:00.000001+00'::timestamptz >= v_end)
+  then raise exception 'TASK-031 boundary comparison failed'; end if;
 end;
 $test$;
 

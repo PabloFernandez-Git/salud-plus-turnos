@@ -15,6 +15,10 @@ import { AppointmentDetailScreen } from "@/modules/appointments/components/appoi
 import { outsideCurrentAvailability } from "@/modules/appointments/search/appointment-availability-warning";
 import { getAppointment } from "@/modules/appointments/server/appointments";
 
+async function presentationTime() {
+  return Date.now();
+}
+
 export default async function AppointmentDetailPage({
   params,
 }: {
@@ -80,6 +84,7 @@ export default async function AppointmentDetailPage({
       else outsideAvailability = null;
     }
   }
+  const serverNow = await presentationTime();
   if (detail.kind === "STAFF") {
     return (
       <PageReveal>
@@ -88,6 +93,7 @@ export default async function AppointmentDetailPage({
           centerId={centerId.data}
           centerName={context.center.name}
           timezone={context.center.timezone}
+          serverNow={serverNow}
           detail={{ kind: "STAFF", appointment: detail.appointment }}
           outsideAvailability={outsideAvailability}
         />
@@ -101,6 +107,7 @@ export default async function AppointmentDetailPage({
         centerId={centerId.data}
         centerName={context.center.name}
         timezone={context.center.timezone}
+        serverNow={serverNow}
         detail={{ kind: "PROFESSIONAL", appointment: detail.appointment }}
         outsideAvailability={false}
       />
