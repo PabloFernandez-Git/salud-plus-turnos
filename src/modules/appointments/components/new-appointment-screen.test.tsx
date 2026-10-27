@@ -15,9 +15,19 @@ vi.mock("../actions/appointment-actions", () => ({
   searchAppointmentPatientsAction: vi.fn(),
 }));
 vi.mock("./booking-selector", () => ({
-  BookingSelector: ({ onChange }: { onChange: (value: unknown) => void }) => (
+  BookingSelector: ({
+    onChange,
+    disabled,
+    initial,
+  }: {
+    onChange: (value: unknown) => void;
+    disabled?: boolean;
+    initial?: unknown;
+  }) => (
     <button
       type="button"
+      disabled={disabled}
+      data-initial-booking={initial ? "yes" : "no"}
       onClick={() =>
         onChange({
           specialtyId: "22222222-2222-4222-8222-222222222222",
@@ -29,6 +39,7 @@ vi.mock("./booking-selector", () => ({
           localStartTime: "09:00",
           localEndDate: "2026-12-20",
           localEndTime: "09:30",
+          displayOffset: "UTC−04:00",
           startsAt: "2026-12-20T12:00:00+00:00",
           endsAt: "2026-12-20T12:30:00+00:00",
         })
@@ -59,6 +70,72 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("new appointment flow", () => {
+  it("retains the Agenda handoff after the first patient selection", async () => {
+    vi.mocked(searchAppointmentPatientsAction).mockResolvedValue({
+      status: "SUCCESS",
+      data: {
+        rows: [{ patientCenterId, firstName: "Ana", lastName: "Paz" }],
+        page: 1,
+        hasNext: false,
+      },
+    });
+    render(
+      <NewAppointmentScreen
+        centerId={centerId}
+        centerName="Centro"
+        timezone="America/Argentina/Buenos_Aires"
+        initialPatient={null}
+        initialBooking={{
+          specialtyId: "22222222-2222-4222-8222-222222222222",
+          professionalCenterId: "33333333-3333-4333-8333-333333333333",
+          localDate: "2026-12-20",
+          startsAt: "2026-12-20T12:00:00+00:00",
+        }}
+      />,
+    );
+    const slot = screen.getByRole("button", { name: "Elegir slot de prueba" });
+    expect(slot).toHaveAttribute("data-initial-booking", "no");
+    fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Seleccionar paciente: Ana Paz" }));
+    expect(screen.getByRole("button", { name: "Elegir slot de prueba" })).toHaveAttribute(
+      "data-initial-booking",
+      "yes",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar paciente" }));
+    expect(screen.getByRole("button", { name: "Elegir slot de prueba" })).toHaveAttribute(
+      "data-initial-booking",
+      "no",
+    );
+  });
+  it("requires a patient first and clears the booking after changing patient", async () => {
+    vi.mocked(searchAppointmentPatientsAction).mockResolvedValue({
+      status: "SUCCESS",
+      data: {
+        rows: [{ patientCenterId, firstName: "Ana", lastName: "Paz" }],
+        page: 1,
+        hasNext: false,
+      },
+    });
+    render(
+      <NewAppointmentScreen
+        centerId={centerId}
+        centerName="Centro"
+        timezone="America/Argentina/Buenos_Aires"
+        initialPatient={null}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Elegir slot de prueba" })).toBeDisabled();
+    expect(screen.getByText(/Seleccioná un paciente para comenzar/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Seleccionar paciente: Ana Paz" }));
+    expect(screen.getByRole("button", { name: "Elegir slot de prueba" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Elegir slot de prueba" }));
+    expect(screen.getByText("30 minutos")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar paciente" }));
+    expect(screen.getByRole("button", { name: "Elegir slot de prueba" })).toBeDisabled();
+    expect(screen.queryByText("30 minutos")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar y crear turno" })).toBeDisabled();
+  });
   it("shows patient, Specialty, local slot, duration and note before creating PENDING once", async () => {
     vi.mocked(createAppointmentAction).mockResolvedValue({
       status: "SUCCESS",
@@ -77,7 +154,8 @@ describe("new appointment flow", () => {
       target: { value: "Control" },
     });
     expect(screen.getByRole("textbox", { name: /^Nota$/ })).toHaveValue("Control");
-    expect(screen.getByText("09:00–09:30")).toBeInTheDocument();
+    expect(screen.getByText("09:00–09:30 (UTC−04:00)")).toBeInTheDocument();
+    expect(screen.getByText("20/12/2026")).toBeInTheDocument();
     expect(screen.getByText("30 minutos")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirmar y crear turno" }));
     await waitFor(() =>

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "desktop-1440",
+    "list": true,
+    "detail": true,
+    "noteEdit": true,
+    "modal": true,
+    "discard": true,
+    "overflow": false,
+    "pageErrors": 0
+  },
+  {
+    "name": "mobile-390",
+    "list": true,
+    "detail": true,
+    "noteEdit": true,
+    "modal": true,
+    "discard": true,
+    "overflow": false,
+    "pageErrors": 0
+  }
+]

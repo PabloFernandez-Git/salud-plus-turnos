@@ -118,3 +118,12 @@ lectura falla; la búsqueda de pacientes descarta respuestas obsoletas.
 ## Refinamiento visual TASK-023
 
 Crear turno permanece como página con el flujo y operaciones aprobados. Búsqueda, nota y selectores recibieron foco visible y estados visuales consistentes; los botones principales reutilizan el estilo compartido de encabezado. La auditoría detallada está en el expediente activo de TASK-023.
+
+## Refinamiento UX TASK-030 (pendiente de integración)
+
+- El listado presenta paciente, fecha y horario civil, profesional, especialidad y estado en tarjetas responsive. Conserva filtros, accesos rápidos, paginación, proyecciones por rol y navegación al detalle. Los accesos rápidos móviles tienen ancho uniforme; el período activo se deriva de los filtros existentes.
+- El detalle prioriza información y acciones según rol y estado, con confirmaciones para transiciones sensibles, manejo de pendientes/errores y regreso visible al listado del mismo centro. La nota administrativa se lee por defecto y permite agregar, editar o eliminar con protección de borrador; `NULL`, cadena vacía y texto conservan valores distintos aunque los dos primeros compartan presentación vacía.
+- Crear turno exige seleccionar paciente antes de habilitar especialidad, profesional, fecha y horarios. El selector de fecha civil muestra calendario y fecha `DD/MM/AAAA` sin cambiar el valor `YYYY-MM-DD` enviado. La grilla sólo permite elegir slots exactos ofrecidos por PostgreSQL; los huecos derivados de Availability son referencias deshabilitadas. Las horas repetidas por DST muestran offset para distinguir instantes. El alta confirmada navega al detalle.
+- Reprogramar usa un diálogo accesible con estado inicial de carga, confirmación de descarte y las mismas reglas de servidor, CAS, disponibilidad y autorización. El detalle sólo muestra offset cuando la hora local es ambigua.
+
+TASK-030 no modifica SQL, RPC, RLS, contratos de servidor, concurrencia ni reglas temporales de transición. La base actual permite marcar Atendido antes del inicio, Ausente antes del final y Confirmar después del inicio; una tarea funcional posterior deberá definir la corrección. Tampoco se agregan restricciones a Cancelar o Reprogramar. Siguen pendientes la protección del borrador de nota frente a Back/Forward SPA, la restauración de filtros al volver del detalle y la edición manual de fecha en el calendario. La evidencia visual sintética, pruebas y revisión están en `.harness/tasks/active/TASK-030/`; no acreditan despliegue ni integración remota.

@@ -19,6 +19,8 @@ const specialtyId = "22222222-2222-4222-8222-222222222222";
 const professionalCenterId = "33333333-3333-4333-8333-333333333333";
 const onChange = vi.fn();
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
   vi.clearAllMocks();
   vi.mocked(listBookableSpecialtiesAction).mockResolvedValue({
     status: "SUCCESS",
@@ -55,9 +57,93 @@ beforeEach(() => {
     },
   });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("booking selector", () => {
+  it("disables all booking controls until the patient is selected", async () => {
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="UTC"
+        onChange={onChange}
+        disabled
+        initial={{
+          specialtyId,
+          professionalCenterId,
+          localDate: "2026-10-20",
+          startsAt: "2026-10-20T12:00:00+00:00",
+        }}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Especialidad" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Profesional" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Fecha local del centro/ })).toBeDisabled();
+    const slot = await screen.findByRole("button", { name: "09:00–09:30" });
+    expect(slot).toBeDisabled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  it("keeps initial reschedule fields behind a stable loading state", async () => {
+    let finishSpecialties!: (
+      value: Awaited<ReturnType<typeof listBookableSpecialtiesAction>>,
+    ) => void;
+    vi.mocked(listBookableSpecialtiesAction).mockReturnValue(
+      new Promise((resolve) => {
+        finishSpecialties = resolve;
+      }),
+    );
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="UTC"
+        onChange={onChange}
+        stabilizeInitialLoad
+        initial={{ specialtyId, professionalCenterId, localDate: "2026-10-20" }}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Preparando opciones para reprogramar");
+    expect(screen.queryByRole("combobox", { name: "Especialidad" })).not.toBeInTheDocument();
+    finishSpecialties({
+      status: "SUCCESS",
+      data: [{ specialty_id: specialtyId, specialty_name: "Clínica" }],
+    });
+    expect(await screen.findByRole("combobox", { name: "Especialidad" })).toBeEnabled();
+  });
+  it("renders missing intervals as disabled references and never sends them as choices", async () => {
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="UTC"
+        onChange={onChange}
+        initial={{ specialtyId, professionalCenterId, localDate: "2026-10-20" }}
+      />,
+    );
+    const offered = await screen.findByRole("button", { name: "09:00–09:30" });
+    await waitFor(() => expect(offered).toBeEnabled());
+    const missing = screen.getByRole("button", { name: "09:30–10:00, no disponible" });
+    expect(missing).toBeDisabled();
+    fireEvent.click(missing);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(offered);
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ startsAt: "2026-10-20T12:00:00+00:00" }),
+    );
+  });
+  it("retains offered slots if the availability read fails", async () => {
+    vi.mocked(getAppointmentAvailabilityAction).mockRejectedValue(new Error("unavailable"));
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="UTC"
+        onChange={onChange}
+        initial={{ specialtyId, professionalCenterId, localDate: "2026-10-20" }}
+      />,
+    );
+    expect(await screen.findByRole("button", { name: "09:00–09:30" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /no disponible/ })).not.toBeInTheDocument();
+  });
   it("preselects only the exact PostgreSQL slot handed off from Agenda", async () => {
     render(
       <BookingSelector
@@ -82,15 +168,13 @@ describe("booking selector", () => {
         }),
       ),
     );
-    expect(screen.getByRole("combobox", { name: "Horario disponible" })).toHaveValue(
-      "2026-10-20T12:00:00+00:00",
+    expect(screen.getByRole("button", { name: "09:00–09:30" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
     );
-    fireEvent.change(screen.getByRole("combobox", { name: "Horario disponible" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Especialidad" }), {
       target: { value: "" },
     });
-    await waitFor(() =>
-      expect(screen.getByRole("combobox", { name: "Horario disponible" })).toHaveValue(""),
-    );
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
   it("waits for the initial catalogs before accepting a fetched reschedule slot", async () => {
@@ -118,8 +202,7 @@ describe("booking selector", () => {
         initial={{ specialtyId, professionalCenterId, localDate: "2026-10-20" }}
       />,
     );
-    const slot = screen.getByRole("combobox", { name: "Horario disponible" });
-    await screen.findByRole("option", { name: "09:00–09:30 (UTC−03:00)" });
+    const slot = await screen.findByRole("button", { name: "09:00–09:30" });
     expect(slot).toBeDisabled();
     finishSpecialties({
       status: "SUCCESS",
@@ -137,7 +220,7 @@ describe("booking selector", () => {
       ],
     });
     await waitFor(() => expect(slot).toBeEnabled());
-    fireEvent.change(slot, { target: { value: "2026-10-20T12:00:00+00:00" } });
+    fireEvent.click(slot);
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ localStartTime: "09:00" }));
   });
   it("loads PostgreSQL choices and sends only a selected server slot", async () => {
@@ -157,15 +240,10 @@ describe("booking selector", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Profesional" }), {
       target: { value: professionalCenterId },
     });
-    fireEvent.change(screen.getByLabelText("Fecha local del centro"), {
-      target: { value: "2026-10-20" },
-    });
-    await waitFor(() =>
-      expect(screen.getByRole("combobox", { name: "Horario disponible" })).toBeEnabled(),
-    );
-    fireEvent.change(screen.getByRole("combobox", { name: "Horario disponible" }), {
-      target: { value: "2026-10-20T12:00:00+00:00" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Fecha local del centro/ }));
+    fireEvent.click(screen.getByRole("button", { name: "martes 20 de octubre de 2026" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "09:00–09:30" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "09:00–09:30" }));
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
         specialtyId,
@@ -185,7 +263,9 @@ describe("booking selector", () => {
       target: { value: "" },
     });
     expect(screen.getByRole("combobox", { name: "Profesional" })).toHaveValue("");
-    expect(screen.getByLabelText("Fecha local del centro")).toHaveValue("");
+    expect(screen.getByRole("button", { name: /Fecha local del centro/ })).toHaveTextContent(
+      "Elegí una fecha",
+    );
     expect(onChange).toHaveBeenLastCalledWith(null);
   });
   it("distinguishes missing Availability, no free slots and load failure", async () => {
@@ -263,13 +343,10 @@ describe("booking selector", () => {
         initial={{ specialtyId, professionalCenterId, localDate: "2026-10-20" }}
       />,
     );
-    const slot = await screen.findByRole("combobox", { name: "Horario disponible" });
+    const slot = await screen.findByRole("button", { name: "10:00–10:30" });
     await waitFor(() => expect(slot).toBeEnabled());
-    expect(screen.getByRole("option", { name: "10:00–10:30 (UTC−02:00)" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: "23:30–00:00 (UTC−03:00) (2026-10-22)" }),
-    ).toBeDisabled();
-    fireEvent.change(slot, { target: { value: "2026-10-20T12:00:00+00:00" } });
+    expect(screen.queryByRole("button", { name: /23:30–00:00/ })).not.toBeInTheDocument();
+    fireEvent.click(slot);
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({
         localDate: "2026-10-20",
@@ -277,7 +354,60 @@ describe("booking selector", () => {
         localEndTime: "10:30",
       }),
     );
-    fireEvent.change(slot, { target: { value: "2026-10-22T02:30:00+00:00" } });
-    expect(onChange).toHaveBeenLastCalledWith(null);
+    expect(slot).toHaveAttribute("aria-pressed", "true");
+  });
+  it("distinguishes repeated DST hours by offset while retaining each exact slot instant", async () => {
+    vi.mocked(searchAppointmentSlotsAction).mockResolvedValue({
+      status: "SUCCESS",
+      data: [
+        {
+          starts_at: "2026-11-01T05:15:00+00:00",
+          ends_at: "2026-11-01T05:45:00+00:00",
+          local_date: "2026-11-01",
+          local_start_time: "01:15",
+          local_end_date: "2026-11-01",
+          local_end_time: "01:45",
+        },
+        {
+          starts_at: "2026-11-01T06:15:00+00:00",
+          ends_at: "2026-11-01T06:45:00+00:00",
+          local_date: "2026-11-01",
+          local_start_time: "01:15",
+          local_end_date: "2026-11-01",
+          local_end_time: "01:45",
+        },
+      ],
+    });
+    render(
+      <BookingSelector
+        centerId={centerId}
+        timezone="America/New_York"
+        onChange={onChange}
+        initial={{ specialtyId, professionalCenterId, localDate: "2026-11-01" }}
+      />,
+    );
+    const first = await screen.findByRole("button", { name: "01:15–01:45 UTC−04:00" });
+    const second = screen.getByRole("button", { name: "01:15–01:45 UTC−05:00" });
+    await waitFor(() => expect(first).toBeEnabled());
+    fireEvent.click(first);
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        startsAt: "2026-11-01T05:15:00+00:00",
+        localDate: "2026-11-01",
+        localStartTime: "01:15",
+        displayOffset: "UTC−04:00",
+      }),
+    );
+    fireEvent.click(second);
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        startsAt: "2026-11-01T06:15:00+00:00",
+        localDate: "2026-11-01",
+        localStartTime: "01:15",
+        displayOffset: "UTC−05:00",
+      }),
+    );
+    expect(first).toHaveAttribute("aria-pressed", "false");
+    expect(second).toHaveAttribute("aria-pressed", "true");
   });
 });
