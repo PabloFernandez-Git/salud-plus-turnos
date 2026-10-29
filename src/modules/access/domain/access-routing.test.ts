@@ -45,6 +45,10 @@ describe("Center access routing", () => {
     expect(determineAccessDestination({ centers: [], isPlatformAdmin: false })).toBe("/no-access");
   });
 
+  it("does not interpret unknown platform permission as a positive grant", () => {
+    expect(() => determineAccessDestination({ centers: [], isPlatformAdmin: null })).toThrow();
+  });
+
   it("routes one membership directly to its Center", () => {
     expect(
       determineAccessDestination({

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAccessOverview } from "@/modules/access/server/access";
+import { listAccessibleCentersForUser } from "@/modules/access/server/access";
 import { listPlatformCenters } from "@/modules/access/server/administration";
 import { AuthorizationError, requirePlatformAdmin } from "@/modules/access/server/authorization";
 import PlatformPage from "./page";
@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/lib/supabase/server", () => ({ createSupabaseServerClient: vi.fn(async () => ({})) }));
-vi.mock("@/modules/access/server/access", () => ({ getAccessOverview: vi.fn() }));
+vi.mock("@/modules/access/server/access", () => ({ listAccessibleCentersForUser: vi.fn() }));
 vi.mock("@/modules/access/server/administration", () => ({ listPlatformCenters: vi.fn() }));
 vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/access/server/authorization")>();
@@ -48,11 +48,7 @@ describe("platform page navigation", () => {
       lastName: "Admin",
     });
     vi.mocked(listPlatformCenters).mockResolvedValue([]);
-    vi.mocked(getAccessOverview).mockResolvedValue({
-      user: { id: "platform", email: "admin@example.test", firstName: "Ana", lastName: "Admin" },
-      isPlatformAdmin: true,
-      centers: [],
-    });
+    vi.mocked(listAccessibleCentersForUser).mockResolvedValue([]);
   });
   afterEach(() => {
     cleanup();
@@ -60,11 +56,7 @@ describe("platform page navigation", () => {
   });
 
   it("links directly to the sole active accessible center", async () => {
-    vi.mocked(getAccessOverview).mockResolvedValueOnce({
-      user: { id: "platform", email: "admin@example.test", firstName: "Ana", lastName: "Admin" },
-      isPlatformAdmin: true,
-      centers: [one],
-    });
+    vi.mocked(listAccessibleCentersForUser).mockResolvedValueOnce([one]);
     render(await PlatformPage());
     const centerLink = screen.getByRole("link", { name: "Ir a mi centro" });
     expect(centerLink).toHaveAttribute("href", `/centers/${one.id}`);
@@ -91,11 +83,7 @@ describe("platform page navigation", () => {
   });
 
   it("shows the selector only when multiple active centers are accessible", async () => {
-    vi.mocked(getAccessOverview).mockResolvedValueOnce({
-      user: { id: "platform", email: "admin@example.test", firstName: "Ana", lastName: "Admin" },
-      isPlatformAdmin: true,
-      centers: [one, two],
-    });
+    vi.mocked(listAccessibleCentersForUser).mockResolvedValueOnce([one, two]);
     render(await PlatformPage());
     expect(screen.getByRole("link", { name: "Seleccionar centro" })).toHaveAttribute(
       "href",
@@ -110,7 +98,7 @@ describe("platform page navigation", () => {
     render(await PlatformPage());
     expect(screen.queryByRole("link", { name: /centro/ })).not.toBeInTheDocument();
     cleanup();
-    vi.mocked(getAccessOverview).mockRejectedValueOnce(new Error("query failed"));
+    vi.mocked(listAccessibleCentersForUser).mockRejectedValueOnce(new Error("query failed"));
     render(await PlatformPage());
     expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar tus accesos a centros.");
     expect(screen.queryByRole("link", { name: /centro/ })).not.toBeInTheDocument();
@@ -129,5 +117,13 @@ describe("platform page navigation", () => {
     );
     await expect(PlatformPage()).rejects.toThrow("REDIRECT:/no-access");
     expect(listPlatformCenters).not.toHaveBeenCalled();
+    expect(listAccessibleCentersForUser).not.toHaveBeenCalled();
+  });
+
+  it("does not grant platform access when the strict permission lookup fails", async () => {
+    vi.mocked(requirePlatformAdmin).mockRejectedValueOnce(new Error("permission lookup failed"));
+    await expect(PlatformPage()).rejects.toThrow("permission lookup failed");
+    expect(listPlatformCenters).not.toHaveBeenCalled();
+    expect(listAccessibleCentersForUser).not.toHaveBeenCalled();
   });
 });

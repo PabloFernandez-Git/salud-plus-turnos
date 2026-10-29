@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { CenterHeader } from "@/modules/access/components/center-header";
-import { hasPlatformAdminRole } from "@/modules/access/server/access";
+import { hasOptionalPlatformNavigation } from "@/modules/access/server/access";
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
 
 export default async function CenterLayout({
@@ -17,10 +17,8 @@ export default async function CenterLayout({
   if (!parsedCenterId.success) notFound();
 
   let context;
-  let isPlatformAdmin = false;
   try {
     context = await requireCenterMembership(parsedCenterId.data);
-    isPlatformAdmin = await hasPlatformAdminRole(context.user.id);
   } catch (error) {
     if (error instanceof AuthorizationError) {
       if (error.code === "UNAUTHENTICATED") redirect("/login");
@@ -29,6 +27,8 @@ export default async function CenterLayout({
     }
     throw error;
   }
+
+  const isPlatformAdmin = await hasOptionalPlatformNavigation(context.user.id);
 
   return (
     <div className="min-h-screen bg-slate-100/80">

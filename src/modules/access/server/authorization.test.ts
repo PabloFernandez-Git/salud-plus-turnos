@@ -187,6 +187,18 @@ describe("requirePlatformAdmin", () => {
       requirePlatformAdmin(fakeClient({ centers: [], memberships: [] })),
     ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "PLATFORM_FORBIDDEN" });
   });
+
+  it("does not grant platform access when the permission query fails", async () => {
+    await expect(
+      requirePlatformAdmin(
+        fakeClient({
+          centers: [],
+          memberships: [],
+          queryErrors: { platform_admins: new Error("query failed") },
+        }),
+      ),
+    ).rejects.toMatchObject<Partial<AuthorizationError>>({ code: "PLATFORM_FORBIDDEN" });
+  });
 });
 
 describe("requireRole for Center user administration", () => {
