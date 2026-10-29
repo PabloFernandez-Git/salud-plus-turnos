@@ -1,10 +1,14 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CenterDashboard } from "./center-dashboard";
 
 vi.mock("@/modules/dashboard/components/daily-dashboard-panel", () => ({
-  DailyDashboardPanel: () => (
-    <section aria-label="Actividad de hoy">Indicadores y próximos turnos</section>
+  DailyDashboardPanel: ({ children }: { children: ReactNode }) => (
+    <>
+      <section aria-label="Actividad de hoy">Indicadores y próximos turnos</section>
+      {children}
+    </>
   ),
 }));
 

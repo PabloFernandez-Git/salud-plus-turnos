@@ -146,6 +146,12 @@ export function usePlatformOperationIntent(
 
   const clearPendingIntent = useCallback(() => {
     removePlatformOperationIntent(window.sessionStorage, actorUserId);
+    setIntentState((current) => ({
+      ...current,
+      pendingIntent: null,
+      recoveryStatus: "absent",
+      wasRecovered: false,
+    }));
   }, [actorUserId]);
 
   const startNewIntent = useCallback(() => {
@@ -155,7 +161,7 @@ export function usePlatformOperationIntent(
       setAbandonError(
         "No pudimos abandonar la intención pendiente. No se inició una operación nueva.",
       );
-      return;
+      return false;
     }
     setAbandonError(null);
     setIntentState({
@@ -164,6 +170,7 @@ export function usePlatformOperationIntent(
       recoveryStatus: "absent",
       wasRecovered: false,
     });
+    return true;
   }, [actorUserId, createOperationId]);
 
   return {

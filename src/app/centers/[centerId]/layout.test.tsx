@@ -2,6 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
+import { hasPlatformAdminRole } from "@/modules/access/server/access";
 import CenterLayout from "./layout";
 
 const { pathname } = vi.hoisted(() => ({ pathname: vi.fn() }));
@@ -18,6 +19,7 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/access/server/authorization")>();
   return { ...original, requireCenterMembership: vi.fn() };
 });
+vi.mock("@/modules/access/server/access", () => ({ hasPlatformAdminRole: vi.fn() }));
 vi.mock("@/modules/access/components/logout-button", () => ({
   LogoutButton: () => <button type="button">Cerrar sesión</button>,
 }));
@@ -25,7 +27,10 @@ vi.mock("@/modules/access/components/logout-button", () => ({
 const centerId = "11111111-1111-4111-8111-111111111111";
 
 describe("center layout", () => {
-  beforeEach(() => pathname.mockReturnValue(`/centers/${centerId}`));
+  beforeEach(() => {
+    pathname.mockReturnValue(`/centers/${centerId}`);
+    vi.mocked(hasPlatformAdminRole).mockResolvedValue(false);
+  });
   afterEach(cleanup);
 
   it("keeps logout on the Dashboard", async () => {
@@ -45,29 +50,66 @@ describe("center layout", () => {
     expect(screen.getByText("Ana Pérez · ana@example.test · Recepción")).toBeVisible();
     expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
     expect(screen.queryByRole("link", { name: "Volver al inicio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
     expect(screen.getByText("Contenido del módulo")).toBeVisible();
     expect(requireCenterMembership).toHaveBeenCalledWith(centerId);
   });
 
-  it("links an internal page to the active center without a logout action", async () => {
-    pathname.mockReturnValue(`/centers/${centerId}/appointments/new`);
+  it("shows platform navigation only with the global permission, independently of center role", async () => {
+    vi.mocked(hasPlatformAdminRole).mockResolvedValueOnce(true);
+    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
+      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
+      user: { id: "platform-user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
+      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
+    });
+    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
+    const platformLink = screen.getByRole("link", { name: "Administrar plataforma" });
+    expect(platformLink).toHaveAttribute("href", "/platform");
+    expect(platformLink).toHaveClass("gap-2");
+    expect(platformLink.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(platformLink.querySelector("svg")).toHaveAttribute("stroke", "currentColor");
+    expect(platformLink.querySelector("svg")).toHaveClass("h-[17px]", "w-[17px]");
+    expect(platformLink).toHaveClass("sm:w-[232px]", "min-h-11");
+    expect(screen.getByRole("button", { name: "Cerrar sesión" }).parentElement).toHaveClass(
+      "sm:w-[232px]",
+    );
+    expect(hasPlatformAdminRole).toHaveBeenCalledWith("platform-user");
+  });
+
+  it("does not infer platform permission from ADMIN of a center", async () => {
+    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
+      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
+      user: { id: "center-admin", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
+      membership: { id: "member", role: "ADMIN", professionalCenterId: null },
+    });
+    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
+    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
+    expect(hasPlatformAdminRole).toHaveBeenCalledWith("center-admin");
+  });
+
+  it.each([
+    "agenda",
+    "appointments",
+    "patients",
+    "professionals",
+    "availability",
+    "specialties",
+    "users",
+  ])("shows only return navigation within %s", async (module) => {
+    pathname.mockReturnValue(`/centers/${centerId}/${module}`);
+    vi.mocked(hasPlatformAdminRole).mockResolvedValueOnce(true);
     vi.mocked(requireCenterMembership).mockResolvedValueOnce({
       center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
       user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
+      membership: { id: "member", role: "ADMIN", professionalCenterId: null },
     });
-    render(
-      await CenterLayout({
-        params: Promise.resolve({ centerId }),
-        children: <main>Crear turno</main>,
-      }),
-    );
+    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
     expect(screen.getByRole("link", { name: "Volver al inicio" })).toHaveAttribute(
       "href",
       `/centers/${centerId}`,
     );
+    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
-    expect(screen.getByText("Ana Pérez · ana@example.test · Recepción")).toBeVisible();
   });
 
   it("preserves denied center access", async () => {

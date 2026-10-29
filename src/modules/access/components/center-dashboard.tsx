@@ -21,8 +21,9 @@ export function CenterDashboard({
           centerId={centerId}
           membershipId={membershipId}
           role={role}
-        />
-        <CenterNavigation centerId={centerId} role={role} />
+        >
+          <CenterNavigation centerId={centerId} role={role} />
+        </DailyDashboardPanel>
       </div>
     </main>
   );

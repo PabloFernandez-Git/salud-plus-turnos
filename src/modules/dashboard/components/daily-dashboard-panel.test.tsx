@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import Link from "next/link";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { refreshDailyDashboardAction } from "../actions/daily-dashboard-actions";
 import {
@@ -62,13 +63,30 @@ afterEach(() => {
 });
 
 describe("daily dashboard panel", () => {
+  it("replaces the initial loader with an error when the activity request fails", async () => {
+    vi.mocked(refreshDailyDashboardAction).mockRejectedValueOnce(new Error("network failure"));
+    render(
+      <DailyDashboardPanel {...props}>
+        <Link href="/centers/test/agenda">Ir a módulo</Link>
+      </DailyDashboardPanel>,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Salud Plus, cargando");
+    expect(screen.queryByRole("heading", { name: "Actividad de hoy" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Ir a módulo" })).not.toBeInTheDocument();
+    await screen.findByText("No pudimos cargar la actividad. Intentá de nuevo.");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir a módulo" })).toBeVisible();
+  });
+
   it("loads staff data, preserves detail navigation and refreshes without stale numbers", async () => {
     vi.mocked(refreshDailyDashboardAction)
       .mockResolvedValueOnce(snapshot("staff") as never)
       .mockResolvedValueOnce({ status: "error", message: "failure" });
     render(<DailyDashboardPanel {...props} />);
-    expect(screen.getByText("Cargando actividad…")).toBeInTheDocument();
+    expect(screen.getByText("Salud Plus, cargando")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Actividad de hoy" })).not.toBeInTheDocument();
     await screen.findByText(/Profesionales con turnos hoy/);
+    expect(screen.queryByText("Salud Plus, cargando")).not.toBeInTheDocument();
     expect(screen.getByText(/Ana García/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Eva López/ })).toHaveAttribute(
       "href",
@@ -79,7 +97,9 @@ describe("daily dashboard panel", () => {
       screen.getByText("Domingo 1 de noviembre · Actualizado a las 01:20 (hora del centro)"),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Actualizar" }));
+    expect(screen.getByText("Salud Plus, cargando")).toBeInTheDocument();
     await screen.findByText("No pudimos cargar la actividad. Intentá de nuevo.");
+    expect(screen.queryByText("Salud Plus, cargando")).not.toBeInTheDocument();
     expect(screen.queryByText(/Profesionales con turnos hoy/)).not.toBeInTheDocument();
     expect(screen.queryByText("Fecha y hora del centro al cargar")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Actualizar" })).not.toBeInTheDocument();

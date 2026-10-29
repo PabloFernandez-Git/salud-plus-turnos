@@ -29,6 +29,11 @@ El inicio muestra Actividad de hoy y Próximos turnos de hoy antes de las tarjet
 
 La consulta usa el cliente Supabase de sesión en servidor y una RPC distinta por alcance. La Server Action permite relecturas, mientras los errores limpian el resumen y conservan la navegación. Ante un error, la pantalla muestra sólo la acción Reintentar, sin fecha pendiente ni botón Actualizar; cuando hay datos, Actualizar funciona normalmente. Se actualiza manualmente, al recuperar visibilidad y al cruzar medianoche local, sin polling. La UI distingue cero turnos vigentes, actividad sin próximos y error. Los próximos enlazan al detalle autorizado.
 
+Mientras una lectura de la actividad está pendiente, el inicio usa el `AppLoader` compartido en
+lugar de mostrar tarjetas incompletas. Al concluir, presenta los datos o el error y retira el
+loader. El enlace «Administrar plataforma» del encabezado ofrece el mismo indicador sólo mientras
+la navegación está pendiente; la autorización sigue resolviéndose en servidor.
+
 Gate A estructural y Gate B funcional obtuvieron PASS en Supabase DEV, con 25 migrations, Chromium autenticado y cleanup `residue=0` según la ejecución de la persona usuaria y su ledger local. No se accedió a PROD ni se aplicó allí la migration.
 
 ## Evolución pendiente
