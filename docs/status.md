@@ -1,34 +1,16 @@
 # Estado actual
 
-**TASK-033 — ACTIVE; validación visual APROBADA y gate técnico APPROVED; PR autorizado, sin merge.** Rama
-`codex/task-033-centers-ux` desde `origin/main` `a5b5042` (PR #40 y #41 integradas). Navegación
-plataforma↔centro, modal de creación en tres etapas y tarjetas móviles implementados sin cambios de
-reglas, SQL, Auth ni infraestructura. Segunda iteración: acciones del dashboard iguales, acceso a
-plataforma sólo allí, alta junto al listado y pie del modal separado del scroll con foco en errores.
-Tercera iteración: acciones del dashboard más compactas, paso 1 sin divisores, acciones
-centradas, selector buscable de zonas IANA sin pérdida de alias y cursores de controles. El estado
-pendiente bloquea una alta nueva mientras el resultado siga incierto y también ante una intención
-guardada ilegible. Cuarta iteración: encabezado de plataforma a todo el ancho, diálogo propio para
-desactivar/reactivar, selector IANA local con lista buscable y scroll verificado en Chromium, y
-«Creando centro…» durante el envío sin advertencia prematura de incertidumbre. Quinta iteración:
-`AppLoader` reemplaza las tarjetas vacías de carga en plataforma y dashboard y acompaña los dos
-enlaces durante navegaciones pendientes; el encabezado de plataforma es moderadamente más compacto.
-Sexta iteración: email del primer paso con error propio, etiquetas amigables de zonas horarias con
-valor IANA intacto y lista que no cubre el pie del modal. El contacto institucional se rotula
-«Email del centro». La columna de ADMIN actuales queda pendiente por decisión de la persona usuaria:
-requiere una RPC autorizada nueva, sin usar el administrador inicial como sustituto.
-El gate final revisó el diff acumulado y archivos nuevos; `pnpm check` pasó en su segunda corrida
-exacta (929/929 Vitest y 31/31 tooling), 107/107 pruebas focales y revisión independiente
-APPROVED. La primera corrida de `pnpm check` tuvo tres fallos intermitentes bajo carga; el formato
-global sigue informando 264 archivos ajenos a TASK-033. El formato focal de código y Markdown del
-expediente pasa; se corrigió el formato del nuevo reporte de gate.
-Permanece el P2 conocido de disponibilidad si falla la consulta adicional de `platform_admins` en
-el layout tenant, sin impacto en autorización. Dictamen y límites en
-[`gate-report.md`](../.harness/tasks/active/TASK-033/gate-report.md).
-Pruebas y capturas sintéticas nuevas en el
-expediente activo. Commit selectivo, push y PR autorizados; sin merge, despliegue ni operaciones Supabase. TASK-029 permanece ACTIVE / PRE-PROD BLOCKED y
-separada. `pnpm bootstrap` falla por reconciliación de `node_modules` sin TTY; el script directo de
-bootstrap pasó y se usan los binarios existentes para la verificación.
+**TASK-033 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** El refinamiento UX de
+Centros y Administración de Plataforma se integró en `main` mediante [PR #42](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/42),
+squash merge `784d8cc8ddbda3f5cd81b41e2172a8de48bdb0cf` del 2026-10-29. La aprobación
+visual humana, el gate técnico y la revisión independiente fueron positivos; el job
+[`verify`](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40909403858/job/123572937614)
+terminó en SUCCESS. El [expediente y cierre](../.harness/tasks/archive/TASK-033/closure.md) se
+archivan íntegramente en este PR. El cierre formal será efectivo sólo tras autorización e integración
+del PR documental. Siguen pendientes la columna «Administrador» por requerir una lectura autorizada,
+el P2 de disponibilidad ante fallo de `platform_admins` y la verificación E2E autenticada contra
+Supabase real. Este PR no cambia funcionalidad, despliega ni opera en DEV/PROD; TASK-029 permanece
+ACTIVE / PRE-PROD BLOCKED y separada.
 
 **TASK-032 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** El refinamiento UX de Gestión de usuarios está integrado en `main` mediante [PR #40](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/40), merge `0fdb6f0068682c54aab89c29953e7c528cc8abd7`. El [CI posterior al merge](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40593197450/job/122502398242) terminó en SUCCESS; la revisión independiente completa fue APPROVED y la persona usuaria aprobó visualmente el listado móvil, el modal de tres etapas, la confirmación de contraseña, el éxito y la administración de accesos. El [expediente y cierre](../.harness/tasks/archive/TASK-032-USERS-UX/closure.md) se archivan íntegramente en este PR. El cierre formal será efectivo sólo tras autorización e integración del PR documental. Esta rama no modifica funcionalidad ni despliega la aplicación; TASK-029 permanece ACTIVE / PRE-PROD BLOCKED y separada.
 
