@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CreateCenterPanel } from "@/modules/access/components/create-center-panel";
 import { LogoutButton } from "@/modules/access/components/logout-button";
 import { PlatformCentersTable } from "@/modules/access/components/platform-centers-table";
-import { getAccessOverview } from "@/modules/access/server/access";
+import { listAccessibleCentersForUser } from "@/modules/access/server/access";
 import { listPlatformCenters } from "@/modules/access/server/administration";
 import { AuthorizationError, requirePlatformAdmin } from "@/modules/access/server/authorization";
 
@@ -23,11 +23,10 @@ export default async function PlatformPage() {
 
   const [centersResult, overviewResult] = await Promise.allSettled([
     listPlatformCenters(supabase),
-    getAccessOverview(supabase),
+    listAccessibleCentersForUser(user.id, supabase),
   ]);
   const centers = centersResult.status === "fulfilled" ? centersResult.value : [];
-  const accessibleCenters =
-    overviewResult.status === "fulfilled" ? overviewResult.value.centers : null;
+  const accessibleCenters = overviewResult.status === "fulfilled" ? overviewResult.value : null;
   const centerDestination =
     accessibleCenters?.length === 1
       ? { href: `/centers/${accessibleCenters[0].id}`, label: "Ir a mi centro" }

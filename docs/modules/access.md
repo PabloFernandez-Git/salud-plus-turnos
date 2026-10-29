@@ -151,6 +151,11 @@ El acceso de regreso a `/platform` en el dashboard tenant requiere consultar el 
 `/platform` y de cada mutación siguen siendo la autoridad. Desde plataforma, el enlace de vuelta
 usa únicamente memberships activas en centros activos.
 
+Si falla la consulta global usada sólo para mostrar el enlace, el centro ya autorizado sigue
+disponible y el enlace se oculta. La resolución de destinos tras el login conserva los centros
+accesibles ante ese fallo; si no hay centros, muestra un error recuperable hasta poder confirmar
+el permiso global. Ningún resultado opcional autoriza `/platform`.
+
 No puede acceder por ese rol a datos operativos del tenant. El primer PLATFORM_ADMIN se crea con un
 tooling one-shot; luego `/platform` reemplaza al bootstrap como mecanismo para crear centros.
 

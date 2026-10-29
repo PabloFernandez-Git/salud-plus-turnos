@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
-import { hasPlatformAdminRole } from "@/modules/access/server/access";
+import { hasOptionalPlatformNavigation } from "@/modules/access/server/access";
 import CenterLayout from "./layout";
 
 const { pathname } = vi.hoisted(() => ({ pathname: vi.fn() }));
@@ -19,7 +19,7 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/modules/access/server/authorization")>();
   return { ...original, requireCenterMembership: vi.fn() };
 });
-vi.mock("@/modules/access/server/access", () => ({ hasPlatformAdminRole: vi.fn() }));
+vi.mock("@/modules/access/server/access", () => ({ hasOptionalPlatformNavigation: vi.fn() }));
 vi.mock("@/modules/access/components/logout-button", () => ({
   LogoutButton: () => <button type="button">Cerrar sesión</button>,
 }));
@@ -28,8 +28,9 @@ const centerId = "11111111-1111-4111-8111-111111111111";
 
 describe("center layout", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     pathname.mockReturnValue(`/centers/${centerId}`);
-    vi.mocked(hasPlatformAdminRole).mockResolvedValue(false);
+    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValue(false);
   });
   afterEach(cleanup);
 
@@ -56,7 +57,7 @@ describe("center layout", () => {
   });
 
   it("shows platform navigation only with the global permission, independently of center role", async () => {
-    vi.mocked(hasPlatformAdminRole).mockResolvedValueOnce(true);
+    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValueOnce(true);
     vi.mocked(requireCenterMembership).mockResolvedValueOnce({
       center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
       user: { id: "platform-user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
@@ -73,7 +74,7 @@ describe("center layout", () => {
     expect(screen.getByRole("button", { name: "Cerrar sesión" }).parentElement).toHaveClass(
       "sm:w-[232px]",
     );
-    expect(hasPlatformAdminRole).toHaveBeenCalledWith("platform-user");
+    expect(hasOptionalPlatformNavigation).toHaveBeenCalledWith("platform-user");
   });
 
   it("does not infer platform permission from ADMIN of a center", async () => {
@@ -84,7 +85,7 @@ describe("center layout", () => {
     });
     render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
     expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
-    expect(hasPlatformAdminRole).toHaveBeenCalledWith("center-admin");
+    expect(hasOptionalPlatformNavigation).toHaveBeenCalledWith("center-admin");
   });
 
   it.each([
@@ -97,7 +98,7 @@ describe("center layout", () => {
     "users",
   ])("shows only return navigation within %s", async (module) => {
     pathname.mockReturnValue(`/centers/${centerId}/${module}`);
-    vi.mocked(hasPlatformAdminRole).mockResolvedValueOnce(true);
+    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValueOnce(true);
     vi.mocked(requireCenterMembership).mockResolvedValueOnce({
       center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
       user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
@@ -119,6 +120,20 @@ describe("center layout", () => {
     await expect(
       CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
     ).rejects.toThrow("NOT_FOUND");
+    expect(hasOptionalPlatformNavigation).not.toHaveBeenCalled();
+  });
+
+  it("renders an authorized center when optional platform navigation is unavailable", async () => {
+    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
+      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
+      user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
+      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
+    });
+    render(
+      await CenterLayout({ params: Promise.resolve({ centerId }), children: <main>Centro</main> }),
+    );
+    expect(screen.getByText("Centro")).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
   });
 
   it("returns not-found for an invalid center identifier before querying membership", async () => {

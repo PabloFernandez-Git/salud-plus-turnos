@@ -1,5 +1,14 @@
 # Estado actual
 
+**TASK-034 — ACTIVE / gate técnico de Fase D APPROVED; publicación por PR autorizada.** La
+resiliencia ante fallos de la lectura opcional de `platform_admins` separa el acceso tenant de la
+navegación global y conserva la autorización estricta de `/platform`. El expediente activo está en
+`.harness/tasks/active/TASK-034/`. La validación funcional con Next.js real y servicios sintéticos
+pasó 18 escenarios; corrigió el botón de reintento para recargar la ruta. La revisión independiente
+aprobó el diff acumulado. La primera corrida de `pnpm check` sufrió 7 timeouts de arranque de workers;
+la repetición controlada pasó 943/943 Vitest y el tooling 31/31. Se tramita mediante un PR de
+implementación; el merge, el despliegue y el cierre documental requieren autorización posterior.
+
 **TASK-033 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** El refinamiento UX de
 Centros y Administración de Plataforma se integró en `main` mediante [PR #42](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/42),
 squash merge `784d8cc8ddbda3f5cd81b41e2172a8de48bdb0cf` del 2026-10-29. La aprobación

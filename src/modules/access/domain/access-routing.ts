@@ -57,11 +57,12 @@ export function determineAccessDestination({
   isPlatformAdmin,
 }: {
   centers: readonly AccessibleCenter[];
-  isPlatformAdmin: boolean;
+  isPlatformAdmin: boolean | null;
 }): string {
   if (centers.length === 1) return `/centers/${centers[0].id}`;
   if (centers.length > 1) return "/select-center";
-  if (isPlatformAdmin) return "/platform";
+  if (isPlatformAdmin === null) throw new Error("Platform access could not be determined");
+  if (isPlatformAdmin === true) return "/platform";
   return "/no-access";
 }
 

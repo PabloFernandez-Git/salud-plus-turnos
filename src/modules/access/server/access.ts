@@ -16,7 +16,7 @@ type ServerClient = SupabaseClient<Database>;
 
 export type AccessOverview = {
   centers: AccessibleCenter[];
-  isPlatformAdmin: boolean;
+  isPlatformAdmin: boolean | null;
   user: UserContext;
 };
 
@@ -24,7 +24,7 @@ async function serverClient(client?: ServerClient) {
   return client ?? createSupabaseServerClient();
 }
 
-async function listAccessibleCentersForUser(
+export async function listAccessibleCentersForUser(
   userId: string,
   supabase: ServerClient,
 ): Promise<AccessibleCenter[]> {
@@ -78,13 +78,33 @@ export async function hasPlatformAdminRole(
   return Boolean(data);
 }
 
+export async function hasOptionalPlatformNavigation(
+  userId: string,
+  client?: ServerClient,
+): Promise<boolean> {
+  try {
+    return await hasPlatformAdminRole(userId, client);
+  } catch {
+    return false;
+  }
+}
+
 export async function getAccessOverview(client?: ServerClient): Promise<AccessOverview> {
   const supabase = await serverClient(client);
   const user = await requireUser(supabase);
-  const [centers, isPlatformAdmin] = await Promise.all([
+  const [centersResult, platformAdminResult] = await Promise.allSettled([
     listAccessibleCentersForUser(user.id, supabase),
     hasPlatformAdminRole(user.id, supabase),
   ]);
+
+  if (centersResult.status === "rejected") throw centersResult.reason;
+  const centers = centersResult.value;
+  if (platformAdminResult.status === "rejected" && centers.length === 0) {
+    throw platformAdminResult.reason;
+  }
+
+  const isPlatformAdmin =
+    platformAdminResult.status === "fulfilled" ? platformAdminResult.value : null;
 
   return { centers, isPlatformAdmin, user };
 }
