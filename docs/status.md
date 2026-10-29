@@ -1,13 +1,17 @@
 # Estado actual
 
-**TASK-034 — ACTIVE / gate técnico de Fase D APPROVED; publicación por PR autorizada.** La
-resiliencia ante fallos de la lectura opcional de `platform_admins` separa el acceso tenant de la
-navegación global y conserva la autorización estricta de `/platform`. El expediente activo está en
-`.harness/tasks/active/TASK-034/`. La validación funcional con Next.js real y servicios sintéticos
-pasó 18 escenarios; corrigió el botón de reintento para recargar la ruta. La revisión independiente
-aprobó el diff acumulado. La primera corrida de `pnpm check` sufrió 7 timeouts de arranque de workers;
-la repetición controlada pasó 943/943 Vitest y el tooling 31/31. Se tramita mediante un PR de
-implementación; el merge, el despliegue y el cierre documental requieren autorización posterior.
+**TASK-034 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** La resiliencia de acceso
+ante fallos de `platform_admins` se integró en `main` mediante [PR #44](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/44),
+commit de implementación `8ee1971df6c8f97e12eeee80d9fbe0ed23ef691f` y squash merge
+`5c06957f030110efc303a2464345dd377c6ad495` del 2026-10-29. El [CI](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40934275701)
+terminó en SUCCESS; el gate técnico y la revisión independiente fueron APPROVED. La validación
+funcional pasó 18 escenarios en Chromium con rutas Next.js reales y servicios y autenticación
+sintéticos. La primera corrida de `pnpm check` terminó con código 1 por siete workers que no
+arrancaron; las 723 pruebas ejecutadas pasaron. La repetición con dos workers pasó 943/943 Vitest y
+el tooling 31/31 por separado. El [expediente y cierre](../.harness/tasks/archive/TASK-034/closure.md)
+se archivan íntegramente en este PR. El cierre formal será efectivo tras su autorización y merge.
+No se ejecutaron E2E autenticados contra Supabase real, no se verificó RLS desplegada ni se operó en
+DEV/PROD. Este PR no cambia funcionalidad ni despliega la aplicación; TASK-029 permanece separada.
 
 **TASK-033 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** El refinamiento UX de
 Centros y Administración de Plataforma se integró en `main` mediante [PR #42](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/42),
@@ -16,9 +20,10 @@ visual humana, el gate técnico y la revisión independiente fueron positivos; e
 [`verify`](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40909403858/job/123572937614)
 terminó en SUCCESS. El [expediente y cierre](../.harness/tasks/archive/TASK-033/closure.md) se
 archivan íntegramente en este PR. El cierre formal será efectivo sólo tras autorización e integración
-del PR documental. Siguen pendientes la columna «Administrador» por requerir una lectura autorizada,
-el P2 de disponibilidad ante fallo de `platform_admins` y la verificación E2E autenticada contra
-Supabase real. Este PR no cambia funcionalidad, despliega ni opera en DEV/PROD; TASK-029 permanece
+del PR documental. Siguen pendientes la columna «Administrador» por requerir una lectura autorizada
+y la verificación E2E autenticada contra Supabase real. El P2 de disponibilidad ante fallo de
+`platform_admins` fue resuelto por TASK-034. Este PR no cambia funcionalidad, despliega ni opera en
+DEV/PROD; TASK-029 permanece
 ACTIVE / PRE-PROD BLOCKED y separada.
 
 **TASK-032 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** El refinamiento UX de Gestión de usuarios está integrado en `main` mediante [PR #40](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/40), merge `0fdb6f0068682c54aab89c29953e7c528cc8abd7`. El [CI posterior al merge](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/40593197450/job/122502398242) terminó en SUCCESS; la revisión independiente completa fue APPROVED y la persona usuaria aprobó visualmente el listado móvil, el modal de tres etapas, la confirmación de contraseña, el éxito y la administración de accesos. El [expediente y cierre](../.harness/tasks/archive/TASK-032-USERS-UX/closure.md) se archivan íntegramente en este PR. El cierre formal será efectivo sólo tras autorización e integración del PR documental. Esta rama no modifica funcionalidad ni despliega la aplicación; TASK-029 permanece ACTIVE / PRE-PROD BLOCKED y separada.
