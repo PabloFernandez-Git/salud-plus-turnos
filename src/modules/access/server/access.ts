@@ -63,7 +63,11 @@ async function listAccessibleCentersForUser(
   );
 }
 
-async function hasPlatformAdminRole(userId: string, supabase: ServerClient): Promise<boolean> {
+export async function hasPlatformAdminRole(
+  userId: string,
+  client?: ServerClient,
+): Promise<boolean> {
+  const supabase = await serverClient(client);
   const { data, error } = await supabase
     .from("platform_admins")
     .select("user_id")

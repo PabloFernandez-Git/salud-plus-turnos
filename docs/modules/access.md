@@ -145,6 +145,12 @@ Sólo PLATFORM_ADMIN accede a `/platform`. Puede:
 - crear un centro junto con su primer ADMIN;
 - activar o desactivar un centro.
 
+El acceso de regreso a `/platform` en el dashboard tenant requiere consultar el permiso global
+`platform_admins`; el rol ADMIN de un centro no lo concede. Los módulos interiores mantienen
+«Volver al inicio» en el encabezado, sin el enlace de plataforma. Las comprobaciones de servidor de
+`/platform` y de cada mutación siguen siendo la autoridad. Desde plataforma, el enlace de vuelta
+usa únicamente memberships activas en centros activos.
+
 No puede acceder por ese rol a datos operativos del tenant. El primer PLATFORM_ADMIN se crea con un
 tooling one-shot; luego `/platform` reemplaza al bootstrap como mecanismo para crear centros.
 
