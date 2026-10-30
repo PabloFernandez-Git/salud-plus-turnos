@@ -629,6 +629,24 @@ export type Database = {
           role: Database["public"]["Enums"]["membership_role"];
         }[];
       };
+      admin_update_center_settings: {
+        Args: {
+          p_address: string | null;
+          p_center_id: string;
+          p_email: string | null;
+          p_expected_updated_at: string;
+          p_name: string;
+          p_phone: string | null;
+        };
+        Returns: {
+          address: string | null;
+          center_id: string;
+          email: string | null;
+          name: string;
+          phone: string | null;
+          updated_at: string;
+        }[];
+      };
       admin_set_professional_center_active: {
         Args: {
           p_center_id: string;

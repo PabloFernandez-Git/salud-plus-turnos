@@ -1,5 +1,18 @@
 # Estado actual
 
+**TASK-035 — ACTIVE; Fase C `PHASE_C_PASSED` y Fase D `APPROVED`.
+Rama: `codex/task-035-center-settings`.** La migración está aplicada en Supabase DEV (27/27) y la
+RPC fue verificada. La prueba real confirmó guardado, recarga, encabezado, rechazo de una versión
+obsoleta y restauración exacta de los datos visibles; no quedaron valores temporales. La re-review
+independiente cerró como `RESOLVED` los dos hallazgos MEDIUM: la lectura API de datos institucionales
+sigue disponible para miembros activos del mismo centro, mientras pantalla y escritura requieren
+ADMIN; el formulario distingue escritura confirmada de resultado incierto. Pasaron 64/64 pruebas
+focales, 34/34 de acceso, TypeScript, ESLint y Prettier focales. Están pendientes el PR, la
+integración en `main` y el cierre documental; esta tarea aún no está CLOSED. No se accedió a PROD.
+Ver [Fase C](../.harness/tasks/active/TASK-035/phase-c-report.md),
+[revisión final](../.harness/tasks/active/TASK-035/review.md) y
+[plan de cierre](../.harness/tasks/active/TASK-035/closure.md). TASK-029 permanece separada.
+
 **TASK-034 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** La resiliencia de acceso
 ante fallos de `platform_admins` se integró en `main` mediante [PR #44](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/44),
 commit de implementación `8ee1971df6c8f97e12eeee80d9fbe0ed23ef691f` y squash merge

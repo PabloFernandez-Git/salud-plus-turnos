@@ -34,6 +34,37 @@ vuelve a comprobar la invariante como defensa adicional.
 
 Cambiar timezone con turnos existentes es una operación sensible y puede restringirse en MVP.
 
+## Configuración institucional tenant (TASK-035)
+
+`/centers/[centerId]/settings` muestra a un ADMIN con membership activa los datos del centro activo.
+Permite editar nombre, teléfono, email institucional y dirección. Zona horaria es de solo lectura;
+logo y estado quedan fuera del formulario. RECEPTION, PROFESSIONAL y PLATFORM_ADMIN sin membership
+ADMIN del mismo centro no tienen acceso a la ruta ni a la mutación.
+
+La exclusividad ADMIN corresponde a la pantalla de configuración y a la escritura. La policy
+`centers_select_active_members` y el grant SELECT preexistentes permiten que cualquier miembro
+activo de un centro activo lea las columnas institucionales de **su propio centro** mediante la API,
+incluidos nombre, teléfono, email y dirección. No dan acceso a filas de otros centros ni permiso
+para modificar la configuración. Los módulos no ADMIN actuales sólo solicitan nombre y zona horaria;
+la disponibilidad por API de los otros campos es parte del contrato de lectura tenant existente.
+
+El alta y la edición comparten validación: nombre recortado obligatorio, email opcional válido y
+teléfono/dirección opcionales sin formato nuevo. La RPC `admin_update_center_settings` transforma
+opcionales vacíos a NULL, comprueba el rol tenant dentro de PostgreSQL, compara `updated_at` con
+precisión completa bajo lock y sólo actualiza las cuatro columnas permitidas. Un conflicto devuelve
+`P0001 / STALE_CENTER_SETTINGS`; permiso denegado devuelve `42501`; valores inválidos devuelven
+`22023`. La UI conserva el borrador y permite recargar tras confirmar su descarte.
+
+El resultado de persistencia se separa de la revalidación de Next.js. Si la RPC confirmó la
+escritura pero falla la revalidación, el formulario adopta la versión persistida e informa que el
+encabezado puede requerir recarga. Si se pierde la respuesta de la escritura, el resultado queda
+incierto: se conserva el borrador y se bloquea otro guardado hasta cargar la versión actual. Los
+errores concluyentes y los conflictos mantienen mensajes propios sin exponer detalles de la base.
+
+La migración TASK-035 está aplicada y verificada en DEV; PROD permanece fuera de alcance. La
+protección de salida cubre Cancelar y recarga del navegador; la navegación SPA ajena
+al formulario no tiene un bloqueo global.
+
 ## Experiencia de administración
 
 En `/platform`, «Crear centro» abre un diálogo con resolución del email del administrador inicial,

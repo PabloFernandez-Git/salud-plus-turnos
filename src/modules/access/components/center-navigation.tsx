@@ -50,6 +50,12 @@ function Icon({ kind }: { kind: string }) {
         <path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5" />
       </>
     ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
+      </>
+    ),
   };
   return (
     <svg
@@ -167,6 +173,12 @@ export function CenterNavigation({ centerId, role }: { centerId: string; role: M
             description: "Gestioná los accesos y roles del equipo",
             path: "users",
             icon: <Icon kind="users" />,
+          },
+          {
+            title: "Configuración del centro",
+            description: "Actualizá los datos institucionales del centro",
+            path: "settings",
+            icon: <Icon kind="settings" />,
           },
         ]
       : []),
