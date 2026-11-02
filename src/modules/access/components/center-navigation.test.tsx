@@ -16,6 +16,7 @@ describe("center navigation", () => {
       "Disponibilidad",
       "Especialidades",
       "Gestión de usuarios",
+      "Configuración del centro",
     ]);
     expect(screen.getByRole("heading", { name: "Operación diaria" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Administración del centro" })).toBeInTheDocument();
@@ -35,6 +36,7 @@ describe("center navigation", () => {
       ["Disponibilidad", "Consultá y organizá los horarios de atención"],
       ["Especialidades", "Administrá las especialidades del centro"],
       ["Gestión de usuarios", "Gestioná los accesos y roles del equipo"],
+      ["Configuración del centro", "Actualizá los datos institucionales del centro"],
     ]) {
       expect(
         screen.getByRole("link", { name: title }).querySelector("[id$='-description']")

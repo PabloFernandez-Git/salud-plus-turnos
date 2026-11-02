@@ -1,15 +1,9 @@
 import { z } from "zod";
 
 import { DEFAULT_TIMEZONE } from "@/lib/time/default-timezone";
+import { centerInstitutionalFieldsSchema } from "./center-institutional";
 
 const requiredText = (message: string) => z.string().trim().min(1, message);
-const optionalText = z.string().trim().optional().default("");
-const optionalEmail = z
-  .string()
-  .trim()
-  .refine((value) => value === "" || z.email().safeParse(value).success, {
-    message: "Ingresá un email válido o dejá el campo vacío.",
-  });
 
 export function isValidIanaTimezone(value: string) {
   try {
@@ -24,13 +18,9 @@ export const platformIdentityEmailSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email("Ingresá un email válido.")),
 });
 
-export const platformCenterFormSchema = z.object({
+export const platformCenterFormSchema = centerInstitutionalFieldsSchema.extend({
   operationId: z.uuid("La intención de alta no es válida."),
   isRetryingOperation: z.enum(["true", "false"]).transform((value) => value === "true"),
-  centerName: requiredText("Ingresá el nombre del centro."),
-  centerAddress: optionalText,
-  centerPhone: optionalText,
-  centerEmail: optionalEmail,
   centerTimezone: requiredText("Ingresá la zona horaria.").refine(isValidIanaTimezone, {
     message: "Ingresá una zona horaria IANA válida.",
   }),

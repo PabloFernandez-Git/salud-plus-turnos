@@ -46,6 +46,15 @@ Un mismo usuario puede tener diferentes roles en distintos centros.
 
 Solo Administrator gestiona usuarios del centro.
 
+La configuración institucional del centro requiere igualmente una membership `ADMIN` activa del
+centro activo. Página y Server Action llaman `requireRole(centerId, ["ADMIN"])`; la RPC vuelve a
+autorizar con `auth.uid()` y no concede privilegio tenant por ser PLATFORM_ADMIN global. El grant
+`UPDATE` directo de `public.centers` continúa ausente para `authenticated`.
+Esta restricción aplica a la pantalla y a la mutación. La lectura directa por API de las columnas
+institucionales de `centers` conserva el grant SELECT y la policy tenant preexistentes para cualquier
+membership activa del mismo centro activo. Ni la pantalla ADMIN ni esa lectura dan acceso a otros
+centros; leer la fila no concede permiso para guardar cambios.
+
 El módulo se presenta como **Gestión de usuarios** en Dashboard, encabezado y breadcrumb. El listado
 vive en `/centers/[centerId]/users`: muestra exclusivamente las memberships visibles del
 Center autorizado, identidad proyectada, rol, estado y la asociación Professional segura cuando
