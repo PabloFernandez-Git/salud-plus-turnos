@@ -1,17 +1,18 @@
 # Estado actual
 
-**TASK-035 — ACTIVE; Fase C `PHASE_C_PASSED` y Fase D `APPROVED`.
-Rama: `codex/task-035-center-settings`.** La migración está aplicada en Supabase DEV (27/27) y la
-RPC fue verificada. La prueba real confirmó guardado, recarga, encabezado, rechazo de una versión
-obsoleta y restauración exacta de los datos visibles; no quedaron valores temporales. La re-review
-independiente cerró como `RESOLVED` los dos hallazgos MEDIUM: la lectura API de datos institucionales
-sigue disponible para miembros activos del mismo centro, mientras pantalla y escritura requieren
-ADMIN; el formulario distingue escritura confirmada de resultado incierto. Pasaron 64/64 pruebas
-focales, 34/34 de acceso, TypeScript, ESLint y Prettier focales. Están pendientes el PR, la
-integración en `main` y el cierre documental; esta tarea aún no está CLOSED. No se accedió a PROD.
-Ver [Fase C](../.harness/tasks/active/TASK-035/phase-c-report.md),
-[revisión final](../.harness/tasks/active/TASK-035/review.md) y
-[plan de cierre](../.harness/tasks/active/TASK-035/closure.md). TASK-029 permanece separada.
+**TASK-035 — CLOSED / ARCHIVED propuesto; formalmente ACTIVE hasta integrar este cambio
+documental.** El cierre funcional
+quedó integrado en `main` mediante [PR #46](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/46),
+commit de implementación `d1dec943ba463628bb34462fa2528a634c6d67c9` y squash merge
+`86c190f7c6ce328a0d810f06977ad61925cb2eaf`. El [CI](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/41444972346)
+terminó en SUCCESS. Fase C fue `PHASE_C_PASSED` y Fase D `APPROVED`; M1 y M2 quedaron
+`RESOLVED`. La migración y la RPC están verificadas en Supabase DEV (27/27); el guardado real,
+recarga, encabezado, rechazo de una versión obsoleta y restauración de los valores visibles pasaron.
+Los límites y riesgos residuales constan en el [expediente archivado](../.harness/tasks/archive/TASK-035/closure.md),
+la [Fase C](../.harness/tasks/archive/TASK-035/phase-c-report.md) y la
+[revisión final](../.harness/tasks/archive/TASK-035/review.md). El cierre formal será efectivo sólo
+tras aprobar e integrar este cambio documental en `main`. No se accedió a PROD; TASK-029 permanece
+separada.
 
 **TASK-034 — ACTIVE; CLOSED / ARCHIVED propuesto en este PR documental.** La resiliencia de acceso
 ante fallos de `platform_admins` se integró en `main` mediante [PR #44](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/44),

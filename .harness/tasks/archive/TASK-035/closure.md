@@ -1,6 +1,6 @@
 # TASK-035 — Preparación del cierre documental
 
-**Resultado de preparación:** `READY_FOR_TASK035_CLOSURE`; TASK-035 permanece ACTIVE. Este documento no registra un commit, PR, merge, CI posterior a integración ni cierre ya realizados.
+**Estado:** cierre funcional integrado en `main`; cierre documental preparado como `CLOSED / ARCHIVED` propuesto. El cierre formal de TASK-035 será efectivo únicamente tras la aprobación e integración de este cambio documental en `main`.
 
 ## Alcance aprobado
 
@@ -27,28 +27,38 @@ La navegación, el formulario, las Server Actions, el servicio, el schema compar
 - Contrato: `src/lib/supabase/database.types.ts`.
 - SQL: `supabase/migrations/20261030120000_admin_update_center_settings.sql`, `supabase/tests/task-035-center-settings.sql`.
 - Documentación compartida: `docs/modules/centers.md`, `docs/modules/access.md`, `docs/status.md`.
-- Expediente activo completo: `.harness/tasks/active/TASK-035/{brief.md,plan.md,implementation-report.md,phase-c-report.md,review.md,review-response.md,closure.md,retrospective.md}`.
+- Expediente archivado completo: `.harness/tasks/archive/TASK-035/{brief.md,plan.md,implementation-report.md,phase-c-report.md,review.md,review-response.md,closure.md,retrospective.md}`.
 
 Son 29 archivos. El diff de `docs/status.md`, los módulos documentales y los archivos compartidos de código se inspeccionó por hunk; sus cambios listados corresponden a TASK-035. Se excluyen expresamente `next-env.d.ts`, la página raíz del centro y su test, las otras TASK activas/archivadas, artefactos visuales ajenos, scripts temporales, `.pnpm-store/` y `supabase/.branches/`.
 
-## Integración propuesta
+## Integración funcional confirmada
 
-1. Crear un commit de implementación de TASK-035 en `codex/task-035-center-settings` con selección explícita de archivos. Revisar el diff staged antes del commit para excluir cambios ajenos.
-2. Abrir PR hacia `main`, ejecutar CI y revisar el diff y los checks. Integrar según la estrategia habitual del repositorio tras autorización.
-3. Sólo después de confirmar el merge en `main`, preparar un cambio documental separado: trasladar **todo** `.harness/tasks/active/TASK-035/` a `.harness/tasks/archive/TASK-035/` sin perder evidencia, actualizar este cierre con PR, SHA, checks y fecha efectivos, y cambiar `docs/status.md` a CLOSED / ARCHIVED propuesto.
-4. Verificar el traslado y el estado documental; obtener la revisión y autorización de cierre requeridas por el harness antes de integrar ese cambio documental. El cierre formal ocurre al integrarlo.
+- [PR #46](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/46) se integró por squash merge el 2026-11-02.
+- Commit de implementación en la rama del PR: `d1dec943ba463628bb34462fa2528a634c6d67c9`.
+- Commit squash en `main` y `origin/main`: `86c190f7c6ce328a0d810f06977ad61925cb2eaf`.
+- El [CI del PR #46](https://github.com/PabloFernandez-Git/salud-plus-turnos/actions/runs/41444972346) concluyó en **SUCCESS**.
+- Fase A: diagnóstico completado en [brief](brief.md) y [plan](plan.md). Fase B: implementación completada y documentada en [implementation-report.md](implementation-report.md). Fase C: `PHASE_C_PASSED` según [phase-c-report.md](phase-c-report.md). Fase D: dictamen final `APPROVED` tras re-review según [review.md](review.md); M1 y M2 quedaron `RESOLVED` y la [respuesta](review-response.md) conserva el tratamiento de ambos hallazgos.
+
+En Supabase DEV constan 27/27 migraciones aplicadas y la RPC `admin_update_center_settings` verificada. La prueba real desde la interfaz confirmó guardado, recarga, actualización del encabezado, rechazo de una versión obsoleta y restauración exacta de los datos visibles originales. La carrera de dos conexiones PostgreSQL se validó en una base local aislada; no quedaron valores temporales en DEV. La evidencia detallada está en [Fase C](phase-c-report.md). No se repitieron pruebas ni operaciones en DEV para este cierre.
+
+## Cierre documental propuesto
+
+Los ocho documentos del expediente se trasladaron íntegramente a `.harness/tasks/archive/TASK-035/`. Seis archivos históricos conservaron sus hashes SHA-256; en `review.md` sólo se corrigieron tres referencias a la nueva ubicación. `docs/status.md` apunta al expediente archivado y propone `CLOSED / ARCHIVED`; la tarea sigue formalmente ACTIVE hasta aprobar e integrar el cambio documental.
 
 ## Riesgos y límites preservados
 
 El trigger previo de `centers.updated_at` basado en `now()` no garantiza monotonía para varios cambios en una sola transacción; el flujo actual hace una RPC por solicitud y las carreras verificadas pasaron. No se probó una identidad no ADMIN en DEV: los rechazos por rol y centro se probaron en PostgreSQL local. Los nuevos caminos de error de caché/red se probaron con mocks. La navegación SPA ajena al formulario conserva el límite aceptado en el brief. No se operó en PROD.
 
-## Verificación de preparación
+## Verificación previa al PR de implementación
 
 `pnpm bootstrap`: PASS. Doce suites de TASK-035, alta compartida y acceso: **98/98 PASS**. `pnpm typecheck`: PASS. `pnpm lint`: código 0, sin errores; un warning preexistente por `oid` sin uso en TASK-009. Prettier focal: PASS. El SHA-256 de la migración sigue siendo `A1B631DC5297E450AEB677A881AEC5625E4040A115C68E4B1F83F07A659A52D4`, igual al informe de Fase C y la revisión. No se repitieron SQL ni escrituras DEV.
 
 Al auditar antes del commit, `HEAD`, `main`, `origin/main` local y la rama `main` remota consultada con `git ls-remote` coincidían en `dd3c2c9bcb83c15f7c16ff258415e6488cc91db9`. No había commits propios de TASK-035, diferencias entre HEAD y main ni archivos staged. `git diff --check` pasó. El árbol mezclado permite preparar un commit selectivo tras revisar el diff staged.
 
-## Datos pendientes de completar después de integrar
+## Verificación del traslado documental
 
-- Commit y PR de implementación, resultado de CI y SHA del merge en `main`.
-- PR/commit documental de archivo, revisión del traslado y fecha de cierre efectiva.
+El worktree documental parte de `origin/main` en `86c190f7c6ce328a0d810f06977ad61925cb2eaf`; el checkout original con cambios ajenos permanece intacto. El directorio activo de TASK-035 ya no existe en este worktree y el archivo contiene los ocho documentos previstos. La comparación de blobs de Git confirmó que los seis documentos históricos no editados conservan exactamente su contenido; `review.md` sólo cambió tres rutas y `closure.md` registra la integración y el cierre propuesto. Los enlaces relativos del expediente y `docs/status.md` apuntan a archivos existentes. Prettier focal con `--end-of-line crlf`, para respetar los finales de línea preexistentes de estos Markdown, y `git diff --check` pasaron. El intento de `pnpm bootstrap` en el worktree nuevo no completó la instalación por `EACCES` al descargar desde npm; la revisión documental usó el Prettier ya instalado en el checkout original. No se modificó código funcional, migraciones, permisos ni datos.
+
+## Datos pendientes de completar
+
+- Revisión del cambio documental y fecha efectiva de cierre tras su aprobación e integración en `main`.
