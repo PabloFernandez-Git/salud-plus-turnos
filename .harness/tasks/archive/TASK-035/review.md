@@ -15,7 +15,7 @@ TASK-035 comprende `src/app/centers/[centerId]/settings/`, los archivos `center-
 
 ## 2. Evidencia examinada
 
-- `.harness/tasks/active/TASK-035/{brief.md,implementation-report.md,phase-c-report.md}` y `docs/{product.md,status.md,business-rules.md,modules/centers.md,modules/access.md,decisions/05-autorizacion.md}`.
+- `.harness/tasks/archive/TASK-035/{brief.md,implementation-report.md,phase-c-report.md}` y `docs/{product.md,status.md,business-rules.md,modules/centers.md,modules/access.md,decisions/05-autorizacion.md}`.
 - Código, tests y migraciones mencionados arriba, más `authorization.ts`, `layout.tsx`, `20260921150000_initial_domain_schema.sql` y `20260922121000_add_auth_access_helpers_and_policies.sql`.
 - El SHA-256 local de la migración es `A1B631DC5297E450AEB677A881AEC5625E4040A115C68E4B1F83F07A659A52D4`, igual al registrado en Fase C. El informe de Fase C documenta 27/27 migraciones DEV, catálogo y grants de la RPC, prueba SQL con rollback, carrera de dos conexiones, guardado real, conflicto y restauración. Se contrastaron esas afirmaciones con el código y el test, pero **no** se repitieron consultas ni escrituras en DEV, ni se dispone en el expediente de un log bruto independiente de esas operaciones.
 
@@ -53,14 +53,14 @@ No se ejecutaron SQL local, E2E remoto, nueva escritura DEV ni suite general: el
 
 ### M1 — MEDIUM: la lectura institucional no es exclusiva de ADMIN
 
-- **Ubicación:** `supabase/migrations/20260922121000_add_auth_access_helpers_and_policies.sql:152-156,201-215`; contraste con `src/app/centers/[centerId]/settings/page.tsx:18-30` y `.harness/tasks/active/TASK-035/brief.md:15`.
+- **Ubicación:** `supabase/migrations/20260922121000_add_auth_access_helpers_and_policies.sql:152-156,201-215`; contraste con `src/app/centers/[centerId]/settings/page.tsx:18-30` y `.harness/tasks/archive/TASK-035/brief.md:15`.
 - **Problema y evidencia reproducible:** la policy `centers_select_active_members` usa `private.has_active_center_membership(id)` y el grant `SELECT` se concede sobre la tabla completa a `authenticated`. Una sesión RECEPTION o PROFESSIONAL con membership activa puede ejecutar `SELECT phone,email,address FROM public.centers WHERE id = <su centro>` por PostgREST, aunque no pueda abrir settings. Es una autorización previa a TASK-035, no una policy creada por la migración nueva.
 - **Impacto:** el requisito de lectura ADMIN exclusiva no se cumple a nivel de base/API; el aislamiento entre centros sí se conserva.
 - **Corrección recomendada:** aclarar en el brief si la exclusividad aplica a la pantalla o también a los datos por API. Si aplica a datos, acotar la lectura institucional a ADMIN mediante permisos por columna o una RPC de lectura, conservando las lecturas mínimas de nombre/zona horaria que necesitan los demás roles. Probar el caso negativo con un miembro no ADMIN.
 
 ### M2 — MEDIUM: un éxito persistido puede presentarse como fallo sin vía de recarga
 
-- **Ubicación:** `src/modules/access/server/center-settings-action.ts:79-97`; `src/modules/access/components/center-settings-screen.tsx:112-145,220-228`; `.harness/tasks/active/TASK-035/brief.md:25`.
+- **Ubicación:** `src/modules/access/server/center-settings-action.ts:79-97`; `src/modules/access/components/center-settings-screen.tsx:112-145,220-228`; `.harness/tasks/archive/TASK-035/brief.md:25`.
 - **Problema y evidencia reproducible:** `deps.persist()` y `deps.revalidate()` comparten un `try`. Si `persist` confirma la escritura y `revalidatePath` falla, el `catch` devuelve `status:"error"`. La pantalla conserva el borrador, muestra «Intentá de nuevo más tarde» y sólo ofrece recarga en `status:"conflict"`. El mismo resultado incierto puede surgir si se pierde la respuesta tras el commit.
 - **Impacto:** la persona usuaria no sabe si guardó; puede reintentar un borrador ya persistido y recibir un conflicto evitable, mientras el encabezado puede quedar desactualizado. Contradice el procedimiento de recarga antes de reintentar definido en el brief.
 - **Corrección recomendada:** separar el resultado de persistencia del fallo de revalidación o representar explícitamente el resultado incierto; ofrecer una lectura autorizada con confirmación de descarte antes de volver a guardar. Agregar un test con `persist` exitoso y `revalidate` fallido.
