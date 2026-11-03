@@ -16,6 +16,8 @@ Esta guía usa el proyecto Supabase DEMO independiente `oygrwetmxsqgcizopezq`. N
 - No repetir migraciones ni seed para publicar. Revisar las fechas de los turnos si la publicación se demora.
 - Cuando se conozca el dominio definitivo, en Supabase DEMO → Authentication → URL Configuration, configurar `Site URL` con `https://DOMINIO` y añadir exactamente `https://DOMINIO/auth/callback` a Redirect URLs. Evitar wildcards de previews.
 
+Ver [acceso invitado preparado](portfolio-guest-access.md) para la activación posterior y la limpieza.
+
 ## Vercel
 
 Variables mínimas de este despliegue:

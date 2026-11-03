@@ -6,14 +6,19 @@ import { useActionState } from "react";
 import { PasswordInput } from "@/components/password-input";
 import { loginAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
+import { GuestAccessButton } from "./guest-access-button";
 import { SubmitButton } from "./submit-button";
 
 export function LoginForm({
   callbackError = false,
   isPortfolioDemo = false,
+  guestAccessEnabled = false,
+  turnstileSiteKey,
 }: {
   callbackError?: boolean;
   isPortfolioDemo?: boolean;
+  guestAccessEnabled?: boolean;
+  turnstileSiteKey?: string;
 }) {
   const [state, formAction] = useActionState(loginAction, {
     status: "idle",
@@ -70,6 +75,9 @@ export function LoginForm({
         ) : null}
       </div>
       <SubmitButton idleLabel="Ingresar" pendingLabel="Ingresando…" />
+      {isPortfolioDemo && guestAccessEnabled ? (
+        <GuestAccessButton turnstileSiteKey={turnstileSiteKey} />
+      ) : null}
       {!isPortfolioDemo && (
         <p className="text-center text-sm text-slate-600">
           <Link

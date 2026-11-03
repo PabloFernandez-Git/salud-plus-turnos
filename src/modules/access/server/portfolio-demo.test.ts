@@ -1,22 +1,59 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { getAppOrigin } from "./app-origin";
-import { assertPortfolioWriteAllowed } from "./portfolio-demo";
+import { assertPortfolioWriteAllowed, getPortfolioGuestLoginConfig } from "./portfolio-demo";
 
 const originalMode = process.env.PORTFOLIO_DEMO_MODE;
 const originalOrigin = process.env.APP_ORIGIN;
+const originalGuest = process.env.PORTFOLIO_GUEST_ACCESS_ENABLED;
+const originalCaptcha = process.env.PORTFOLIO_GUEST_CAPTCHA_REQUIRED;
+const originalSiteKey = process.env.NEXT_PUBLIC_PORTFOLIO_TURNSTILE_SITE_KEY;
+const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 afterEach(() => {
   if (originalMode === undefined) delete process.env.PORTFOLIO_DEMO_MODE;
   else process.env.PORTFOLIO_DEMO_MODE = originalMode;
   if (originalOrigin === undefined) delete process.env.APP_ORIGIN;
   else process.env.APP_ORIGIN = originalOrigin;
+  for (const [name, value] of Object.entries({
+    PORTFOLIO_GUEST_ACCESS_ENABLED: originalGuest,
+    PORTFOLIO_GUEST_CAPTCHA_REQUIRED: originalCaptcha,
+    NEXT_PUBLIC_PORTFOLIO_TURNSTILE_SITE_KEY: originalSiteKey,
+    NEXT_PUBLIC_SUPABASE_URL: originalSupabaseUrl,
+  })) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
 });
 
 describe("portfolio demo boundaries", () => {
   it("blocks server writes in demo mode", () => {
     process.env.PORTFOLIO_DEMO_MODE = "true";
     expect(assertPortfolioWriteAllowed).toThrow("PORTFOLIO_DEMO_READ_ONLY");
+  });
+
+  it("keeps guest entry disabled by default and confines activation to DEMO Supabase", () => {
+    delete process.env.PORTFOLIO_GUEST_ACCESS_ENABLED;
+    expect(getPortfolioGuestLoginConfig().enabled).toBe(false);
+    process.env.PORTFOLIO_GUEST_ACCESS_ENABLED = "true";
+    process.env.PORTFOLIO_DEMO_MODE = "false";
+    expect(getPortfolioGuestLoginConfig).toThrow("PORTFOLIO_GUEST_REQUIRES_DEMO_MODE");
+    process.env.PORTFOLIO_DEMO_MODE = "true";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://some-dev-project.supabase.co";
+    expect(getPortfolioGuestLoginConfig).toThrow("PORTFOLIO_GUEST_REQUIRES_DEMO_SUPABASE");
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://oygrwetmxsqgcizopezq.supabase.co";
+    expect(getPortfolioGuestLoginConfig().enabled).toBe(true);
+  });
+
+  it("fails closed when CAPTCHA is required without a site key", () => {
+    process.env.PORTFOLIO_DEMO_MODE = "true";
+    process.env.PORTFOLIO_GUEST_ACCESS_ENABLED = "true";
+    process.env.PORTFOLIO_GUEST_CAPTCHA_REQUIRED = "true";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://oygrwetmxsqgcizopezq.supabase.co";
+    delete process.env.NEXT_PUBLIC_PORTFOLIO_TURNSTILE_SITE_KEY;
+    expect(getPortfolioGuestLoginConfig).toThrow("PORTFOLIO_GUEST_CAPTCHA_SITE_KEY_REQUIRED");
+    process.env.NEXT_PUBLIC_PORTFOLIO_TURNSTILE_SITE_KEY = "public-site-key";
+    expect(getPortfolioGuestLoginConfig().siteKey).toBe("public-site-key");
   });
 
   it("blocks the password action before opening an Auth client", async () => {

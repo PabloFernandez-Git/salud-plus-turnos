@@ -4,6 +4,7 @@ import { AuthCard } from "@/modules/access/components/auth-card";
 import { LoginForm } from "@/modules/access/components/login-form";
 import { getPostLoginDestination } from "@/modules/access/server/access";
 import { AuthorizationError } from "@/modules/access/server/authorization";
+import { getPortfolioGuestLoginConfig } from "@/modules/access/server/portfolio-demo";
 
 export default async function LoginPage({
   searchParams,
@@ -22,6 +23,7 @@ export default async function LoginPage({
   }
 
   const params = await searchParams;
+  const guest = getPortfolioGuestLoginConfig();
 
   return (
     <AuthCard
@@ -31,6 +33,8 @@ export default async function LoginPage({
       <LoginForm
         callbackError={params.error === "invalid_callback"}
         isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
+        guestAccessEnabled={guest.enabled}
+        turnstileSiteKey={guest.siteKey}
       />
     </AuthCard>
   );

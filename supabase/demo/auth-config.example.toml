@@ -1,0 +1,27 @@
+# Reference for the independent DEMO project only. This file is not loaded by
+# Supabase CLI and must never be merged into the shared supabase/config.toml.
+# Apply the SQL migration and verify its hook/trigger before enabling signup.
+
+[auth]
+enable_signup = true
+enable_anonymous_sign_ins = true
+enable_manual_linking = false
+
+[auth.rate_limit]
+anonymous_users = 5
+
+[auth.email]
+enable_signup = false
+
+[auth.sms]
+enable_signup = false
+
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/portfolio_allow_anonymous_signup"
+
+# Optional only after Cloudflare Turnstile is configured in DEMO Auth:
+# [auth.captcha]
+# enabled = true
+# provider = "turnstile"
+# secret = "env(DEMO_TURNSTILE_SECRET)"

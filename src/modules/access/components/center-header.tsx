@@ -31,6 +31,10 @@ export function CenterHeader({
   const pathname = usePathname();
   const dashboardPath = `/centers/${centerId}`;
   const isDashboard = pathname === dashboardPath || pathname === `${dashboardPath}/`;
+  const isGuest =
+    isPortfolioDemo &&
+    user.email.startsWith("guest+") &&
+    user.email.endsWith("@guest.salud-plus.invalid");
 
   return (
     <header className="border-b border-slate-200 bg-white [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
@@ -43,7 +47,7 @@ export function CenterHeader({
             {centerName}
           </p>
           <p className="mt-1 break-words text-sm text-slate-600">
-            {user.firstName} {user.lastName} · {user.email} ·{" "}
+            {user.firstName} {user.lastName} · {isGuest ? "Invitado" : user.email} ·{" "}
             {isPortfolioDemo ? "Demo de lectura" : roleLabels[role]}
           </p>
         </div>

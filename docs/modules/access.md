@@ -4,6 +4,8 @@
 
 La rama `codex/portfolio-mvp` usa un proyecto Supabase separado con un solo usuario Auth y una membership ADMIN para conservar las pantallas de lectura. En ese proyecto, la migración `20261103120000_portfolio_demo_read_only.sql` revoca DML directo y las RPC públicas salvo una lista explícita de consultas. `PORTFOLIO_DEMO_MODE=true` bloquea también las Server Actions de escritura, incluidas las de provisión que podrían usar Auth Admin. Esta configuración no cambia los roles del producto ni se aplica a DEV/PROD. Ver [guía de publicación](../portfolio-demo.md).
 
+El acceso invitado está preparado localmente en esta rama y permanece desactivado. Su migración y configuración son exclusivas de DEMO: un hook Auth y un trigger rechazan altas no anónimas, el trigger crea perfil y membership del centro ficticio para cada UUID anónimo, y policies restrictivas aíslan los perfiles y memberships invitados. El flag de interfaz queda en `false`; la aplicación fuera de DEMO conserva el login normal. La activación y limpieza posteriores están en la [guía de invitados](../portfolio-guest-access.md).
+
 ## Modelo
 
 `User` representa identidad de aplicación asociada 1:1 a Supabase Auth mediante el mismo UUID.
