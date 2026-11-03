@@ -96,6 +96,7 @@ export default async function AppointmentDetailPage({
           serverNow={serverNow}
           detail={{ kind: "STAFF", appointment: detail.appointment }}
           outsideAvailability={outsideAvailability}
+          isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
         />
       </PageReveal>
     );
@@ -110,6 +111,7 @@ export default async function AppointmentDetailPage({
         serverNow={serverNow}
         detail={{ kind: "PROFESSIONAL", appointment: detail.appointment }}
         outsideAvailability={false}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

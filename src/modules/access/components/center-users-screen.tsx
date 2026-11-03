@@ -15,6 +15,7 @@ export function CenterUsersScreen({
   manageableProfessionalCenters,
   professionalCenters,
   users,
+  isPortfolioDemo = false,
 }: {
   actorUserId: string;
   centerId: string;
@@ -23,6 +24,7 @@ export function CenterUsersScreen({
   manageableProfessionalCenters: ManageableProfessionalCenter[];
   professionalCenters: AvailableProfessionalCenter[];
   users: CenterUserListItem[];
+  isPortfolioDemo?: boolean;
 }) {
   return (
     <main className="px-5 py-8 sm:px-8 sm:py-10">
@@ -30,7 +32,11 @@ export function CenterUsersScreen({
         <ModuleHeader
           centerId={centerId}
           title="Gestión de usuarios"
-          description="Administrá los usuarios, roles y accesos del centro."
+          description={
+            isPortfolioDemo
+              ? "Consultá los usuarios, roles y accesos del centro."
+              : "Administrá los usuarios, roles y accesos del centro."
+          }
         />
 
         {loadFailed ? (
@@ -42,11 +48,13 @@ export function CenterUsersScreen({
           </section>
         ) : (
           <>
-            <AddCenterUserPanel
-              actorUserId={actorUserId}
-              centerId={centerId}
-              professionalCenters={professionalCenters}
-            />
+            {!isPortfolioDemo && (
+              <AddCenterUserPanel
+                actorUserId={actorUserId}
+                centerId={centerId}
+                professionalCenters={professionalCenters}
+              />
+            )}
 
             <section className="space-y-3" aria-labelledby="center-users-heading">
               <div>
@@ -61,6 +69,7 @@ export function CenterUsersScreen({
                 centerId={centerId}
                 professionalCenters={manageableProfessionalCenters}
                 users={users}
+                isPortfolioDemo={isPortfolioDemo}
               />
             </section>
           </>

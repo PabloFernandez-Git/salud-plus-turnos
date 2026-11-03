@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AuthCard } from "@/modules/access/components/auth-card";
@@ -8,6 +9,16 @@ import {
 } from "@/modules/access/server/authorization";
 
 export default async function UpdatePasswordPage() {
+  if (process.env.PORTFOLIO_DEMO_MODE === "true") {
+    return (
+      <AuthCard title="Actualizar contraseña" description="Demo de solo lectura">
+        <p>Disponible en la versión completa. Esta demo es de solo lectura.</p>
+        <Link className="mt-4 inline-block font-medium text-sky-700 underline" href="/login">
+          Volver al login
+        </Link>
+      </AuthCard>
+    );
+  }
   try {
     await requireAuthenticatedIdentity();
   } catch (error) {

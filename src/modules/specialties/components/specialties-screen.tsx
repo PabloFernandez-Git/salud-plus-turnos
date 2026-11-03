@@ -33,11 +33,13 @@ export function SpecialtiesScreen({
   centerId,
   loadFailed,
   specialties,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
   loadFailed: boolean;
   specialties: SpecialtyListItem[];
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -229,9 +231,14 @@ export function SpecialtiesScreen({
         <ModuleHeader
           centerId={centerId}
           title="Especialidades"
-          description="Administrá las especialidades del centro"
+          description={
+            isPortfolioDemo
+              ? "Consultá las especialidades del centro."
+              : "Administrá las especialidades del centro"
+          }
           actions={
-            !loadFailed && (
+            !loadFailed &&
+            !isPortfolioDemo && (
               <button
                 type="button"
                 disabled={isPending}
@@ -447,7 +454,7 @@ export function SpecialtiesScreen({
                       <th className="p-4">Nombre</th>
                       <th className="p-4">Descripción</th>
                       <th className="p-4">Estado</th>
-                      <th className="p-4">Acciones</th>
+                      {!isPortfolioDemo && <th className="p-4">Acciones</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -458,30 +465,32 @@ export function SpecialtiesScreen({
                           {specialty.description ?? "Sin descripción"}
                         </td>
                         <td className="p-4">{specialty.is_active ? "Activa" : "Inactiva"}</td>
-                        <td className="min-w-max p-4 whitespace-nowrap">
-                          <div className="flex w-max flex-nowrap items-center gap-2">
-                            <button
-                              disabled={isPending}
-                              onClick={(event) =>
-                                select({ mode: "edit", specialty }, event.currentTarget)
-                              }
-                              type="button"
-                              className={tableActionClass}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              disabled={isPending}
-                              onClick={(event) =>
-                                select({ mode: "state", specialty }, event.currentTarget)
-                              }
-                              type="button"
-                              className={tableActionClass}
-                            >
-                              {specialty.is_active ? "Desactivar" : "Activar"}
-                            </button>
-                          </div>
-                        </td>
+                        {!isPortfolioDemo && (
+                          <td className="min-w-max p-4 whitespace-nowrap">
+                            <div className="flex w-max flex-nowrap items-center gap-2">
+                              <button
+                                disabled={isPending}
+                                onClick={(event) =>
+                                  select({ mode: "edit", specialty }, event.currentTarget)
+                                }
+                                type="button"
+                                className={tableActionClass}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                disabled={isPending}
+                                onClick={(event) =>
+                                  select({ mode: "state", specialty }, event.currentTarget)
+                                }
+                                type="button"
+                                className={tableActionClass}
+                              >
+                                {specialty.is_active ? "Desactivar" : "Activar"}
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

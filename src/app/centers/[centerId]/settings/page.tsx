@@ -30,7 +30,11 @@ export default async function CenterSettingsPage({
   const settings = await getCenterSettings(centerId.data, client);
   return (
     <PageReveal>
-      <CenterSettingsScreen key={settings.id} settings={settings} />
+      <CenterSettingsScreen
+        key={settings.id}
+        settings={settings}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
+      />
     </PageReveal>
   );
 }

@@ -1038,6 +1038,7 @@ function Administration({
   notice,
   noticeTone,
   returnToAppointments,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   timezone: string;
@@ -1049,6 +1050,7 @@ function Administration({
   notice: string;
   noticeTone: "success" | "info";
   returnToAppointments: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const [feedback, setFeedback] = useState<PatientActionResult | null>(null);
@@ -1251,7 +1253,7 @@ function Administration({
   const errors = feedback?.status === "error" ? feedback.fields : undefined;
   return (
     <PatientDialog
-      title="Administrar paciente"
+      title={isPortfolioDemo ? "Detalle del paciente" : "Administrar paciente"}
       description="Datos de este centro. La identidad compartida es de solo lectura."
       onClose={onClose}
       closeOnBackdrop
@@ -1350,7 +1352,7 @@ function Administration({
                 value={form.phone}
                 onChange={(v) => change("phone", v)}
                 error={errors?.phone}
-                disabled={pending}
+                disabled={pending || isPortfolioDemo}
                 required
               />
               <Field
@@ -1360,7 +1362,7 @@ function Administration({
                 value={form.email}
                 onChange={(v) => change("email", v)}
                 error={errors?.email}
-                disabled={pending}
+                disabled={pending || isPortfolioDemo}
               />
               <Field
                 name="insuranceName"
@@ -1368,7 +1370,7 @@ function Administration({
                 value={form.insuranceName}
                 onChange={(v) => change("insuranceName", v)}
                 error={errors?.insuranceName}
-                disabled={pending}
+                disabled={pending || isPortfolioDemo}
               />
               <Field
                 name="administrativeNotes"
@@ -1376,21 +1378,23 @@ function Administration({
                 value={form.administrativeNotes}
                 onChange={(v) => change("administrativeNotes", v)}
                 error={errors?.administrativeNotes}
-                disabled={pending}
+                disabled={pending || isPortfolioDemo}
                 multiline
               />
               <p className="text-sm text-slate-600">
                 Uso administrativo. No registrar información clínica.
               </p>
-              <button
-                disabled={pending || stale || !detail.isActive || !canSave}
-                type="submit"
-                className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-              >
-                Guardar cambios
-              </button>
+              {!isPortfolioDemo && (
+                <button
+                  disabled={pending || stale || !detail.isActive || !canSave}
+                  type="submit"
+                  className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
+                >
+                  Guardar cambios
+                </button>
+              )}
             </form>
-            {detail.isActive && (
+            {detail.isActive && !isPortfolioDemo && (
               <div className="space-y-3">
                 <button
                   type="button"
@@ -1434,7 +1438,7 @@ function Administration({
                 )}
               </div>
             )}
-            {!detail.isActive && (
+            {!detail.isActive && !isPortfolioDemo && (
               <form className="space-y-3" onSubmit={verifyReactivation}>
                 <h3 className="font-semibold">Reactivar en este centro</h3>
                 <p className="text-sm text-slate-600">
@@ -1504,6 +1508,7 @@ export function PatientWorkspace({
   selectedPatientCenterId = detail?.patientCenterId ?? null,
   detailFailed,
   returnToAppointments = false,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   timezone?: string;
@@ -1512,10 +1517,13 @@ export function PatientWorkspace({
   detail: PatientDetail | null;
   detailFailed: boolean;
   returnToAppointments?: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const selected = detail || detailFailed;
-  const [registerOpen, setRegisterOpen] = useState(returnToAppointments && !selected);
+  const [registerOpen, setRegisterOpen] = useState(
+    !isPortfolioDemo && returnToAppointments && !selected,
+  );
   const [notice, setNotice] = useState<{
     message: string;
     source: "registration" | "administration";
@@ -1537,17 +1545,19 @@ export function PatientWorkspace({
   }
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        onClick={() => {
-          setNotice(null);
-          setRegisterOpen(true);
-        }}
-        className={modulePrimaryActionClass}
-      >
-        Registrar paciente
-      </button>
+      {!isPortfolioDemo && (
+        <button
+          ref={trigger}
+          type="button"
+          onClick={() => {
+            setNotice(null);
+            setRegisterOpen(true);
+          }}
+          className={modulePrimaryActionClass}
+        >
+          Registrar paciente
+        </button>
+      )}
       {notice && !selected && (
         <p
           role="status"
@@ -1556,7 +1566,7 @@ export function PatientWorkspace({
           {notice.message}
         </p>
       )}
-      {registerOpen && (
+      {registerOpen && !isPortfolioDemo && (
         <Registration
           centerId={centerId}
           timezone={timezone}
@@ -1583,6 +1593,7 @@ export function PatientWorkspace({
           notice={notice?.source === "administration" ? notice.message : ""}
           noticeTone={notice?.tone ?? "success"}
           returnToAppointments={returnToAppointments}
+          isPortfolioDemo={isPortfolioDemo}
         />
       )}
     </>

@@ -33,6 +33,14 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("center settings screen", () => {
+  it("shows center settings as non-editable in portfolio mode", () => {
+    render(<CenterSettingsScreen settings={settings} isPortfolioDemo />);
+    expect(screen.getByLabelText("Nombre del centro")).toHaveValue("Centro A");
+    expect(screen.getByLabelText("Nombre del centro")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Buenos Aires, Argentina/)).toBeVisible();
+  });
+
   it("renders current data and disables redundant updates after whitespace changes", () => {
     render(<CenterSettingsScreen settings={settings} />);
     expect(screen.getByRole("heading", { name: "Configuración del centro" })).toBeVisible();

@@ -40,6 +40,7 @@ export function AppointmentsList({
   result,
   loadFailed,
   professionals,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
@@ -50,6 +51,7 @@ export function AppointmentsList({
   result: ListResult | null;
   loadFailed: boolean;
   professionals: AvailabilityProfessionalCenter[];
+  isPortfolioDemo?: boolean;
 }) {
   const base = `/centers/${centerId}/appointments`;
   const recentFrom = addCivilDays(today, -30);
@@ -65,9 +67,14 @@ export function AppointmentsList({
         <ModuleHeader
           centerId={centerId}
           title="Turnos"
-          description="Consultá y gestioná los turnos del centro."
+          description={
+            isPortfolioDemo
+              ? "Consultá los turnos del centro."
+              : "Consultá y gestioná los turnos del centro."
+          }
           actions={
-            role !== "PROFESSIONAL" && (
+            role !== "PROFESSIONAL" &&
+            !isPortfolioDemo && (
               <Link className={`${modulePrimaryActionClass} cursor-pointer`} href={`${base}/new`}>
                 Crear turno
               </Link>

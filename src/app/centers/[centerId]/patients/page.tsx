@@ -82,6 +82,7 @@ export default async function PatientsPage({
         detail={detail}
         detailFailed={detailFailed || Boolean(parsed.patientId && !detail)}
         returnToAppointments={parsed.returnToAppointments}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

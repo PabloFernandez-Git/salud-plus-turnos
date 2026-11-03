@@ -146,6 +146,26 @@ function renderAdministration() {
 }
 
 describe("patient staged dialogs", () => {
+  it("keeps patient detail and appointment tab readable without write controls in portfolio mode", () => {
+    render(
+      <PatientWorkspace
+        centerId={centerId}
+        filters={filters}
+        detail={detail}
+        detailFailed={false}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Registrar paciente" })).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Detalle del paciente" })).toBeVisible();
+    expect(screen.getByLabelText("Teléfono")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desactivar paciente" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Turnos" }));
+    expect(screen.getByRole("tabpanel", { name: "Turnos" })).toBeVisible();
+    expect(updatePatientAction).not.toHaveBeenCalled();
+  });
+
   it("uses inline validation, focuses the first invalid identity field and clears errors on correction", () => {
     openRegistrationDialog();
     const document = screen.getByRole("textbox", { name: "Documento" });

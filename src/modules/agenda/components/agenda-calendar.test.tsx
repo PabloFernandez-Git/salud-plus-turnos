@@ -25,6 +25,27 @@ const professionalId = "22222222-2222-4222-8222-222222222222";
 afterEach(cleanup);
 
 describe("AgendaCalendar", () => {
+  it("keeps calendar navigation and filters without booking controls in portfolio mode", () => {
+    render(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="America/Argentina/Buenos_Aires"
+        today="2026-10-23"
+        role="RECEPTION"
+        filters={{ date: "2026-10-23", view: "day" }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Semana" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Horarios disponibles" })).not.toBeInTheDocument();
+  });
+
   it.each([
     { date: "2026-10-21", index: 4, selected: "2026-10-23" },
     { date: "2026-10-30", index: 6, selected: "2026-11-01" },

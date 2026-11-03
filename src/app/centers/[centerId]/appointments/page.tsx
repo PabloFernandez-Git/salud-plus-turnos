@@ -68,6 +68,7 @@ export default async function AppointmentsPage({
         result={result}
         loadFailed={loadFailed}
         professionals={professionals}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

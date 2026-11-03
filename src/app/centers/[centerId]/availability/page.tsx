@@ -49,7 +49,11 @@ export default async function AvailabilityIndexPage({
           <ModuleHeader
             centerId={centerId.data}
             title="Disponibilidad"
-            description="Elegí un profesional para consultar o administrar sus horarios semanales."
+            description={
+              process.env.PORTFOLIO_DEMO_MODE === "true"
+                ? "Elegí un profesional para consultar sus horarios semanales."
+                : "Elegí un profesional para consultar o administrar sus horarios semanales."
+            }
           />
           <section
             aria-label="Profesionales con disponibilidad"

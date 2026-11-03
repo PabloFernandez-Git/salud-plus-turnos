@@ -28,7 +28,10 @@ export default async function LoginPage({
       description="Ingresá con la cuenta que te asignó tu centro. No hay registro público."
       title="Iniciar sesión"
     >
-      <LoginForm callbackError={params.error === "invalid_callback"} />
+      <LoginForm
+        callbackError={params.error === "invalid_callback"}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
+      />
     </AuthCard>
   );
 }

@@ -42,6 +42,35 @@ const common = {
 afterEach(cleanup);
 
 describe("appointment list", () => {
+  it("keeps filters and rows without a creation link in portfolio mode", () => {
+    render(
+      <AppointmentsList
+        {...common}
+        role="ADMIN"
+        result={{
+          kind: "STAFF",
+          rows: [
+            {
+              ...row,
+              professional_center_id: professionalCenterId,
+              professional_first_name: "Dr",
+              professional_last_name: "Paz",
+            },
+          ],
+          hasMore: false,
+          nextCursor: null,
+        }}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Buscar turnos" })).toBeVisible();
+    expect(screen.getByRole("link", { name: /Ver detalle/ })).toHaveAttribute(
+      "href",
+      `/centers/${centerId}/appointments/${appointmentId}`,
+    );
+  });
+
   it("keeps mobile quick links equal and identifies the active date preset from existing filters", () => {
     const { rerender } = render(
       <AppointmentsList

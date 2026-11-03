@@ -8,7 +8,13 @@ import { loginAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
 import { SubmitButton } from "./submit-button";
 
-export function LoginForm({ callbackError = false }: { callbackError?: boolean }) {
+export function LoginForm({
+  callbackError = false,
+  isPortfolioDemo = false,
+}: {
+  callbackError?: boolean;
+  isPortfolioDemo?: boolean;
+}) {
   const [state, formAction] = useActionState(loginAction, {
     status: "idle",
   } satisfies AuthActionState);
@@ -20,7 +26,9 @@ export function LoginForm({ callbackError = false }: { callbackError?: boolean }
           className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           role="alert"
         >
-          No pudimos validar el enlace. Solicitá uno nuevo si necesitás recuperar tu contraseña.
+          {isPortfolioDemo
+            ? "No pudimos validar el enlace. Volvé a iniciar sesión."
+            : "No pudimos validar el enlace. Solicitá uno nuevo si necesitás recuperar tu contraseña."}
         </p>
       ) : null}
       <ActionMessage state={state} />
@@ -62,14 +70,16 @@ export function LoginForm({ callbackError = false }: { callbackError?: boolean }
         ) : null}
       </div>
       <SubmitButton idleLabel="Ingresar" pendingLabel="Ingresando…" />
-      <p className="text-center text-sm text-slate-600">
-        <Link
-          className="font-medium text-sky-700 underline-offset-4 hover:underline"
-          href="/forgot-password"
-        >
-          ¿Olvidaste tu contraseña?
-        </Link>
-      </p>
+      {!isPortfolioDemo && (
+        <p className="text-center text-sm text-slate-600">
+          <Link
+            className="font-medium text-sky-700 underline-offset-4 hover:underline"
+            href="/forgot-password"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+      )}
     </form>
   );
 }

@@ -60,6 +60,7 @@ export default async function ProfessionalsPage({
         specialties={specialties}
         associations={associations}
         loadFailed={loadFailed}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

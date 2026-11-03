@@ -7,7 +7,7 @@ Esta guía usa el proyecto Supabase DEMO independiente `oygrwetmxsqgcizopezq`. N
 - Un solo centro y una sola cuenta Auth (`demo@salud-plus.example`) con membership ADMIN para aprovechar las pantallas de lectura actuales. En este proyecto, `authenticated` carece de DML y sólo conserva las RPC de lectura indicadas por la migración DEMO. La función de las credenciales es visitar la demo, no administrar el centro.
 - Signup público desactivado; datos exclusivamente ficticios del archivo `supabase/demo/seed.sql`.
 - `PORTFOLIO_DEMO_MODE=true` bloquea las Server Actions de escritura y la resolución exacta de identidades. PostgreSQL bloquea las mismas operaciones aun al llamar PostgREST directamente.
-- Los controles CRUD de las pantallas existentes pueden verse, pero no guardan cambios. Para enseñar el flujo completo, usar capturas o una grabación en el portfolio.
+- En modo DEMO, las pantallas muestran el aviso de solo lectura y no ofrecen controles de creación, edición, activación o desactivación. Los listados, filtros, navegación y detalles siguen disponibles. Para enseñar el flujo CRUD completo, usar capturas o una grabación en el portfolio.
 
 ## Estado de Supabase DEMO
 

@@ -10,7 +10,7 @@ Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Auth, PostgreSQL con RL
 
 ## Acceso a la demo
 
-La URL pública se añadirá aquí al publicar. Las credenciales de visita se compartirán por un canal separado; no se versiona la contraseña. El registro público está desactivado en Supabase Auth DEMO.
+[Abrir la demo de Salud Plus](https://salud-plus-portfolio.vercel.app). Las credenciales de visita se comparten por un canal separado; no se versiona la contraseña. El registro público está desactivado en Supabase Auth DEMO.
 
 ## Desarrollo local
 

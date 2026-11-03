@@ -69,6 +69,7 @@ export function ProfessionalsScreen({
   professionals,
   specialties = [],
   associations = emptyAssociations,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
@@ -76,6 +77,7 @@ export function ProfessionalsScreen({
   professionals: ProfessionalListItem[];
   specialties?: ProfessionalSpecialtyOption[];
   associations?: ProfessionalSpecialtyAssociation[];
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -470,9 +472,14 @@ export function ProfessionalsScreen({
         <ModuleHeader
           centerId={centerId}
           title="Profesionales"
-          description="Administrá los profesionales del centro"
+          description={
+            isPortfolioDemo
+              ? "Consultá los profesionales del centro."
+              : "Administrá los profesionales del centro"
+          }
           actions={
-            !loadFailed && (
+            !loadFailed &&
+            !isPortfolioDemo && (
               <button
                 type="button"
                 disabled={pending}
@@ -944,7 +951,7 @@ export function ProfessionalsScreen({
                       <th className="p-4">Matrícula</th>
                       <th className="p-4">Duración habitual</th>
                       <th className="p-4">Estado</th>
-                      <th className="p-4">Acciones</th>
+                      <th className="p-4">{isPortfolioDemo ? "Ver" : "Acciones"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -977,30 +984,34 @@ export function ProfessionalsScreen({
                                 Disponibilidad
                               </Link>
                             )}
-                            <button
-                              type="button"
-                              disabled={
-                                pending ||
-                                (refreshBlock?.professionalCenterId === professional.id &&
-                                  refreshBlock.snapshot === professionals)
-                              }
-                              onClick={(event) =>
-                                select({ mode: "edit", professional }, event.currentTarget)
-                              }
-                              className={`${tableActionClass} disabled:opacity-50`}
-                            >
-                              Configurar
-                            </button>
-                            <button
-                              type="button"
-                              disabled={pending}
-                              onClick={(event) =>
-                                select({ mode: "state", professional }, event.currentTarget)
-                              }
-                              className={`${tableActionClass} disabled:opacity-50`}
-                            >
-                              {professional.isActive ? "Desactivar" : "Activar"}
-                            </button>
+                            {!isPortfolioDemo && (
+                              <button
+                                type="button"
+                                disabled={
+                                  pending ||
+                                  (refreshBlock?.professionalCenterId === professional.id &&
+                                    refreshBlock.snapshot === professionals)
+                                }
+                                onClick={(event) =>
+                                  select({ mode: "edit", professional }, event.currentTarget)
+                                }
+                                className={`${tableActionClass} disabled:opacity-50`}
+                              >
+                                Configurar
+                              </button>
+                            )}
+                            {!isPortfolioDemo && (
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={(event) =>
+                                  select({ mode: "state", professional }, event.currentTarget)
+                                }
+                                className={`${tableActionClass} disabled:opacity-50`}
+                              >
+                                {professional.isActive ? "Desactivar" : "Activar"}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

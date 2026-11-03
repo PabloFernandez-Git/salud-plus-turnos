@@ -71,6 +71,23 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 describe("ProfessionalsScreen", () => {
+  it("shows professional data and availability without write controls in portfolio mode", () => {
+    render(
+      <ProfessionalsScreen
+        centerId={centerId}
+        centerName="Centro"
+        professionals={[professional]}
+        loadFailed={false}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByText("Ana Pérez")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Disponibilidad" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Nuevo profesional" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Configurar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desactivar" })).not.toBeInTheDocument();
+  });
+
   it("enables configuration saving only for changes from the last successful save", async () => {
     update.mockResolvedValue({
       status: "success",

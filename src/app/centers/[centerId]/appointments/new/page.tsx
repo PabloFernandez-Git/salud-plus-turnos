@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { PageReveal } from "@/components/page-reveal";
+import { ModuleHeader } from "@/components/module-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
 import { NewAppointmentScreen } from "@/modules/appointments/components/new-appointment-screen";
@@ -31,6 +33,30 @@ export default async function NewAppointmentPage({
       notFound();
     }
     throw error;
+  }
+  if (process.env.PORTFOLIO_DEMO_MODE === "true") {
+    return (
+      <PageReveal>
+        <main className="px-5 py-8 sm:px-8 sm:py-10">
+          <div className="mx-auto max-w-6xl space-y-6">
+            <ModuleHeader
+              centerId={centerId}
+              title="Crear turno"
+              description="Consultá los turnos existentes del centro."
+            />
+            <p className="rounded-xl border border-sky-200 bg-white p-5 text-slate-800">
+              Disponible en la versión completa. Esta demo es de solo lectura.
+            </p>
+            <Link
+              className="font-semibold text-sky-700 underline"
+              href={`/centers/${centerId}/appointments`}
+            >
+              Volver a turnos
+            </Link>
+          </div>
+        </main>
+      </PageReveal>
+    );
   }
   const search = await searchParams;
   const candidate = search.patientCenterId;

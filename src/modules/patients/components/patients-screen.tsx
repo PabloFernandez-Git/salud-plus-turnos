@@ -33,6 +33,7 @@ export function PatientsScreen({
   detail = null,
   detailFailed = false,
   returnToAppointments = false,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   timezone?: string;
@@ -44,6 +45,7 @@ export function PatientsScreen({
   detail?: PatientDetail | null;
   detailFailed?: boolean;
   returnToAppointments?: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const baseUrl = patientSearchUrl(
     centerId,
@@ -68,7 +70,11 @@ export function PatientsScreen({
         <ModuleHeader
           centerId={centerId}
           title="Pacientes"
-          description="Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y mantené actualizados sus datos administrativos."
+          description={
+            isPortfolioDemo
+              ? "Consultá los pacientes ficticios y sus turnos."
+              : "Consultá y administrá los pacientes de este centro, registrá nuevos pacientes y mantené actualizados sus datos administrativos."
+          }
           wideDescription
           actions={
             <PatientWorkspace
@@ -79,6 +85,7 @@ export function PatientsScreen({
               detail={detail}
               detailFailed={detailFailed}
               returnToAppointments={returnToAppointments}
+              isPortfolioDemo={isPortfolioDemo}
             />
           }
         />
@@ -208,7 +215,7 @@ export function PatientsScreen({
                             returnToAppointments,
                           )}
                         >
-                          Administrar paciente
+                          {isPortfolioDemo ? "Ver paciente" : "Administrar paciente"}
                         </Link>
                       </td>
                     </tr>
@@ -250,7 +257,7 @@ export function PatientsScreen({
                       returnToAppointments,
                     )}
                   >
-                    Administrar paciente
+                    {isPortfolioDemo ? "Ver paciente" : "Administrar paciente"}
                   </Link>
                 </article>
               ))}

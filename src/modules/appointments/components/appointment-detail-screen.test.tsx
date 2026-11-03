@@ -98,6 +98,26 @@ afterEach(() => {
 });
 
 describe("appointment detail flow", () => {
+  it("shows appointment and saved note without mutation controls in portfolio mode", () => {
+    render(
+      <AppointmentDetailScreen
+        centerId={centerId}
+        centerName="Centro"
+        timezone="America/Argentina/Buenos_Aires"
+        serverNow={beforeStart}
+        detail={{ kind: "STAFF", appointment: { ...staff, administrative_note: "Nota ficticia" } }}
+        outsideAvailability={false}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByText("Nota ficticia")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Volver a turnos" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Acciones del turno" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar nota" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Elegir nuevo horario" })).not.toBeInTheDocument();
+    expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
+  });
+
   it("lays out four staff actions as two mobile columns without changing their order", () => {
     renderStaff();
     const buttons = ["Confirmar", "Marcar atendido", "Marcar ausente", "Cancelar turno"].map(
@@ -388,6 +408,8 @@ describe("appointment detail flow", () => {
   ])(
     "applies exact presentation limits at %s",
     (instant, confirmBlocked, attendedBlocked, absentBlocked) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.parse(instant));
       renderStaff(staff, Date.parse(instant));
       expect(screen.getByRole("button", { name: "Confirmar" }).hasAttribute("disabled")).toBe(
         confirmBlocked,

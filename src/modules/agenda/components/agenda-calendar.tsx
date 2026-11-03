@@ -85,6 +85,7 @@ export function AgendaCalendar({
   specialties = [],
   specialtyUnavailable = false,
   loadFailed,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
@@ -97,6 +98,7 @@ export function AgendaCalendar({
   specialties?: { specialty_id: string; specialty_name: string }[];
   specialtyUnavailable?: boolean;
   loadFailed: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const calendarScroll = useRef<HTMLDivElement>(null);
@@ -262,7 +264,7 @@ export function AgendaCalendar({
       : { weekday: "long", day: "numeric", month: "long", year: "numeric" },
   ).format(date);
   function selectSlot({ start, resourceId }: SlotInfo) {
-    if (role === "PROFESSIONAL" || filters.view === "month") return;
+    if (isPortfolioDemo || role === "PROFESSIONAL" || filters.view === "month") return;
     if (!filters.specialtyId) {
       setSlotHelp("Elegí una especialidad en los filtros antes de buscar un horario.");
       setSlotSelection(null);
@@ -293,7 +295,7 @@ export function AgendaCalendar({
           title="Agenda"
           description="Consultá la actividad por día, semana o mes."
           actions={
-            role !== "PROFESSIONAL" ? (
+            role !== "PROFESSIONAL" && !isPortfolioDemo ? (
               <Link
                 className={modulePrimaryActionClass}
                 href={`/centers/${centerId}/appointments/new`}
@@ -409,7 +411,7 @@ export function AgendaCalendar({
             </button>
           </form>
         </section>
-        {role !== "PROFESSIONAL" && (slotHelp || slotSelection) && (
+        {role !== "PROFESSIONAL" && !isPortfolioDemo && (slotHelp || slotSelection) && (
           <section
             className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             aria-label="Horarios disponibles"
@@ -568,6 +570,7 @@ export function AgendaCalendar({
                     toolbar={false}
                     selectable={
                       role !== "PROFESSIONAL" &&
+                      !isPortfolioDemo &&
                       filters.view !== "month" &&
                       (filters.view !== "day" || resources.length > 0)
                     }

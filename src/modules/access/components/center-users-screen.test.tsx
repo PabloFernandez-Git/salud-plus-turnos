@@ -78,6 +78,26 @@ describe("Center user navigation", () => {
 });
 
 describe("CenterUsersScreen", () => {
+  it("keeps identities and roles visible without provisioning or membership controls in portfolio mode", () => {
+    render(
+      <CenterUsersScreen
+        actorUserId="99999999-9999-4999-8999-999999999999"
+        centerId={centerId}
+        centerName="Centro Norte"
+        loadFailed={false}
+        manageableProfessionalCenters={[]}
+        professionalCenters={[]}
+        users={users}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByRole("row", { name: /Ana Admin/ })).toBeVisible();
+    expect(screen.queryByRole("columnheader", { name: "Acciones" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Agregar|Editar|Desactivar/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders identity, human role, membership state and Professional association", () => {
     render(
       <CenterUsersScreen

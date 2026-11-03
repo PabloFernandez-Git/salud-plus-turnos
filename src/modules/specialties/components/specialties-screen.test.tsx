@@ -68,6 +68,23 @@ afterEach(() => {
 });
 
 describe("SpecialtiesScreen", () => {
+  it("keeps the list visible without write controls in portfolio mode", () => {
+    render(
+      <SpecialtiesScreen
+        centerId={centerId}
+        centerName="Centro Salud"
+        loadFailed={false}
+        specialties={[specialty]}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByText("Cardiología")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Nueva especialidad" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desactivar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("shows title, list, empty and failed states", () => {
     const view = show([{ ...specialty, description: "Atención de adultos" }]);
     expect(screen.getByRole("heading", { level: 1, name: "Especialidades" })).toBeVisible();

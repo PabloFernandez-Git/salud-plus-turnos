@@ -48,6 +48,7 @@ export default async function SpecialtiesPage({
         centerName={context.center.name}
         loadFailed={loadFailed}
         specialties={specialties}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

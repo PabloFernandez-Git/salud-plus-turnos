@@ -8,6 +8,14 @@ import { LoginForm } from "./login-form";
 afterEach(cleanup);
 
 describe("LoginForm password visibility", () => {
+  it("keeps login available without recovery navigation in portfolio mode", () => {
+    render(<LoginForm isPortfolioDemo />);
+    expect(screen.getByLabelText("Email")).toBeVisible();
+    expect(screen.getByLabelText("Contraseña")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Ingresar" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: /Olvidaste tu contraseña/ })).not.toBeInTheDocument();
+  });
+
   it("keeps login autocomplete and toggles only the password field", () => {
     render(<LoginForm />);
 

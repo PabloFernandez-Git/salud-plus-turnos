@@ -45,7 +45,13 @@ function normalized(draft: Draft) {
   };
 }
 
-export function CenterSettingsScreen({ settings }: { settings: CenterSettings }) {
+export function CenterSettingsScreen({
+  settings,
+  isPortfolioDemo = false,
+}: {
+  settings: CenterSettings;
+  isPortfolioDemo?: boolean;
+}) {
   const router = useRouter();
   const [base, setBase] = useState(settings);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(settings));
@@ -200,7 +206,11 @@ export function CenterSettingsScreen({ settings }: { settings: CenterSettings })
       <div className="mx-auto max-w-[1400px] space-y-6">
         <ModuleHeader
           centerId={settings.id}
-          description="Actualizá los datos institucionales del centro activo."
+          description={
+            isPortfolioDemo
+              ? "Consultá los datos institucionales del centro."
+              : "Actualizá los datos institucionales del centro activo."
+          }
           title="Configuración del centro"
         />
 
@@ -221,7 +231,7 @@ export function CenterSettingsScreen({ settings }: { settings: CenterSettings })
                     {...formFieldErrorProps(fieldError, `${key}-error`)}
                     autoComplete={autocomplete}
                     className={`mt-1 block min-h-11 w-full rounded-md border-2 bg-white px-3 py-2 text-base text-slate-950 focus:outline-none ${fieldError ? "border-red-700 focus:border-red-700" : "border-slate-300 focus:border-sky-700"}`}
-                    disabled={isPending}
+                    disabled={isPending || isPortfolioDemo}
                     id={key}
                     onChange={(event) => update(key, event.target.value)}
                     type={type}
@@ -267,23 +277,25 @@ export function CenterSettingsScreen({ settings }: { settings: CenterSettings })
               <p className="mt-1 text-sm text-slate-700">{timezoneLabel(base.timezone)}</p>
               <p className="mt-1 text-xs text-slate-600">Solo lectura</p>
             </div>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                className={moduleSecondaryActionClass}
-                disabled={isPending}
-                onClick={cancel}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className={`${modulePrimaryActionClass} disabled:cursor-not-allowed`}
-                disabled={!canSave}
-                type="submit"
-              >
-                {isPending ? "Guardando…" : "Guardar cambios"}
-              </button>
-            </div>
+            {!isPortfolioDemo && (
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  className={moduleSecondaryActionClass}
+                  disabled={isPending}
+                  onClick={cancel}
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  className={`${modulePrimaryActionClass} disabled:cursor-not-allowed`}
+                  disabled={!canSave}
+                  type="submit"
+                >
+                  {isPending ? "Guardando…" : "Guardar cambios"}
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </div>

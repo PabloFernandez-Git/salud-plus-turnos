@@ -68,6 +68,7 @@ export default async function CenterUsersPage({
         manageableProfessionalCenters={manageableProfessionalCenters}
         professionalCenters={professionalCenters}
         users={users}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );

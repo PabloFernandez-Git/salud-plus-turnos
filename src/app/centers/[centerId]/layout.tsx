@@ -34,7 +34,7 @@ export default async function CenterLayout({
     <div className="min-h-screen bg-slate-100/80">
       {process.env.PORTFOLIO_DEMO_MODE === "true" ? (
         <div className="border-b border-sky-200 bg-sky-50 px-5 py-2 text-center text-sm font-medium text-sky-900">
-          Demo de portfolio · datos ficticios · acceso de solo lectura
+          Disponible en la versión completa. Esta demo es de solo lectura.
         </div>
       ) : null}
       <CenterHeader

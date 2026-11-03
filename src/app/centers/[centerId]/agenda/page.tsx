@@ -87,6 +87,7 @@ export default async function AgendaPage({
         specialties={specialties}
         specialtyUnavailable={specialtyUnavailable}
         loadFailed={loadFailed}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
       />
     </PageReveal>
   );
