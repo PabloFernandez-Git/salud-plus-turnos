@@ -478,13 +478,12 @@ export function ProfessionalsScreen({
               : "Administrá los profesionales del centro"
           }
           actions={
-            !loadFailed &&
-            !isPortfolioDemo && (
+            !loadFailed && (
               <button
                 type="button"
-                disabled={pending}
+                disabled={pending || isPortfolioDemo}
                 onClick={(event) => select({ mode: "new" }, event.currentTarget)}
-                className={modulePrimaryActionClass}
+                className={`${modulePrimaryActionClass} disabled:opacity-50 disabled:hover:bg-sky-700`}
               >
                 Nuevo profesional
               </button>
@@ -951,7 +950,7 @@ export function ProfessionalsScreen({
                       <th className="p-4">Matrícula</th>
                       <th className="p-4">Duración habitual</th>
                       <th className="p-4">Estado</th>
-                      <th className="p-4">{isPortfolioDemo ? "Ver" : "Acciones"}</th>
+                      <th className="p-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -984,34 +983,31 @@ export function ProfessionalsScreen({
                                 Disponibilidad
                               </Link>
                             )}
-                            {!isPortfolioDemo && (
-                              <button
-                                type="button"
-                                disabled={
-                                  pending ||
-                                  (refreshBlock?.professionalCenterId === professional.id &&
-                                    refreshBlock.snapshot === professionals)
-                                }
-                                onClick={(event) =>
-                                  select({ mode: "edit", professional }, event.currentTarget)
-                                }
-                                className={`${tableActionClass} disabled:opacity-50`}
-                              >
-                                Configurar
-                              </button>
-                            )}
-                            {!isPortfolioDemo && (
-                              <button
-                                type="button"
-                                disabled={pending}
-                                onClick={(event) =>
-                                  select({ mode: "state", professional }, event.currentTarget)
-                                }
-                                className={`${tableActionClass} disabled:opacity-50`}
-                              >
-                                {professional.isActive ? "Desactivar" : "Activar"}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              disabled={
+                                isPortfolioDemo ||
+                                pending ||
+                                (refreshBlock?.professionalCenterId === professional.id &&
+                                  refreshBlock.snapshot === professionals)
+                              }
+                              onClick={(event) =>
+                                select({ mode: "edit", professional }, event.currentTarget)
+                              }
+                              className={`${tableActionClass} disabled:opacity-50 disabled:hover:bg-white`}
+                            >
+                              Configurar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pending || isPortfolioDemo}
+                              onClick={(event) =>
+                                select({ mode: "state", professional }, event.currentTarget)
+                              }
+                              className={`${tableActionClass} disabled:opacity-50 disabled:hover:bg-white`}
+                            >
+                              {professional.isActive ? "Desactivar" : "Activar"}
+                            </button>
                           </div>
                         </td>
                       </tr>

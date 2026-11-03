@@ -76,6 +76,34 @@ afterEach(() => {
 });
 
 describe("AvailabilityScreen", () => {
+  it("keeps schedule controls visible but disabled in portfolio mode", () => {
+    render(
+      <AvailabilityScreen
+        centerId={centerId}
+        centerName="Centro Salud"
+        timezone="America/Argentina/Buenos_Aires"
+        professional={professional}
+        intervals={intervals}
+        canEdit
+        canViewProfessionals
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Volver a disponibilidad" })).toBeVisible();
+    expect(screen.getByRole("spinbutton", { name: "Minutos" })).toBeDisabled();
+    for (const name of ["Guardar duración", "Editar", "Quitar"]) {
+      for (const button of screen.getAllByRole("button", { name })) {
+        expect(button).toBeDisabled();
+        fireEvent.click(button);
+      }
+    }
+    for (const button of screen.getAllByRole("button", { name: "+ Agregar horario" })) {
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(create).not.toHaveBeenCalled();
+  });
   it("shows seven vertical days, no redundant notice, and duration", () => {
     show([]);
     expect(screen.getByRole("heading", { name: "Disponibilidad", level: 1 })).toBeVisible();

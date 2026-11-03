@@ -38,12 +38,14 @@ export function ManageCenterMembershipPanel({
   fullWidth = false,
   professionalCenters,
   user,
+  isPortfolioDemo = false,
 }: {
   activeAdminCount: number;
   centerId: string;
   fullWidth?: boolean;
   professionalCenters: ManageableProfessionalCenter[];
   user: CenterUserListItem;
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -269,7 +271,8 @@ export function ManageCenterMembershipPanel({
   return (
     <div className={fullWidth ? "w-full min-w-0" : "min-w-44"}>
       <button
-        className={`min-h-11 rounded-md border border-sky-300 px-3 py-2 font-semibold text-sky-800 hover:bg-sky-50 ${fullWidth ? "w-full" : ""}`}
+        className={`min-h-11 rounded-md border border-sky-300 px-3 py-2 font-semibold text-sky-800 enabled:hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50 ${fullWidth ? "w-full" : ""}`}
+        disabled={isPortfolioDemo}
         onClick={() => setIsOpen(true)}
         ref={triggerRef}
         type="button"
@@ -277,7 +280,7 @@ export function ManageCenterMembershipPanel({
         Administrar acceso
       </button>
 
-      {isOpen
+      {isOpen && !isPortfolioDemo
         ? createPortal(
             <dialog
               aria-label={discardRequested ? "Descartar cambios" : undefined}

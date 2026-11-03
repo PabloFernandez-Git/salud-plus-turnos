@@ -63,6 +63,7 @@ describe("appointment list", () => {
         isPortfolioDemo
       />,
     );
+    expect(screen.getByRole("button", { name: "Crear turno" })).toBeDisabled();
     expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Buscar turnos" })).toBeVisible();
     expect(screen.getByRole("link", { name: /Ver detalle/ })).toHaveAttribute(

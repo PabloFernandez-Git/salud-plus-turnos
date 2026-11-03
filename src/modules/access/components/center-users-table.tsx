@@ -85,15 +85,14 @@ export function CenterUsersTable({
                 </dd>
               </div>
             </dl>
-            {!isPortfolioDemo && (
-              <ManageCenterMembershipPanel
-                activeAdminCount={activeAdminCount}
-                centerId={centerId}
-                professionalCenters={professionalCenters}
-                user={user}
-                fullWidth
-              />
-            )}
+            <ManageCenterMembershipPanel
+              activeAdminCount={activeAdminCount}
+              centerId={centerId}
+              professionalCenters={professionalCenters}
+              user={user}
+              fullWidth
+              isPortfolioDemo={isPortfolioDemo}
+            />
           </article>
         ))}
       </div>
@@ -101,18 +100,16 @@ export function CenterUsersTable({
         <table className="w-full min-w-[900px] border-collapse text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
             <tr>
-              {[
-                "Nombre",
-                "Email",
-                "Rol",
-                "Estado",
-                "Profesional asociado",
-                ...(!isPortfolioDemo ? ["Acciones"] : []),
-              ].map((heading) => (
-                <th className="whitespace-nowrap border-b border-slate-200 px-4 py-3" key={heading}>
-                  {heading}
-                </th>
-              ))}
+              {["Nombre", "Email", "Rol", "Estado", "Profesional asociado", "Acciones"].map(
+                (heading) => (
+                  <th
+                    className="whitespace-nowrap border-b border-slate-200 px-4 py-3"
+                    key={heading}
+                  >
+                    {heading}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -137,16 +134,15 @@ export function CenterUsersTable({
                 <td className={`px-4 py-4${user.professional ? "" : " text-center"}`}>
                   <ProfessionalAssociation user={user} />
                 </td>
-                {!isPortfolioDemo && (
-                  <td className="px-4 py-4">
-                    <ManageCenterMembershipPanel
-                      activeAdminCount={activeAdminCount}
-                      centerId={centerId}
-                      professionalCenters={professionalCenters}
-                      user={user}
-                    />
-                  </td>
-                )}
+                <td className="px-4 py-4">
+                  <ManageCenterMembershipPanel
+                    activeAdminCount={activeAdminCount}
+                    centerId={centerId}
+                    professionalCenters={professionalCenters}
+                    user={user}
+                    isPortfolioDemo={isPortfolioDemo}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>

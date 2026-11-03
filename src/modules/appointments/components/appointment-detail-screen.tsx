@@ -51,11 +51,11 @@ const transitionCopy: Record<Transition, { title: string; description: string; b
   },
 };
 const buttonClass =
-  "min-h-11 cursor-pointer rounded-md bg-sky-700 px-4 py-2 font-semibold text-white hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-11 cursor-pointer rounded-md bg-sky-700 px-4 py-2 font-semibold text-white enabled:hover:bg-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 const secondaryClass =
-  "min-h-11 cursor-pointer rounded-md border border-sky-700 px-4 py-2 font-semibold text-sky-800 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-11 cursor-pointer rounded-md border border-sky-700 px-4 py-2 font-semibold text-sky-800 enabled:hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-50";
 const dangerClass =
-  "min-h-11 cursor-pointer rounded-md border border-red-300 px-4 py-2 font-semibold text-red-800 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-50";
+  "min-h-11 cursor-pointer rounded-md border border-red-300 px-4 py-2 font-semibold text-red-800 enabled:hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:cursor-not-allowed disabled:opacity-50";
 
 function ClockIcon() {
   return (
@@ -454,185 +454,184 @@ function AppointmentDetailBody({
             </p>
           )}
         </section>
-        {!isPortfolioDemo && (
-          <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-            <h2 ref={actionsHeading} tabIndex={-1} className="text-xl font-semibold text-slate-900">
-              Acciones del turno
-            </h2>
-            <div
-              className={`mt-4 grid gap-2 sm:flex sm:flex-wrap ${actions.length <= 1 ? "grid-cols-1" : "grid-cols-2"}`}
-            >
-              {actions.map((status, index) => (
-                <button
-                  type="button"
-                  key={status}
-                  className={`${
-                    status === "CONFIRMED"
-                      ? buttonClass
-                      : status === "CANCELLED"
-                        ? dangerClass
-                        : secondaryClass
-                  } min-w-0 w-full text-sm leading-tight sm:w-auto sm:text-base ${actions.length === 3 && index === 0 ? "col-span-2 sm:col-auto" : ""}`}
-                  aria-describedby={
-                    isTimeBlocked(status, appointment, now) ? `time-${status}` : undefined
-                  }
-                  title={
-                    isTimeBlocked(status, appointment, now)
-                      ? status === "CONFIRMED"
-                        ? "El turno ya comenzó"
-                        : status === "ATTENDED"
-                          ? "Disponible desde el inicio del turno"
-                          : "Disponible cuando finalice el turno"
-                      : undefined
-                  }
-                  onClick={(event) => {
-                    confirmationTrigger.current = event.currentTarget;
-                    setFeedback(null);
-                    setConfirmation(status);
-                  }}
-                  disabled={
-                    pending ||
-                    blocked ||
-                    (editingNote && noteDirty) ||
-                    isTimeBlocked(status, appointment, now)
-                  }
-                >
-                  {status === "CONFIRMED"
-                    ? "Confirmar"
-                    : status === "ATTENDED"
-                      ? "Marcar atendido"
-                      : status === "NO_SHOW"
-                        ? "Marcar ausente"
-                        : "Cancelar turno"}
-                </button>
-              ))}
-            </div>
-            {actions.some((status) => isTimeBlocked(status, appointment, now)) && (
-              <div className="mt-5 space-y-2 text-sm leading-6 text-slate-600">
-                {actions
-                  .filter((status) => isTimeBlocked(status, appointment, now))
-                  .map((status) => (
-                    <p
-                      key={status}
-                      id={`time-${status}`}
-                      className={status === "CONFIRMED" ? undefined : "flex items-start gap-2"}
-                    >
-                      {status !== "CONFIRMED" && <ClockIcon />}
-                      <span className="min-w-0">
-                        {status === "CONFIRMED"
-                          ? "El turno ya comenzó; no se puede confirmar."
-                          : status === "ATTENDED"
-                            ? "Podés marcar el turno como atendido desde su hora de inicio."
-                            : "Podés registrar la ausencia cuando finalice el turno."}
-                      </span>
-                    </p>
-                  ))}
-              </div>
-            )}
-            {confirmation && (
-              <dialog
-                ref={confirmationDialog}
-                aria-labelledby="status-dialog-title"
-                aria-describedby="status-dialog-description"
-                aria-modal="true"
-                onCancel={(event) => {
-                  event.preventDefault();
-                  closeConfirmation();
+        <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+          <h2 ref={actionsHeading} tabIndex={-1} className="text-xl font-semibold text-slate-900">
+            Acciones del turno
+          </h2>
+          <div
+            className={`mt-4 grid gap-2 sm:flex sm:flex-wrap ${actions.length <= 1 ? "grid-cols-1" : "grid-cols-2"}`}
+          >
+            {actions.map((status, index) => (
+              <button
+                type="button"
+                key={status}
+                className={`${
+                  status === "CONFIRMED"
+                    ? buttonClass
+                    : status === "CANCELLED"
+                      ? dangerClass
+                      : secondaryClass
+                } min-w-0 w-full text-sm leading-tight sm:w-auto sm:text-base ${actions.length === 3 && index === 0 ? "col-span-2 sm:col-auto" : ""}`}
+                aria-describedby={
+                  isTimeBlocked(status, appointment, now) ? `time-${status}` : undefined
+                }
+                title={
+                  isTimeBlocked(status, appointment, now)
+                    ? status === "CONFIRMED"
+                      ? "El turno ya comenzó"
+                      : status === "ATTENDED"
+                        ? "Disponible desde el inicio del turno"
+                        : "Disponible cuando finalice el turno"
+                    : undefined
+                }
+                onClick={(event) => {
+                  confirmationTrigger.current = event.currentTarget;
+                  setFeedback(null);
+                  setConfirmation(status);
                 }}
-                className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-950/50"
+                disabled={
+                  isPortfolioDemo ||
+                  pending ||
+                  blocked ||
+                  (editingNote && noteDirty) ||
+                  isTimeBlocked(status, appointment, now)
+                }
               >
-                <div className="space-y-4 p-5 sm:p-6">
-                  <div>
-                    <h2
-                      id="status-dialog-title"
-                      tabIndex={-1}
-                      className="text-xl font-semibold text-slate-950"
-                    >
-                      {transitionCopy[confirmation].title}
-                    </h2>
-                    <p id="status-dialog-description" className="mt-2 text-slate-700">
-                      {transitionCopy[confirmation].description}
-                    </p>
-                  </div>
-                  <dl className="min-w-0 rounded-lg bg-slate-50 p-4 text-sm text-slate-800">
-                    <div className="flex flex-wrap gap-x-2">
-                      <dt className="font-semibold">Paciente:</dt>
-                      <dd className="break-words">
-                        {appointment.patient_first_name} {appointment.patient_last_name}
-                      </dd>
-                    </div>
-                    <div className="flex flex-wrap gap-x-2">
-                      <dt className="font-semibold">Fecha:</dt>
-                      <dd>{readableCivilDate(localStart.date)}</dd>
-                    </div>
-                    <div className="flex flex-wrap gap-x-2">
-                      <dt className="font-semibold">Horario:</dt>
-                      <dd>
-                        {localStart.time}–{localEnd.time}
-                        {localEnd.date !== localStart.date
-                          ? ` (${readableCivilDate(localEnd.date)})`
-                          : ""}
-                        {appointmentHasAmbiguousLocalTime(appointment.starts_at, timezone)
-                          ? ` · ${appointmentTimezoneLabel(appointment.starts_at, timezone)}`
-                          : ""}
-                      </dd>
-                    </div>
-                  </dl>
-                  {isTimeBlocked(confirmation, appointment, now) && (
-                    <p
-                      role="status"
-                      className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
-                    >
-                      {confirmation === "CONFIRMED"
-                        ? "El turno ya comenzó; no se puede confirmar. Volvé al detalle y recargá el turno."
-                        : confirmation === "ATTENDED"
-                          ? "Disponible desde el inicio del turno."
-                          : "Disponible cuando finalice el turno."}
-                    </p>
-                  )}
-                  <AppointmentFeedback result={feedback} />
-                  {blocked && (
-                    <button
-                      type="button"
-                      className={secondaryClass}
-                      onClick={() => window.location.reload()}
-                    >
-                      Recargar y verificar el turno
-                    </button>
-                  )}
-                  <div className="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      className={`${secondaryClass} min-w-0 flex-1 text-center sm:flex-none`}
-                      disabled={pending || blocked}
-                      onClick={closeConfirmation}
-                    >
-                      Volver
-                    </button>
-                    <button
-                      type="button"
-                      className={`${confirmation === "CANCELLED" ? "min-h-11 rounded-md bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50" : buttonClass} min-w-0 flex-1 text-center leading-tight sm:flex-none`}
-                      disabled={pending || blocked || isTimeBlocked(confirmation, appointment, now)}
-                      onClick={() => void changeStatus(confirmation)}
-                    >
-                      {transitionCopy[confirmation].button}
-                    </button>
-                  </div>
+                {status === "CONFIRMED"
+                  ? "Confirmar"
+                  : status === "ATTENDED"
+                    ? "Marcar atendido"
+                    : status === "NO_SHOW"
+                      ? "Marcar ausente"
+                      : "Cancelar turno"}
+              </button>
+            ))}
+          </div>
+          {actions.some((status) => isTimeBlocked(status, appointment, now)) && (
+            <div className="mt-5 space-y-2 text-sm leading-6 text-slate-600">
+              {actions
+                .filter((status) => isTimeBlocked(status, appointment, now))
+                .map((status) => (
+                  <p
+                    key={status}
+                    id={`time-${status}`}
+                    className={status === "CONFIRMED" ? undefined : "flex items-start gap-2"}
+                  >
+                    {status !== "CONFIRMED" && <ClockIcon />}
+                    <span className="min-w-0">
+                      {status === "CONFIRMED"
+                        ? "El turno ya comenzó; no se puede confirmar."
+                        : status === "ATTENDED"
+                          ? "Podés marcar el turno como atendido desde su hora de inicio."
+                          : "Podés registrar la ausencia cuando finalice el turno."}
+                    </span>
+                  </p>
+                ))}
+            </div>
+          )}
+          {confirmation && (
+            <dialog
+              ref={confirmationDialog}
+              aria-labelledby="status-dialog-title"
+              aria-describedby="status-dialog-description"
+              aria-modal="true"
+              onCancel={(event) => {
+                event.preventDefault();
+                closeConfirmation();
+              }}
+              className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 shadow-xl backdrop:bg-slate-950/50"
+            >
+              <div className="space-y-4 p-5 sm:p-6">
+                <div>
+                  <h2
+                    id="status-dialog-title"
+                    tabIndex={-1}
+                    className="text-xl font-semibold text-slate-950"
+                  >
+                    {transitionCopy[confirmation].title}
+                  </h2>
+                  <p id="status-dialog-description" className="mt-2 text-slate-700">
+                    {transitionCopy[confirmation].description}
+                  </p>
                 </div>
-              </dialog>
-            )}
-            {editingNote && noteDirty && (
-              <p className="mt-3 text-sm text-slate-600">
-                Guardá o cancelá la edición de la nota para cambiar el estado.
-              </p>
-            )}
-            {actions.length === 0 && (
-              <p className="mt-2 text-slate-600">
-                El estado es terminal; no permite nuevas transiciones.
-              </p>
-            )}
-          </section>
-        )}
+                <dl className="min-w-0 rounded-lg bg-slate-50 p-4 text-sm text-slate-800">
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Paciente:</dt>
+                    <dd className="break-words">
+                      {appointment.patient_first_name} {appointment.patient_last_name}
+                    </dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Fecha:</dt>
+                    <dd>{readableCivilDate(localStart.date)}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2">
+                    <dt className="font-semibold">Horario:</dt>
+                    <dd>
+                      {localStart.time}–{localEnd.time}
+                      {localEnd.date !== localStart.date
+                        ? ` (${readableCivilDate(localEnd.date)})`
+                        : ""}
+                      {appointmentHasAmbiguousLocalTime(appointment.starts_at, timezone)
+                        ? ` · ${appointmentTimezoneLabel(appointment.starts_at, timezone)}`
+                        : ""}
+                    </dd>
+                  </div>
+                </dl>
+                {isTimeBlocked(confirmation, appointment, now) && (
+                  <p
+                    role="status"
+                    className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+                  >
+                    {confirmation === "CONFIRMED"
+                      ? "El turno ya comenzó; no se puede confirmar. Volvé al detalle y recargá el turno."
+                      : confirmation === "ATTENDED"
+                        ? "Disponible desde el inicio del turno."
+                        : "Disponible cuando finalice el turno."}
+                  </p>
+                )}
+                <AppointmentFeedback result={feedback} />
+                {blocked && (
+                  <button
+                    type="button"
+                    className={secondaryClass}
+                    onClick={() => window.location.reload()}
+                  >
+                    Recargar y verificar el turno
+                  </button>
+                )}
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    className={`${secondaryClass} min-w-0 flex-1 text-center sm:flex-none`}
+                    disabled={pending || blocked}
+                    onClick={closeConfirmation}
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="button"
+                    className={`${confirmation === "CANCELLED" ? "min-h-11 rounded-md bg-red-700 px-4 py-2 font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700 disabled:opacity-50" : buttonClass} min-w-0 flex-1 text-center leading-tight sm:flex-none`}
+                    disabled={pending || blocked || isTimeBlocked(confirmation, appointment, now)}
+                    onClick={() => void changeStatus(confirmation)}
+                  >
+                    {transitionCopy[confirmation].button}
+                  </button>
+                </div>
+              </div>
+            </dialog>
+          )}
+          {editingNote && noteDirty && (
+            <p className="mt-3 text-sm text-slate-600">
+              Guardá o cancelá la edición de la nota para cambiar el estado.
+            </p>
+          )}
+          {actions.length === 0 && (
+            <p className="mt-2 text-slate-600">
+              El estado es terminal; no permite nuevas transiciones.
+            </p>
+          )}
+        </section>
         {staff && "administrative_note" in appointment && (
           <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
             <h2 className="text-xl font-semibold text-slate-900">Nota administrativa</h2>
@@ -681,43 +680,40 @@ function AppointmentDetailBody({
                     ? "Sin nota administrativa."
                     : appointment.administrative_note}
                 </p>
-                {!isPortfolioDemo && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={secondaryClass}
-                      disabled={pending || blocked}
-                      onClick={() => {
-                        setNote(appointment.administrative_note ?? "");
-                        setEditingNote(true);
-                      }}
-                    >
-                      {appointment.administrative_note === null ||
-                      appointment.administrative_note === ""
-                        ? "Agregar nota"
-                        : "Editar nota"}
-                    </button>
-                    {appointment.administrative_note !== null &&
-                      appointment.administrative_note !== "" && (
-                        <button
-                          type="button"
-                          className={dangerClass}
-                          disabled={pending || blocked}
-                          onClick={() => {
-                            if (window.confirm("¿Eliminar la nota administrativa?")) saveNote(null);
-                          }}
-                        >
-                          Eliminar nota
-                        </button>
-                      )}
-                  </div>
-                )}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={secondaryClass}
+                    disabled={pending || blocked || isPortfolioDemo}
+                    onClick={() => {
+                      setNote(appointment.administrative_note ?? "");
+                      setEditingNote(true);
+                    }}
+                  >
+                    {appointment.administrative_note === null ||
+                    appointment.administrative_note === ""
+                      ? "Agregar nota"
+                      : "Editar nota"}
+                  </button>
+                  {appointment.administrative_note !== null &&
+                    appointment.administrative_note !== "" && (
+                      <button
+                        type="button"
+                        className={dangerClass}
+                        disabled={pending || blocked || isPortfolioDemo}
+                        onClick={() => {
+                          if (window.confirm("¿Eliminar la nota administrativa?")) saveNote(null);
+                        }}
+                      >
+                        Eliminar nota
+                      </button>
+                    )}
+                </div>
               </>
             )}
           </section>
         )}
-        {!isPortfolioDemo &&
-          staff &&
+        {staff &&
           "specialty_id" in appointment &&
           (appointment.status === "PENDING" || appointment.status === "CONFIRMED") && (
             <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -729,7 +725,7 @@ function AppointmentDetailBody({
                 ref={scheduleTrigger}
                 type="button"
                 className={`${secondaryClass} mt-3`}
-                disabled={pending || blocked || (editingNote && noteDirty)}
+                disabled={pending || blocked || (editingNote && noteDirty) || isPortfolioDemo}
                 onClick={() => setEditingSchedule(true)}
               >
                 Elegir nuevo horario

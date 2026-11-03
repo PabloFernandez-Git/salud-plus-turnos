@@ -37,7 +37,10 @@ describe("center settings screen", () => {
     render(<CenterSettingsScreen settings={settings} isPortfolioDemo />);
     expect(screen.getByLabelText("Nombre del centro")).toHaveValue("Centro A");
     expect(screen.getByLabelText("Nombre del centro")).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Guardar cambios" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    expect(updateCenterSettingsAction).not.toHaveBeenCalled();
     expect(screen.getByText(/Buenos Aires, Argentina/)).toBeVisible();
   });
 

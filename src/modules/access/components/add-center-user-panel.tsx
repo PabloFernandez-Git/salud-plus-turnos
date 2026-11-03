@@ -711,10 +711,12 @@ export function AddCenterUserPanel({
   actorUserId,
   centerId,
   professionalCenters,
+  isPortfolioDemo = false,
 }: {
   actorUserId: string;
   centerId: string;
   professionalCenters: AvailableProfessionalCenter[];
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const {
@@ -859,7 +861,8 @@ export function AddCenterUserPanel({
             </p>
           </div>
           <button
-            className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white enabled:hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isPortfolioDemo}
             onClick={() => setIsOpen(true)}
             ref={triggerRef}
             type="button"
@@ -869,7 +872,7 @@ export function AddCenterUserPanel({
         </div>
       </section>
 
-      {isOpen
+      {isOpen && !isPortfolioDemo
         ? createPortal(
             <dialog
               aria-label={discardRequested ? "Cerrar alta" : undefined}

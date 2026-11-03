@@ -25,7 +25,7 @@ const professionalId = "22222222-2222-4222-8222-222222222222";
 afterEach(cleanup);
 
 describe("AgendaCalendar", () => {
-  it("keeps calendar navigation and filters without booking controls in portfolio mode", () => {
+  it("keeps calendar navigation and filters with creation disabled in portfolio mode", () => {
     render(
       <AgendaCalendar
         centerId={centerId}
@@ -40,6 +40,7 @@ describe("AgendaCalendar", () => {
         isPortfolioDemo
       />,
     );
+    expect(screen.getByRole("button", { name: "Crear turno" })).toBeDisabled();
     expect(screen.queryByRole("link", { name: "Crear turno" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Semana" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Aplicar filtros" })).toBeVisible();

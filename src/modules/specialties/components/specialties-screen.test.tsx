@@ -68,7 +68,7 @@ afterEach(() => {
 });
 
 describe("SpecialtiesScreen", () => {
-  it("keeps the list visible without write controls in portfolio mode", () => {
+  it("keeps write controls visible but disabled in portfolio mode", () => {
     render(
       <SpecialtiesScreen
         centerId={centerId}
@@ -79,9 +79,12 @@ describe("SpecialtiesScreen", () => {
       />,
     );
     expect(screen.getByText("Cardiología")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Nueva especialidad" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Desactivar" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Acciones" })).toBeVisible();
+    for (const name of ["Nueva especialidad", "Editar", "Desactivar"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

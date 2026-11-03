@@ -1,7 +1,15 @@
 # TASK-PORTFOLIO-UX — implementación local
 
+## Ajuste posterior: acciones visibles y deshabilitadas
+
+- Las acciones de escritura vuelven a sus lugares en listados, encabezados y detalles. En DEMO usan botones `disabled` nativos; los enlaces a crear turno se convierten en botones deshabilitados sin ruta de navegación.
+- Agenda vuelve a permitir consultar horarios disponibles mediante selección de franja; el enlace final para crear turno queda deshabilitado. Las vistas y filtros siguen operables.
+- El detalle de paciente mantiene sus campos de lectura y muestra Guardar, Desactivar o Reactivar deshabilitados. Usuarios y configuración recuperan columnas y acciones originales con bloqueo en DEMO.
+- Fuera de DEMO se conservan los controles y flujos CRUD. Las protecciones de Server Actions y PostgreSQL siguen intactas.
+- Verificación del ajuste: 211/211 pruebas en nueve suites focales, typecheck, ESLint focal y build de producción con `PORTFOLIO_DEMO_MODE=true` y webpack: PASS. Turbopack no admite el junction local de `node_modules` fuera del worktree; el build con webpack pasó. `pnpm bootstrap` tampoco puede usar ese junction, por lo que se ejecutaron las herramientas instaladas directamente con Node.
+
 - Las páginas de servidor leen `PORTFOLIO_DEMO_MODE` y pasan `isPortfolioDemo` a las vistas afectadas. El layout muestra el aviso: «Disponible en la versión completa. Esta demo es de solo lectura».
-- En DEMO se ocultan controles de creación, edición, activación, desactivación, estado, nota y reprogramación. Agenda no permite seleccionar horarios para crear turnos. Pacientes y configuración muestran datos sin campos editables; usuarios conserva listado y roles. La ruta directa de nuevo turno muestra un aviso y enlace de regreso.
+- El commit anterior ocultaba controles de escritura y bloqueaba la selección de horarios en Agenda; el ajuste posterior descrito arriba reemplaza esa presentación. La ruta directa de nuevo turno sigue mostrando un aviso y enlace de regreso.
 - El login conserva la entrada, pero oculta recuperación; sus rutas directas muestran el aviso sin formularios. Fuera de DEMO, los componentes usan `isPortfolioDemo=false` por defecto y preservan el CRUD anterior.
 - No se tocaron Server Actions, migraciones, grants, Supabase ni TASK-029.
 

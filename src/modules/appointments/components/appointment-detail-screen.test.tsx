@@ -98,7 +98,7 @@ afterEach(() => {
 });
 
 describe("appointment detail flow", () => {
-  it("shows appointment and saved note without mutation controls in portfolio mode", () => {
+  it("shows appointment and saved note with disabled mutation controls in portfolio mode", () => {
     render(
       <AppointmentDetailScreen
         centerId={centerId}
@@ -112,9 +112,19 @@ describe("appointment detail flow", () => {
     );
     expect(screen.getByText("Nota ficticia")).toBeVisible();
     expect(screen.getByRole("link", { name: "Volver a turnos" })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Acciones del turno" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Editar nota" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Elegir nuevo horario" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Acciones del turno" })).toBeVisible();
+    for (const name of [
+      "Confirmar",
+      "Cancelar turno",
+      "Editar nota",
+      "Eliminar nota",
+      "Elegir nuevo horario",
+    ]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(transitionAppointmentStatusAction).not.toHaveBeenCalled();
   });
 

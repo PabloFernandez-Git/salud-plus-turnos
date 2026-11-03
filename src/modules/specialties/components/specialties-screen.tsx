@@ -237,13 +237,12 @@ export function SpecialtiesScreen({
               : "Administrá las especialidades del centro"
           }
           actions={
-            !loadFailed &&
-            !isPortfolioDemo && (
+            !loadFailed && (
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || isPortfolioDemo}
                 onClick={(event) => select({ mode: "create" }, event.currentTarget)}
-                className={modulePrimaryActionClass}
+                className={`${modulePrimaryActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-sky-700`}
               >
                 Nueva especialidad
               </button>
@@ -454,7 +453,7 @@ export function SpecialtiesScreen({
                       <th className="p-4">Nombre</th>
                       <th className="p-4">Descripción</th>
                       <th className="p-4">Estado</th>
-                      {!isPortfolioDemo && <th className="p-4">Acciones</th>}
+                      <th className="p-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -465,32 +464,30 @@ export function SpecialtiesScreen({
                           {specialty.description ?? "Sin descripción"}
                         </td>
                         <td className="p-4">{specialty.is_active ? "Activa" : "Inactiva"}</td>
-                        {!isPortfolioDemo && (
-                          <td className="min-w-max p-4 whitespace-nowrap">
-                            <div className="flex w-max flex-nowrap items-center gap-2">
-                              <button
-                                disabled={isPending}
-                                onClick={(event) =>
-                                  select({ mode: "edit", specialty }, event.currentTarget)
-                                }
-                                type="button"
-                                className={tableActionClass}
-                              >
-                                Editar
-                              </button>
-                              <button
-                                disabled={isPending}
-                                onClick={(event) =>
-                                  select({ mode: "state", specialty }, event.currentTarget)
-                                }
-                                type="button"
-                                className={tableActionClass}
-                              >
-                                {specialty.is_active ? "Desactivar" : "Activar"}
-                              </button>
-                            </div>
-                          </td>
-                        )}
+                        <td className="min-w-max p-4 whitespace-nowrap">
+                          <div className="flex w-max flex-nowrap items-center gap-2">
+                            <button
+                              disabled={isPending || isPortfolioDemo}
+                              onClick={(event) =>
+                                select({ mode: "edit", specialty }, event.currentTarget)
+                              }
+                              type="button"
+                              className={`${tableActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white`}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              disabled={isPending || isPortfolioDemo}
+                              onClick={(event) =>
+                                select({ mode: "state", specialty }, event.currentTarget)
+                              }
+                              type="button"
+                              className={`${tableActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white`}
+                            >
+                              {specialty.is_active ? "Desactivar" : "Activar"}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

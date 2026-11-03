@@ -74,11 +74,19 @@ export function AppointmentsList({
           }
           actions={
             role !== "PROFESSIONAL" &&
-            !isPortfolioDemo && (
+            (isPortfolioDemo ? (
+              <button
+                type="button"
+                disabled
+                className={`${modulePrimaryActionClass} cursor-not-allowed opacity-50 disabled:hover:bg-sky-700`}
+              >
+                Crear turno
+              </button>
+            ) : (
               <Link className={`${modulePrimaryActionClass} cursor-pointer`} href={`${base}/new`}>
                 Crear turno
               </Link>
-            )
+            ))
           }
         />
         <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">

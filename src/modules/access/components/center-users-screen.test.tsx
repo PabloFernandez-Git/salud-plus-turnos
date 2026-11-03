@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -78,7 +78,7 @@ describe("Center user navigation", () => {
 });
 
 describe("CenterUsersScreen", () => {
-  it("keeps identities and roles visible without provisioning or membership controls in portfolio mode", () => {
+  it("keeps identities and roles visible with disabled controls in portfolio mode", () => {
     render(
       <CenterUsersScreen
         actorUserId="99999999-9999-4999-8999-999999999999"
@@ -92,10 +92,14 @@ describe("CenterUsersScreen", () => {
       />,
     );
     expect(screen.getByRole("row", { name: /Ana Admin/ })).toBeVisible();
-    expect(screen.queryByRole("columnheader", { name: "Acciones" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Agregar|Editar|Desactivar/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Acciones" })).toBeVisible();
+    for (const button of screen.getAllByRole("button", {
+      name: /Agregar usuario|Administrar acceso/,
+    })) {
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders identity, human role, membership state and Professional association", () => {

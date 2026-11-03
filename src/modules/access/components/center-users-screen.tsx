@@ -48,13 +48,12 @@ export function CenterUsersScreen({
           </section>
         ) : (
           <>
-            {!isPortfolioDemo && (
-              <AddCenterUserPanel
-                actorUserId={actorUserId}
-                centerId={centerId}
-                professionalCenters={professionalCenters}
-              />
-            )}
+            <AddCenterUserPanel
+              actorUserId={actorUserId}
+              centerId={centerId}
+              professionalCenters={professionalCenters}
+              isPortfolioDemo={isPortfolioDemo}
+            />
 
             <section className="space-y-3" aria-labelledby="center-users-heading">
               <div>

@@ -67,6 +67,7 @@ export function AvailabilityScreen({
   intervals,
   canEdit,
   canViewProfessionals,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
@@ -75,6 +76,7 @@ export function AvailabilityScreen({
   intervals: AvailabilityInterval[];
   canEdit: boolean;
   canViewProfessionals: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const router = useRouter();
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -397,7 +399,7 @@ export function AvailabilityScreen({
                     setDurationDraft({ snapshot: durationSnapshot, value: event.target.value });
                     setFeedback(null);
                   }}
-                  disabled={isPending}
+                  disabled={isPending || isPortfolioDemo}
                   {...formFieldErrorProps(feedback?.fieldErrors?.minutes, durationErrorId)}
                   className="mt-1 block min-h-11 w-36 rounded-md border border-slate-300 px-3 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-700"
                 />
@@ -405,7 +407,7 @@ export function AvailabilityScreen({
               </label>
               <button
                 type="submit"
-                disabled={isPending || !durationChanged}
+                disabled={isPending || !durationChanged || isPortfolioDemo}
                 className={primaryClass}
               >
                 {isPending ? "Guardando…" : "Guardar duración"}
@@ -435,7 +437,7 @@ export function AvailabilityScreen({
                   {canEdit && (
                     <button
                       type="button"
-                      disabled={isPending}
+                      disabled={isPending || isPortfolioDemo}
                       onClick={(event) =>
                         openEditor({ mode: "create", weekday }, event.currentTarget)
                       }
@@ -479,7 +481,7 @@ export function AvailabilityScreen({
                             <div className="ml-auto flex shrink-0 gap-2">
                               <button
                                 type="button"
-                                disabled={isPending}
+                                disabled={isPending || isPortfolioDemo}
                                 onClick={(event) =>
                                   openEditor({ mode: "update", interval }, event.currentTarget)
                                 }
@@ -489,7 +491,7 @@ export function AvailabilityScreen({
                               </button>
                               <button
                                 type="button"
-                                disabled={isPending}
+                                disabled={isPending || isPortfolioDemo}
                                 onClick={(event) =>
                                   openEditor({ mode: "remove", interval }, event.currentTarget)
                                 }

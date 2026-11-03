@@ -1384,23 +1384,21 @@ function Administration({
               <p className="text-sm text-slate-600">
                 Uso administrativo. No registrar información clínica.
               </p>
-              {!isPortfolioDemo && (
-                <button
-                  disabled={pending || stale || !detail.isActive || !canSave}
-                  type="submit"
-                  className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
-                >
-                  Guardar cambios
-                </button>
-              )}
+              <button
+                disabled={pending || stale || !detail.isActive || !canSave || isPortfolioDemo}
+                type="submit"
+                className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Guardar cambios
+              </button>
             </form>
-            {detail.isActive && !isPortfolioDemo && (
+            {detail.isActive && (
               <div className="space-y-3">
                 <button
                   type="button"
-                  disabled={pending || stale}
+                  disabled={pending || stale || isPortfolioDemo}
                   onClick={() => setConfirmDeactivate(true)}
-                  className="min-h-11 rounded-md border border-rose-300 bg-white px-4 py-2.5 text-sm font-semibold text-rose-800 hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:opacity-50"
+                  className="min-h-11 rounded-md border border-rose-300 bg-white px-4 py-2.5 text-sm font-semibold text-rose-800 enabled:hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Desactivar paciente
                 </button>
@@ -1438,7 +1436,7 @@ function Administration({
                 )}
               </div>
             )}
-            {!detail.isActive && !isPortfolioDemo && (
+            {!detail.isActive && (
               <form className="space-y-3" onSubmit={verifyReactivation}>
                 <h3 className="font-semibold">Reactivar en este centro</h3>
                 <p className="text-sm text-slate-600">
@@ -1455,11 +1453,12 @@ function Administration({
                     setReactivation(null);
                   }}
                   required
+                  disabled={isPortfolioDemo}
                 />
                 <button
                   type="submit"
-                  disabled={pending || stale}
-                  className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:opacity-50"
+                  disabled={pending || stale || isPortfolioDemo}
+                  className="min-h-11 rounded bg-sky-700 px-4 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Comprobar para reactivar
                 </button>
@@ -1545,19 +1544,18 @@ export function PatientWorkspace({
   }
   return (
     <>
-      {!isPortfolioDemo && (
-        <button
-          ref={trigger}
-          type="button"
-          onClick={() => {
-            setNotice(null);
-            setRegisterOpen(true);
-          }}
-          className={modulePrimaryActionClass}
-        >
-          Registrar paciente
-        </button>
-      )}
+      <button
+        ref={trigger}
+        type="button"
+        disabled={isPortfolioDemo}
+        onClick={() => {
+          setNotice(null);
+          setRegisterOpen(true);
+        }}
+        className={`${modulePrimaryActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-sky-700`}
+      >
+        Registrar paciente
+      </button>
       {notice && !selected && (
         <p
           role="status"

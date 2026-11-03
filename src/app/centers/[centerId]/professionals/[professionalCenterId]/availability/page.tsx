@@ -60,9 +60,8 @@ export default async function AvailabilityDetailPage({
         timezone={context.center.timezone}
         professional={availability.professional}
         intervals={availability.intervals}
-        canEdit={
-          context.membership.role !== "PROFESSIONAL" && process.env.PORTFOLIO_DEMO_MODE !== "true"
-        }
+        canEdit={context.membership.role !== "PROFESSIONAL"}
+        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
         canViewProfessionals={context.membership.role === "ADMIN"}
       />
     </PageReveal>

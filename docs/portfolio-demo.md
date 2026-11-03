@@ -7,7 +7,7 @@ Esta guía usa el proyecto Supabase DEMO independiente `oygrwetmxsqgcizopezq`. N
 - Un solo centro y una sola cuenta Auth (`demo@salud-plus.example`) con membership ADMIN para aprovechar las pantallas de lectura actuales. En este proyecto, `authenticated` carece de DML y sólo conserva las RPC de lectura indicadas por la migración DEMO. La función de las credenciales es visitar la demo, no administrar el centro.
 - Signup público desactivado; datos exclusivamente ficticios del archivo `supabase/demo/seed.sql`.
 - `PORTFOLIO_DEMO_MODE=true` bloquea las Server Actions de escritura y la resolución exacta de identidades. PostgreSQL bloquea las mismas operaciones aun al llamar PostgREST directamente.
-- En modo DEMO, las pantallas muestran el aviso de solo lectura y no ofrecen controles de creación, edición, activación o desactivación. Los listados, filtros, navegación y detalles siguen disponibles. Para enseñar el flujo CRUD completo, usar capturas o una grabación en el portfolio.
+- En modo DEMO, las pantallas muestran el aviso de solo lectura y conservan visibles, pero deshabilitados, los controles de creación, edición, activación y desactivación. Los listados, filtros, navegación, disponibilidad y detalles siguen disponibles. Para enseñar el flujo CRUD completo, usar capturas o una grabación en el portfolio.
 
 ## Estado de Supabase DEMO
 
@@ -41,7 +41,7 @@ Usar la cuenta demo y verificar:
 4. Profesionales, especialidades y disponibilidad ficticios.
 5. Pacientes ficticios y sus turnos; no aparecen datos de DEV.
 6. Listado y detalle de turnos; intento de crear/editar/cambiar estado rechazado.
-7. Con JWT demo, POST/PATCH/DELETE directo a tablas `public` rechazado; llamadas directas a `staff_create_appointment`, `staff_resolve_patient_identity` y `admin_resolve_professional_by_document` rechazadas con falta de permiso. No basta con observar botones ocultos.
+7. Con JWT demo, POST/PATCH/DELETE directo a tablas `public` rechazado; llamadas directas a `staff_create_appointment`, `staff_resolve_patient_identity` y `admin_resolve_professional_by_document` rechazadas con falta de permiso. Los botones deshabilitados no sustituyen esta prueba de permisos.
 8. Consulta con un `center_id` aleatorio devuelve cero filas o acceso denegado; ningún resultado de RPC o respuesta de red incluye identidad global ajena al centro.
 
 Comprobación SQL de grants en DEMO (como operador, sin exponer tokens):

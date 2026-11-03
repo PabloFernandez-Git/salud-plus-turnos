@@ -264,7 +264,7 @@ export function AgendaCalendar({
       : { weekday: "long", day: "numeric", month: "long", year: "numeric" },
   ).format(date);
   function selectSlot({ start, resourceId }: SlotInfo) {
-    if (isPortfolioDemo || role === "PROFESSIONAL" || filters.view === "month") return;
+    if (role === "PROFESSIONAL" || filters.view === "month") return;
     if (!filters.specialtyId) {
       setSlotHelp("Elegí una especialidad en los filtros antes de buscar un horario.");
       setSlotSelection(null);
@@ -295,13 +295,23 @@ export function AgendaCalendar({
           title="Agenda"
           description="Consultá la actividad por día, semana o mes."
           actions={
-            role !== "PROFESSIONAL" && !isPortfolioDemo ? (
-              <Link
-                className={modulePrimaryActionClass}
-                href={`/centers/${centerId}/appointments/new`}
-              >
-                Crear turno
-              </Link>
+            role !== "PROFESSIONAL" ? (
+              isPortfolioDemo ? (
+                <button
+                  type="button"
+                  disabled
+                  className={`${modulePrimaryActionClass} cursor-not-allowed opacity-50 disabled:hover:bg-sky-700`}
+                >
+                  Crear turno
+                </button>
+              ) : (
+                <Link
+                  className={modulePrimaryActionClass}
+                  href={`/centers/${centerId}/appointments/new`}
+                >
+                  Crear turno
+                </Link>
+              )
             ) : null
           }
         />
@@ -411,7 +421,7 @@ export function AgendaCalendar({
             </button>
           </form>
         </section>
-        {role !== "PROFESSIONAL" && !isPortfolioDemo && (slotHelp || slotSelection) && (
+        {role !== "PROFESSIONAL" && (slotHelp || slotSelection) && (
           <section
             className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             aria-label="Horarios disponibles"
@@ -423,8 +433,10 @@ export function AgendaCalendar({
                 <>
                   <h2 className="text-lg font-semibold text-slate-900">Horarios disponibles</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    {slotSelection.date} · franja señalada {slotSelection.requestedTime}. Confirmá
-                    un horario ofrecido por el centro.
+                    {slotSelection.date} · franja señalada {slotSelection.requestedTime}.{" "}
+                    {isPortfolioDemo
+                      ? "Consultá los horarios ofrecidos por el centro."
+                      : "Confirmá un horario ofrecido por el centro."}
                   </p>
                   <div className="mt-4">
                     <BookingSelector
@@ -439,14 +451,23 @@ export function AgendaCalendar({
                       }}
                     />
                   </div>
-                  {bookingChoice && (
-                    <Link
-                      className="mt-4 inline-flex min-h-11 items-center rounded-md bg-sky-700 px-4 font-semibold text-white"
-                      href={appointmentPrefillUrl(centerId, bookingChoice)}
-                    >
-                      Continuar para crear turno
-                    </Link>
-                  )}
+                  {bookingChoice &&
+                    (isPortfolioDemo ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="mt-4 inline-flex min-h-11 cursor-not-allowed items-center rounded-md bg-sky-700 px-4 font-semibold text-white opacity-50"
+                      >
+                        Continuar para crear turno
+                      </button>
+                    ) : (
+                      <Link
+                        className="mt-4 inline-flex min-h-11 items-center rounded-md bg-sky-700 px-4 font-semibold text-white"
+                        href={appointmentPrefillUrl(centerId, bookingChoice)}
+                      >
+                        Continuar para crear turno
+                      </Link>
+                    ))}
                 </>
               )
             )}
@@ -570,7 +591,6 @@ export function AgendaCalendar({
                     toolbar={false}
                     selectable={
                       role !== "PROFESSIONAL" &&
-                      !isPortfolioDemo &&
                       filters.view !== "month" &&
                       (filters.view !== "day" || resources.length > 0)
                     }

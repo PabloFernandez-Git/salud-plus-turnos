@@ -277,25 +277,23 @@ export function CenterSettingsScreen({
               <p className="mt-1 text-sm text-slate-700">{timezoneLabel(base.timezone)}</p>
               <p className="mt-1 text-xs text-slate-600">Solo lectura</p>
             </div>
-            {!isPortfolioDemo && (
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  className={moduleSecondaryActionClass}
-                  disabled={isPending}
-                  onClick={cancel}
-                  type="button"
-                >
-                  Cancelar
-                </button>
-                <button
-                  className={`${modulePrimaryActionClass} disabled:cursor-not-allowed`}
-                  disabled={!canSave}
-                  type="submit"
-                >
-                  {isPending ? "Guardando…" : "Guardar cambios"}
-                </button>
-              </div>
-            )}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className={`${moduleSecondaryActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white`}
+                disabled={isPending || isPortfolioDemo}
+                onClick={cancel}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className={`${modulePrimaryActionClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-sky-700`}
+                disabled={!canSave || isPortfolioDemo}
+                type="submit"
+              >
+                {isPending ? "Guardando…" : "Guardar cambios"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
