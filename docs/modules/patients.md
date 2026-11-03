@@ -1,5 +1,9 @@
 # Personas y pacientes
 
+## Alcance de la demo de portfolio
+
+La base DEMO contiene sólo pacientes ficticios. La RPC `staff_resolve_patient_identity` no tiene permiso `EXECUTE` para `authenticated` en ese proyecto; lo mismo ocurre con las RPC de alta, vínculo y edición. La búsqueda tenant y el historial de turnos siguen disponibles en modo lectura. Esta mitigación elimina de la demo la respuesta de red con nombres de una identidad global encontrada pese a una fecha de nacimiento discordante.
+
 ## TASK-028 — Refinamiento UX integrado
 
 El registro conserva las etapas de identidad, datos y confirmación en un modal con encabezado visible durante el desplazamiento, campos en dos columnas desde `sm` y una columna en móvil. Nacionalidad muestra nombres del catálogo utilizado por Profesionales y envía códigos ISO alpha-2 sin cambiar la validación de servidor. Tras crear o vincular en el flujo normal, se cierra Registro, se refresca el listado con los mismos filtros y se muestra una confirmación específica; Administración se abre sólo mediante su acción existente. El flujo iniciado desde crear turno conserva la navegación al turno.

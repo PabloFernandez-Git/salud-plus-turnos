@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireRole } from "@/modules/access/server/authorization";
+import { assertPortfolioWriteAllowed } from "@/modules/access/server/portfolio-demo";
 import { getAvailabilityForProfessionalCenter } from "@/modules/availability/server/availability";
 import {
   mapAppointmentError,
@@ -41,6 +42,7 @@ async function perform<T>(
   const parsed = schema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    if (mutation) assertPortfolioWriteAllowed();
     const client = await createSupabaseServerClient();
     return { status: "SUCCESS", data: await run(parsed.data, client) };
   } catch (error) {
@@ -92,6 +94,7 @@ export async function transitionAppointmentStatusAction(
   const parsed = appointmentOperationSchemas.status.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error);
   try {
+    assertPortfolioWriteAllowed();
     const client = await createSupabaseServerClient();
     const outcome = await changeAppointmentStatus(parsed.data, client);
     if (outcome.kind === "NOT_FOUND")

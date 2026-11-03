@@ -1,96 +1,35 @@
-# Salud Plus — Gestión de Turnos
+# Salud Plus — demo de gestión de turnos
 
-Aplicación web para pequeños consultorios y centros médicos. El núcleo del producto es la **agenda**, con gestión de centros, accesos, profesionales, especialidades, pacientes, disponibilidad y turnos.
+Salud Plus es un proyecto de portfolio que muestra la operación diaria de un centro de salud ficticio. La **agenda** es el núcleo: vistas diaria, semanal y mensual, junto con dashboard, profesionales, especialidades, disponibilidad, pacientes y turnos.
 
-## Estado
+La demo pública usa un único centro y datos inventados. La cuenta de visita permite explorar en modo lectura. Los flujos de alta y edición se muestran mediante capturas o una grabación; la demo no permite guardar cambios. No está destinada a operar con pacientes reales.
 
-El proyecto se encuentra en **TASK-001 — Project Bootstrap**.
+## Tecnologías
 
-La arquitectura, el MVP y las decisiones técnicas principales ya están documentados. El scaffold inicial del repositorio y el Harness v1 están materializados. Falta ejecutar la instalación real de dependencias en un entorno con Node.js 24 + pnpm 11.26.0, generar `pnpm-lock.yaml` y ejecutar la verificación completa antes de cerrar TASK-001.
+Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase Auth, PostgreSQL con RLS, Zod, Vitest, React Testing Library y Playwright. Preparada para Vercel.
 
-## Stack
+## Acceso a la demo
 
-- Next.js + React + TypeScript
-- Tailwind CSS + shadcn/ui (componentes agregados solo cuando se necesiten)
-- PostgreSQL + Supabase
-- Supabase Auth + RLS
-- Zod + React Hook Form
-- Vitest + React Testing Library + Playwright
-- Vercel
-- GitHub Actions
+La URL pública se añadirá aquí al publicar. Las credenciales de visita se compartirán por un canal separado; no se versiona la contraseña. El registro público está desactivado en Supabase Auth DEMO.
 
-## Requisitos
+## Desarrollo local
 
-```text
-Node.js 24 LTS
-pnpm 11.26.0
-```
-
-La versión esperada de Node está declarada en `.nvmrc` y `package.json`. La versión de pnpm está fijada en `package.json`.
-
-## Puesta en marcha
-
-Una vez clonado el repositorio en un entorno con acceso a npm:
+Requiere Node.js 24 y pnpm 11.26.0.
 
 ```bash
-corepack enable
-corepack prepare pnpm@11.26.0 --activate
-pnpm install
+pnpm install --frozen-lockfile
 pnpm bootstrap
 pnpm dev
 ```
 
-El primer `pnpm install` generará `pnpm-lock.yaml`. Ese archivo debe versionarse en Git y, a partir de entonces, CI utilizará instalación congelada.
+Copiar `.env.example` a `.env.local` y completar las variables locales. Para publicar la demo independiente, seguir [la guía de DEMO](docs/portfolio-demo.md). Las migraciones de TASK-029 permanecen en otra rama y no forman parte de esta publicación.
 
 ## Verificación
 
 ```bash
-pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-
-pnpm check
-pnpm verify
 ```
 
-`pnpm check` agrupa lint + typecheck + tests. `pnpm verify` agrega el build.
-
-## Documentación
-
-- Producto: `docs/product.md`
-- Alcance MVP: `docs/mvp.md`
-- Reglas de negocio: `docs/business-rules.md`
-- Arquitectura: `docs/architecture.md`
-- Decisiones técnicas: `docs/technical-decisions.md`
-- Estado actual: `docs/status.md`
-- Módulos: `docs/modules/`
-- Guía pedagógica del stack: `docs/stack-guide.md`
-
-## Agent Harness
-
-El proyecto incluye un Harness v1 para trabajo multiagente.
-
-- Entrada operativa: `AGENTS.md`
-- Manual: `.harness/README.md`
-- Agentes: `.harness/agents/`
-- Protocolos: `.harness/protocols/`
-- Tareas: `.harness/tasks/`
-
-Principio central:
-
-> Los chats son efímeros. El repositorio es la memoria del sistema.
-
-## Flujo de trabajo
-
-```text
-Startup
-→ Task Brief
-→ Plan
-→ Implementation
-→ Verification
-→ Review
-→ Fix loop si corresponde
-→ Close Task
-→ Retrospective
-```
+Documentación de producto en [docs/product.md](docs/product.md) y estado de desarrollo en [docs/status.md](docs/status.md).

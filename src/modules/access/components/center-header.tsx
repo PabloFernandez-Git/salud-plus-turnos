@@ -19,12 +19,14 @@ export function CenterHeader({
   user,
   role,
   isPlatformAdmin,
+  isPortfolioDemo = false,
 }: {
   centerId: string;
   centerName: string;
   user: CenterMembershipContext["user"];
   role: CenterMembershipContext["membership"]["role"];
   isPlatformAdmin: boolean;
+  isPortfolioDemo?: boolean;
 }) {
   const pathname = usePathname();
   const dashboardPath = `/centers/${centerId}`;
@@ -41,7 +43,8 @@ export function CenterHeader({
             {centerName}
           </p>
           <p className="mt-1 break-words text-sm text-slate-600">
-            {user.firstName} {user.lastName} · {user.email} · {roleLabels[role]}
+            {user.firstName} {user.lastName} · {user.email} ·{" "}
+            {isPortfolioDemo ? "Demo de lectura" : roleLabels[role]}
           </p>
         </div>
         <div

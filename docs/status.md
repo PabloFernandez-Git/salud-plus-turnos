@@ -1,5 +1,7 @@
 # Estado actual
 
+**TASK-PORTFOLIO-MVP — preparación de publicación en `codex/portfolio-mvp`.** Se separó una demo pública de portfolio desde `afd502d`: datos exclusivamente ficticios, un centro, una cuenta Auth de visita y permisos de lectura. En Supabase DEMO `oygrwetmxsqgcizopezq` se confirmaron 28 migraciones, registro público desactivado, cuenta Auth, seed e inventario ficticio PASS; las seis RPC sensibles de pacientes carecen de EXECUTE para `anon` y `authenticated`. La migración DEMO revoca DML directo y RPCs mutantes o de resolución global; la web bloquea Server Actions de escritura cuando `PORTFOLIO_DEMO_MODE=true`. Faltan la prueba directa con JWT de la cuenta demo, la configuración de Vercel/Auth para el dominio definitivo y el smoke tras desplegar. Una sesión Supabase Auth puede modificar sus propias credenciales mediante la API Auth directa; las credenciales compartidas requieren control operativo. DEV/PROD no se tocaron y TASK-029 permanece separada. Ver [guía de DEMO](portfolio-demo.md) y [brief](../.harness/tasks/active/TASK-PORTFOLIO-MVP/brief.md).
+
 **TASK-035 — CLOSED / ARCHIVED propuesto; formalmente ACTIVE hasta integrar este cambio
 documental.** El cierre funcional
 quedó integrado en `main` mediante [PR #46](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/46),

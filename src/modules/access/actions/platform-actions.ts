@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { assertPortfolioWriteAllowed } from "../server/portfolio-demo";
 
 import type {
   PlatformActionState,
@@ -15,6 +16,7 @@ import {
 export async function resolvePlatformIdentityAction(
   email: string,
 ): Promise<PlatformIdentityActionState> {
+  assertPortfolioWriteAllowed();
   return performResolvePlatformIdentityAction(email);
 }
 
@@ -22,6 +24,7 @@ export async function createPlatformCenterAction(
   previousState: PlatformActionState,
   formData: FormData,
 ): Promise<PlatformActionState> {
+  assertPortfolioWriteAllowed();
   return performCreatePlatformCenterAction(previousState, formData, {
     revalidatePlatform: () => revalidatePath("/platform"),
   });
@@ -31,6 +34,7 @@ export async function setPlatformCenterActiveAction(
   previousState: PlatformActionState,
   formData: FormData,
 ): Promise<PlatformActionState> {
+  assertPortfolioWriteAllowed();
   return performSetPlatformCenterActiveAction(previousState, formData, {
     revalidatePlatform: () => revalidatePath("/platform"),
   });

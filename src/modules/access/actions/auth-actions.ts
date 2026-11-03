@@ -12,15 +12,15 @@ import {
   type AuthOperationResult,
 } from "../domain/auth-operations";
 import { getPostLoginDestination } from "../server/access";
+import { getAppOrigin } from "../server/app-origin";
 import { AuthorizationError, requireAuthenticatedIdentity } from "../server/authorization";
+import { assertPortfolioWriteAllowed } from "../server/portfolio-demo";
 
 export type AuthActionState = {
   fieldErrors?: Record<string, string[]>;
   message?: string;
   status: "idle" | "error" | "success";
 };
-
-const recoveryCallbackUrl = "http://localhost:3000/auth/callback";
 
 function actionState(result: AuthOperationResult): AuthActionState {
   return result.ok
@@ -72,7 +72,7 @@ export async function recoveryAction(
   const result = await requestPasswordRecovery(
     { email: formData.get("email") },
     supabase.auth,
-    recoveryCallbackUrl,
+    `${getAppOrigin()}/auth/callback`,
   );
 
   return actionState(result);
@@ -83,6 +83,7 @@ export async function updatePasswordAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   void previousState;
+  assertPortfolioWriteAllowed();
   const supabase = await createSupabaseServerClient();
 
   try {

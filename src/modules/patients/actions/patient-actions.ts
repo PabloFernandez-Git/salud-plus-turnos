@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AuthorizationError, requireRole } from "@/modules/access/server/authorization";
+import { assertPortfolioWriteAllowed } from "@/modules/access/server/portfolio-demo";
 import { mapPatientError, patientErrorMessages } from "../server/patient-errors";
 import {
   patientOperationSchemas,
@@ -35,6 +36,7 @@ async function perform(kind: PatientOperation, input: unknown): Promise<PatientA
   }
   const client = await createSupabaseServerClient();
   try {
+    assertPortfolioWriteAllowed();
     await requireRole(base.data.centerId, ["ADMIN", "RECEPTION"], client);
     const data = await runPatientOperation(kind, input, client);
     if (kind !== "resolve") revalidatePath(`/centers/${base.data.centerId}/patients`);
