@@ -16,7 +16,7 @@ afterEach(() => {
   document.getElementById("portfolio-turnstile-script")?.remove();
 });
 
-describe("LoginForm password visibility", () => {
+describe("LoginForm", () => {
   it("keeps login available without recovery navigation in portfolio mode", () => {
     render(<LoginForm isPortfolioDemo />);
     expect(screen.getByLabelText("Email")).toBeVisible();
@@ -28,10 +28,34 @@ describe("LoginForm password visibility", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows guest entry only with the DEMO activation flag", () => {
+  it("starts on the login tab and switches with tabs and footer controls", () => {
     render(<LoginForm isPortfolioDemo guestAccessEnabled />);
-    const guestButton = screen.getByRole("button", { name: "Explorar demo como invitado" });
+    const loginTab = screen.getByRole("tab", { name: "Iniciar sesión" });
+    const guestTab = screen.getByRole("tab", { name: "Demo invitado" });
     const passwordButton = screen.getByRole("button", { name: "Ingresar" });
+    expect(loginTab).toHaveAttribute("aria-selected", "true");
+    expect(guestTab).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
+    expect(
+      screen.getByText("Ingresá con el usuario y contraseña que te asignó tu centro."),
+    ).toBeVisible();
+    expect(passwordButton).toHaveClass(
+      "bg-sky-700",
+      "cursor-pointer",
+      "disabled:cursor-not-allowed",
+    );
+    expect(screen.queryByRole("button", { name: "Explorar demo como invitado" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "demo@example.test" } });
+    fireEvent.click(screen.getByRole("button", { name: "Explorá la demo como invitado" }));
+    expect(guestTab).toHaveAttribute("aria-selected", "true");
+    expect(guestTab).toHaveFocus();
+    expect(loginAction).not.toHaveBeenCalled();
+    const heading = screen.getByRole("heading", { name: "Explorá Salud Plus como invitado" });
+    expect(heading).toHaveClass("text-xl", "lg:whitespace-nowrap");
+    expect(heading.nextElementSibling).toHaveTextContent(
+      "Conocé nuestro sistema de gestión de turnos médicos. Explorá sus funcionalidades con datos ficticios y acceso de solo lectura.",
+    );
+    const guestButton = screen.getByRole("button", { name: "Explorar demo como invitado" });
     expect(guestButton).toBeDisabled();
     expect(guestButton).toHaveClass(
       "bg-sky-700",
@@ -39,16 +63,29 @@ describe("LoginForm password visibility", () => {
       "disabled:cursor-not-allowed",
       "disabled:opacity-60",
     );
-    expect(passwordButton).toHaveClass(
-      "bg-white",
-      "cursor-pointer",
-      "disabled:cursor-not-allowed",
-      "disabled:opacity-60",
-    );
-    expect(screen.getByText("O ingresá con email y contraseña")).toBeVisible();
-    expect(
-      guestButton.compareDocumentPosition(passwordButton) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(screen.getByText("¿Ya tenés una cuenta?")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Iniciá sesión" }));
+    expect(loginTab).toHaveAttribute("aria-selected", "true");
+    expect(loginTab).toHaveFocus();
+    expect(screen.getByLabelText("Email")).toHaveValue("demo@example.test");
+    fireEvent.click(guestTab);
+    expect(guestTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("supports arrow, Home and End keys across tabs", () => {
+    render(<LoginForm isPortfolioDemo guestAccessEnabled />);
+    const loginTab = screen.getByRole("tab", { name: "Iniciar sesión" });
+    const guestTab = screen.getByRole("tab", { name: "Demo invitado" });
+    loginTab.focus();
+    fireEvent.keyDown(loginTab, { key: "ArrowRight" });
+    expect(guestTab).toHaveFocus();
+    expect(guestTab).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(guestTab, { key: "Home" });
+    expect(loginTab).toHaveFocus();
+    fireEvent.keyDown(loginTab, { key: "End" });
+    expect(guestTab).toHaveFocus();
+    fireEvent.keyDown(guestTab, { key: "ArrowLeft" });
+    expect(loginTab).toHaveFocus();
   });
 
   it("shares a verified token between DEMO password and guest sign-in", async () => {
@@ -62,14 +99,19 @@ describe("LoginForm password visibility", () => {
       reset: vi.fn(),
     };
     render(<LoginForm isPortfolioDemo guestAccessEnabled turnstileSiteKey="public-site-key" />);
-    expect(screen.getByRole("button", { name: "Explorar demo como invitado" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Ingresar" })).toBeDisabled();
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce());
     act(() => verify("valid-token"));
-    expect(screen.getByRole("button", { name: "Explorar demo como invitado" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Ingresar" })).toBeEnabled();
     expect(document.querySelector('input[name="captchaToken"]')).toHaveValue("valid-token");
     expect(screen.getAllByLabelText("Verificación de seguridad")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("tab", { name: "Demo invitado" }));
+    expect(screen.getByRole("button", { name: "Explorar demo como invitado" })).toBeEnabled();
+    expect(window.turnstile?.render).toHaveBeenCalledOnce();
+    expect(window.turnstile?.remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("tab", { name: "Iniciar sesión" }));
+    expect(screen.getByRole("button", { name: "Ingresar" })).toBeEnabled();
+    expect(document.querySelector('input[name="captchaToken"]')).toHaveValue("valid-token");
   });
 
   it("keeps the full application login unchanged outside DEMO", () => {
@@ -80,6 +122,7 @@ describe("LoginForm password visibility", () => {
     expect(passwordButton).not.toHaveClass("cursor-pointer");
     expect(document.querySelector('input[name="captchaToken"]')).toBeNull();
     expect(screen.queryByLabelText("Verificación de seguridad")).toBeNull();
+    expect(screen.queryByRole("tablist")).toBeNull();
   });
 
   it("resets a spent token after DEMO password Auth rejects the attempt", async () => {

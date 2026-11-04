@@ -147,7 +147,11 @@ export const Turnstile = forwardRef<
               ? "La verificación venció. Intentá nuevamente."
               : "No pudimos completar la verificación. Intentá nuevamente."}
           </p>
-          <button className="font-medium underline" onClick={reset} type="button">
+          <button
+            className="cursor-pointer font-medium underline hover:text-red-900 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            onClick={reset}
+            type="button"
+          >
             Reintentar verificación
           </button>
         </div>
