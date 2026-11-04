@@ -6,6 +6,8 @@ La rama `codex/portfolio-mvp` usa un proyecto Supabase separado con un solo usua
 
 El acceso invitado está preparado localmente en esta rama y permanece desactivado. Su migración y configuración son exclusivas de DEMO: un hook Auth y un trigger rechazan altas no anónimas, el trigger crea perfil y membership del centro ficticio para cada UUID anónimo, y policies restrictivas aíslan los perfiles y memberships invitados. El flag de interfaz queda en `false`; la aplicación fuera de DEMO conserva el login normal. La activación y limpieza posteriores están en la [guía de invitados](../portfolio-guest-access.md).
 
+Turnstile está preparado para el login tradicional y el acceso invitado de DEMO con un widget compartido y token enviado a Supabase Auth. La exigencia del token y la Site Key se configuran exclusivamente para DEMO; no se activa CAPTCHA ni el acceso invitado desde el código local.
+
 ## Modelo
 
 `User` representa identidad de aplicación asociada 1:1 a Supabase Auth mediante el mismo UUID.

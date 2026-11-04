@@ -16,7 +16,9 @@ export const LOGOUT_ERROR_MESSAGE = "No pudimos cerrar la sesión. Intentá nuev
 type AuthError = { message?: string } | null;
 
 export type AuthOperationsClient = {
-  signInWithPassword(credentials: LoginInput): Promise<{ error: AuthError }>;
+  signInWithPassword(
+    credentials: LoginInput & { options?: { captchaToken: string } },
+  ): Promise<{ error: AuthError }>;
   resetPasswordForEmail(
     email: string,
     options: { redirectTo: string },
@@ -44,11 +46,15 @@ function validationFailure(error: z.ZodError): AuthOperationResult {
 export async function signInWithPassword(
   input: unknown,
   auth: AuthOperationsClient,
+  captchaToken?: string,
 ): Promise<AuthOperationResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return validationFailure(parsed.error);
 
-  const { error } = await auth.signInWithPassword(parsed.data);
+  const { error } = await auth.signInWithPassword({
+    ...parsed.data,
+    ...(captchaToken ? { options: { captchaToken } } : {}),
+  });
   if (error) return { ok: false, message: INVALID_LOGIN_MESSAGE };
 
   return { ok: true };

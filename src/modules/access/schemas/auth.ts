@@ -7,6 +7,8 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Ingresá tu contraseña."),
 });
 
+export const captchaTokenSchema = z.string().trim().min(1).max(2048);
+
 export const recoverySchema = z.object({
   email: emailSchema,
 });

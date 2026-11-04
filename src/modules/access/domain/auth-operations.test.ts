@@ -44,6 +44,30 @@ describe("Auth operations", () => {
     });
   });
 
+  it("forwards a DEMO CAPTCHA token and keeps Auth rejection generic", async () => {
+    const signIn = vi
+      .fn()
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({
+        error: { message: "captcha verification failed" },
+      });
+    const client = authClient({ signInWithPassword: signIn });
+    const input = { email: "demo@example.test", password: "correcta" };
+    await expect(signInWithPassword(input, client, "valid-token")).resolves.toEqual({ ok: true });
+    await expect(signInWithPassword(input, client, "invalid-token")).resolves.toEqual({
+      ok: false,
+      message: INVALID_LOGIN_MESSAGE,
+    });
+    expect(signIn).toHaveBeenNthCalledWith(1, {
+      ...input,
+      options: { captchaToken: "valid-token" },
+    });
+    expect(signIn).toHaveBeenNthCalledWith(2, {
+      ...input,
+      options: { captchaToken: "invalid-token" },
+    });
+  });
+
   it("logs out the local session", async () => {
     const signOut = vi.fn().mockResolvedValue({ error: null });
     const client = authClient({ signOut });

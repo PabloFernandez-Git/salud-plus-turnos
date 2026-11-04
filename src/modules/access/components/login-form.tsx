@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { PasswordInput } from "@/components/password-input";
 import { loginAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
 import { GuestAccessButton } from "./guest-access-button";
 import { SubmitButton } from "./submit-button";
+import { Turnstile, type TurnstileHandle } from "./turnstile";
 
 export function LoginForm({
   callbackError = false,
@@ -23,6 +24,15 @@ export function LoginForm({
   const [state, formAction] = useActionState(loginAction, {
     status: "idle",
   } satisfies AuthActionState);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstile = useRef<TurnstileHandle>(null);
+  const captchaEnabled = isPortfolioDemo && Boolean(turnstileSiteKey);
+
+  useEffect(() => {
+    if (state.status === "error" && captchaEnabled) turnstile.current?.reset();
+  }, [state, captchaEnabled]);
+
+  const resetCaptcha = () => turnstile.current?.reset();
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
@@ -74,9 +84,19 @@ export function LoginForm({
           </p>
         ) : null}
       </div>
-      <SubmitButton idleLabel="Ingresar" pendingLabel="Ingresando…" />
+      {captchaEnabled && turnstileSiteKey ? (
+        <>
+          <Turnstile onTokenChange={setCaptchaToken} ref={turnstile} siteKey={turnstileSiteKey} />
+          <input name="captchaToken" type="hidden" value={captchaToken ?? ""} />
+        </>
+      ) : null}
+      <SubmitButton
+        disabled={captchaEnabled && !captchaToken}
+        idleLabel="Ingresar"
+        pendingLabel="Ingresando…"
+      />
       {isPortfolioDemo && guestAccessEnabled ? (
-        <GuestAccessButton turnstileSiteKey={turnstileSiteKey} />
+        <GuestAccessButton captchaToken={captchaToken} resetCaptcha={resetCaptcha} />
       ) : null}
       {!isPortfolioDemo && (
         <p className="text-center text-sm text-slate-600">

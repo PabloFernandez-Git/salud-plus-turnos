@@ -41,7 +41,12 @@ describe("portfolio guest sign in", () => {
       data: { user: null },
       error: new Error("blocked"),
     });
-    await expect(enterPortfolioDemoAsGuest(client)).rejects.toThrow("GUEST_SIGN_IN_FAILED");
+    await expect(enterPortfolioDemoAsGuest(client, "invalid-token")).rejects.toThrow(
+      "GUEST_SIGN_IN_FAILED",
+    );
+    expect(client.signInAnonymously).toHaveBeenCalledWith({
+      options: { captchaToken: "invalid-token" },
+    });
   });
 
   it("does not create a duplicate when an existing session cannot be verified", async () => {

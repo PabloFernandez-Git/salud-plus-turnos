@@ -15,6 +15,7 @@ import { getPostLoginDestination } from "../server/access";
 import { getAppOrigin } from "../server/app-origin";
 import { AuthorizationError, requireAuthenticatedIdentity } from "../server/authorization";
 import { assertPortfolioWriteAllowed } from "../server/portfolio-demo";
+import { captchaTokenSchema } from "../schemas/auth";
 
 export type AuthActionState = {
   fieldErrors?: Record<string, string[]>;
@@ -49,6 +50,13 @@ export async function loginAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   void previousState;
+  const isPortfolioDemo = process.env.PORTFOLIO_DEMO_MODE === "true";
+  const captchaRequired = isPortfolioDemo && process.env.PORTFOLIO_CAPTCHA_REQUIRED === "true";
+  const parsedCaptcha = captchaTokenSchema.safeParse(formData.get("captchaToken"));
+  if (captchaRequired && !parsedCaptcha.success) {
+    return { status: "error", message: "Completá la verificación de seguridad." };
+  }
+  const captchaToken = isPortfolioDemo && parsedCaptcha.success ? parsedCaptcha.data : undefined;
   const supabase = await createSupabaseServerClient();
   const result = await signInWithPassword(
     {
@@ -56,6 +64,7 @@ export async function loginAction(
       password: formData.get("password"),
     },
     supabase.auth,
+    captchaToken,
   );
 
   if (!result.ok) return actionState(result);
