@@ -34,9 +34,9 @@ export function GuestAccessButton({
   }
 
   return (
-    <div className="space-y-3 border-t border-slate-200 pt-5">
+    <div className="space-y-3">
       <button
-        className="min-h-11 w-full rounded-md border border-sky-600 bg-white px-4 py-2.5 font-semibold text-sky-800 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-11 w-full cursor-pointer rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending || !captchaToken}
         onClick={enter}
         type="button"

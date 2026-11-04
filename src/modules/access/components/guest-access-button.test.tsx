@@ -21,7 +21,13 @@ describe("GuestAccessButton", () => {
     const view = render(<GuestAccessButton captchaToken={null} resetCaptcha={resetCaptcha} />);
     const button = screen.getByRole("button", { name: "Explorar demo como invitado" });
     expect(button).toBeDisabled();
+    expect(button).toHaveClass(
+      "cursor-pointer",
+      "disabled:cursor-not-allowed",
+      "disabled:opacity-60",
+    );
     view.rerender(<GuestAccessButton captchaToken="invalid-token" resetCaptcha={resetCaptcha} />);
+    expect(button).toBeEnabled();
     fireEvent.click(button);
     await waitFor(() => expect(resetCaptcha).toHaveBeenCalledOnce());
     expect(enterPortfolioDemoAsGuest).toHaveBeenCalledWith({}, "invalid-token");

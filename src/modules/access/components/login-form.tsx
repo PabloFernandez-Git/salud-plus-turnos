@@ -47,6 +47,20 @@ export function LoginForm({
         </p>
       ) : null}
       <ActionMessage state={state} />
+      {captchaEnabled && turnstileSiteKey ? (
+        <>
+          <Turnstile onTokenChange={setCaptchaToken} ref={turnstile} siteKey={turnstileSiteKey} />
+          <input name="captchaToken" type="hidden" value={captchaToken ?? ""} />
+        </>
+      ) : null}
+      {isPortfolioDemo && guestAccessEnabled ? (
+        <>
+          <GuestAccessButton captchaToken={captchaToken} resetCaptcha={resetCaptcha} />
+          <p className="border-t border-slate-200 pt-5 text-center text-sm font-medium text-slate-600">
+            O ingresá con email y contraseña
+          </p>
+        </>
+      ) : null}
       <div className="space-y-2">
         <label className="text-sm font-medium text-slate-800" htmlFor="email">
           Email
@@ -84,20 +98,13 @@ export function LoginForm({
           </p>
         ) : null}
       </div>
-      {captchaEnabled && turnstileSiteKey ? (
-        <>
-          <Turnstile onTokenChange={setCaptchaToken} ref={turnstile} siteKey={turnstileSiteKey} />
-          <input name="captchaToken" type="hidden" value={captchaToken ?? ""} />
-        </>
-      ) : null}
       <SubmitButton
         disabled={captchaEnabled && !captchaToken}
         idleLabel="Ingresar"
         pendingLabel="Ingresando…"
+        variant={isPortfolioDemo && guestAccessEnabled ? "quiet" : "primary"}
+        cursorPointer={isPortfolioDemo}
       />
-      {isPortfolioDemo && guestAccessEnabled ? (
-        <GuestAccessButton captchaToken={captchaToken} resetCaptcha={resetCaptcha} />
-      ) : null}
       {!isPortfolioDemo && (
         <p className="text-center text-sm text-slate-600">
           <Link

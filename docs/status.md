@@ -1,5 +1,7 @@
 # Estado actual
 
+**TASK-PORTFOLIO-LOGIN-UX — review local PASS en `codex/portfolio-mvp`.** El login DEMO prioriza el acceso invitado, presenta email y contraseña como alternativa y conserva un Turnstile compartido. Tests focales, typecheck y build DEMO con webpack pasaron; pendiente publicación separada.
+
 **TASK-PORTFOLIO-MVP — publicada en [Vercel](https://salud-plus-portfolio.vercel.app) desde `codex/portfolio-mvp` (commit `9a560c1`).** La demo usa datos ficticios y Supabase DEMO `oygrwetmxsqgcizopezq` con 28 migraciones, registro público desactivado y cuenta Auth de visita. El operador confirmó login y lecturas reales PASS, seis RPC sensibles sin EXECUTE y DML directo revocado en tablas principales. `PORTFOLIO_DEMO_MODE=true` bloquea Server Actions de escritura. Un ajuste local de TASK-PORTFOLIO-UX mantiene visibles y deshabilitadas las acciones de escritura; requiere publicación separada. Una sesión Supabase Auth puede modificar sus propias credenciales mediante su API directa; las credenciales compartidas requieren control operativo. DEV/PROD no se tocaron y TASK-029 permanece separada. Ver [guía de DEMO](portfolio-demo.md), [brief MVP](../.harness/tasks/active/TASK-PORTFOLIO-MVP/brief.md) y [brief UX](../.harness/tasks/active/TASK-PORTFOLIO-UX/brief.md).
 
 **TASK-035 — CLOSED / ARCHIVED propuesto; formalmente ACTIVE hasta integrar este cambio

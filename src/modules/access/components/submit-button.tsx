@@ -7,17 +7,19 @@ export function SubmitButton({
   pendingLabel,
   variant = "primary",
   disabled = false,
+  cursorPointer = false,
 }: {
   idleLabel: string;
   pendingLabel: string;
   variant?: "primary" | "quiet";
   disabled?: boolean;
+  cursorPointer?: boolean;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
-      className={`inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-60 ${variant === "quiet" ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" : "bg-sky-700 text-white hover:bg-sky-800"}`}
+      className={`inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-60 ${cursorPointer ? "cursor-pointer" : ""} ${variant === "quiet" ? "border border-slate-200 bg-white text-slate-700 enabled:hover:bg-slate-50" : "bg-sky-700 text-white hover:bg-sky-800"}`}
       disabled={pending || disabled}
       type="submit"
     >

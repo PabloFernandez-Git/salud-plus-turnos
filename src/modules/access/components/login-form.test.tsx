@@ -30,7 +30,25 @@ describe("LoginForm password visibility", () => {
 
   it("shows guest entry only with the DEMO activation flag", () => {
     render(<LoginForm isPortfolioDemo guestAccessEnabled />);
-    expect(screen.getByRole("button", { name: "Explorar demo como invitado" })).toBeDisabled();
+    const guestButton = screen.getByRole("button", { name: "Explorar demo como invitado" });
+    const passwordButton = screen.getByRole("button", { name: "Ingresar" });
+    expect(guestButton).toBeDisabled();
+    expect(guestButton).toHaveClass(
+      "bg-sky-700",
+      "cursor-pointer",
+      "disabled:cursor-not-allowed",
+      "disabled:opacity-60",
+    );
+    expect(passwordButton).toHaveClass(
+      "bg-white",
+      "cursor-pointer",
+      "disabled:cursor-not-allowed",
+      "disabled:opacity-60",
+    );
+    expect(screen.getByText("O ingresá con email y contraseña")).toBeVisible();
+    expect(
+      guestButton.compareDocumentPosition(passwordButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("shares a verified token between DEMO password and guest sign-in", async () => {
@@ -51,11 +69,15 @@ describe("LoginForm password visibility", () => {
     expect(screen.getByRole("button", { name: "Explorar demo como invitado" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Ingresar" })).toBeEnabled();
     expect(document.querySelector('input[name="captchaToken"]')).toHaveValue("valid-token");
+    expect(screen.getAllByLabelText("Verificación de seguridad")).toHaveLength(1);
   });
 
   it("keeps the full application login unchanged outside DEMO", () => {
     render(<LoginForm turnstileSiteKey="public-site-key" />);
-    expect(screen.getByRole("button", { name: "Ingresar" })).toBeEnabled();
+    const passwordButton = screen.getByRole("button", { name: "Ingresar" });
+    expect(passwordButton).toBeEnabled();
+    expect(passwordButton).toHaveClass("bg-sky-700");
+    expect(passwordButton).not.toHaveClass("cursor-pointer");
     expect(document.querySelector('input[name="captchaToken"]')).toBeNull();
     expect(screen.queryByLabelText("Verificación de seguridad")).toBeNull();
   });

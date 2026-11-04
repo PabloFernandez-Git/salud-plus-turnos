@@ -24,15 +24,20 @@ export default async function LoginPage({
 
   const params = await searchParams;
   const guest = getPortfolioGuestLoginConfig();
+  const isPortfolioDemo = process.env.PORTFOLIO_DEMO_MODE === "true";
 
   return (
     <AuthCard
-      description="Ingresá con la cuenta que te asignó tu centro. No hay registro público."
-      title="Iniciar sesión"
+      description={
+        isPortfolioDemo
+          ? "Conocé nuestro sistema de gestión de turnos médicos. Explorá sus funcionalidades con datos ficticios y acceso de solo lectura."
+          : "Ingresá con la cuenta que te asignó tu centro. No hay registro público."
+      }
+      title={isPortfolioDemo ? "Explorá Salud Plus" : "Iniciar sesión"}
     >
       <LoginForm
         callbackError={params.error === "invalid_callback"}
-        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
+        isPortfolioDemo={isPortfolioDemo}
         guestAccessEnabled={guest.enabled}
         turnstileSiteKey={guest.siteKey}
       />
