@@ -38,6 +38,16 @@ afterEach(() => {
 });
 
 describe("DEMO password CAPTCHA", () => {
+  it("allows DEMO password login without a token when CAPTCHA is disabled", async () => {
+    process.env.PORTFOLIO_DEMO_MODE = "true";
+    process.env.PORTFOLIO_CAPTCHA_REQUIRED = "false";
+    await expect(loginAction({ status: "idle" }, loginData())).rejects.toThrow("NEXT_REDIRECT");
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: "demo@example.test",
+      password: "correcta",
+    });
+  });
+
   it("rejects a missing token before opening Supabase Auth", async () => {
     process.env.PORTFOLIO_DEMO_MODE = "true";
     process.env.PORTFOLIO_CAPTCHA_REQUIRED = "true";

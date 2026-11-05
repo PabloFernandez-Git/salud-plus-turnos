@@ -31,6 +31,7 @@ export default async function LoginPage({
       callbackError={params.error === "invalid_callback"}
       isPortfolioDemo={isPortfolioDemo}
       guestAccessEnabled={guest.enabled}
+      captchaRequired={guest.captchaRequired}
       turnstileSiteKey={guest.siteKey}
     />
   );

@@ -100,11 +100,13 @@ export function LoginForm({
   callbackError = false,
   isPortfolioDemo = false,
   guestAccessEnabled = false,
+  captchaRequired = false,
   turnstileSiteKey,
 }: {
   callbackError?: boolean;
   isPortfolioDemo?: boolean;
   guestAccessEnabled?: boolean;
+  captchaRequired?: boolean;
   turnstileSiteKey?: string;
 }) {
   const [state, formAction] = useActionState(loginAction, {
@@ -115,7 +117,7 @@ export function LoginForm({
   const turnstile = useRef<TurnstileHandle>(null);
   const loginTab = useRef<HTMLButtonElement>(null);
   const guestTab = useRef<HTMLButtonElement>(null);
-  const captchaEnabled = isPortfolioDemo && Boolean(turnstileSiteKey);
+  const captchaEnabled = isPortfolioDemo && captchaRequired;
 
   useEffect(() => {
     if (state.status === "error" && captchaEnabled) turnstile.current?.reset();

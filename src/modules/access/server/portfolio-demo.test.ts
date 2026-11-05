@@ -56,6 +56,19 @@ describe("portfolio demo boundaries", () => {
     expect(getPortfolioGuestLoginConfig).toThrow("PORTFOLIO_GUEST_CAPTCHA_SITE_KEY_REQUIRED");
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "public-site-key";
     expect(getPortfolioGuestLoginConfig().siteKey).toBe("public-site-key");
+    expect(getPortfolioGuestLoginConfig().captchaRequired).toBe(true);
+  });
+
+  it("does not enable CAPTCHA or guest access from a configured site key alone", () => {
+    process.env.PORTFOLIO_DEMO_MODE = "true";
+    process.env.PORTFOLIO_GUEST_ACCESS_ENABLED = "false";
+    process.env.PORTFOLIO_CAPTCHA_REQUIRED = "false";
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "public-site-key";
+    expect(getPortfolioGuestLoginConfig()).toEqual({
+      enabled: false,
+      captchaRequired: false,
+      siteKey: "public-site-key",
+    });
   });
 
   it("does not expose guest entry before CAPTCHA is required", () => {
@@ -71,7 +84,11 @@ describe("portfolio demo boundaries", () => {
     process.env.PORTFOLIO_DEMO_MODE = "false";
     process.env.PORTFOLIO_CAPTCHA_REQUIRED = "true";
     delete process.env.PORTFOLIO_GUEST_ACCESS_ENABLED;
-    expect(getPortfolioGuestLoginConfig()).toEqual({ enabled: false, siteKey: undefined });
+    expect(getPortfolioGuestLoginConfig()).toEqual({
+      enabled: false,
+      captchaRequired: false,
+      siteKey: undefined,
+    });
   });
 
   it("blocks the password action before opening an Auth client", async () => {

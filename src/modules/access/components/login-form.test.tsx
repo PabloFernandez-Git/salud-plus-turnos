@@ -28,6 +28,21 @@ describe("LoginForm", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps DEMO login enabled without Turnstile when CAPTCHA is off despite a site key", () => {
+    render(<LoginForm isPortfolioDemo turnstileSiteKey="public-site-key" />);
+    expect(screen.getByRole("button", { name: "Ingresar" })).toBeEnabled();
+    expect(screen.queryByLabelText("Verificación de seguridad")).toBeNull();
+    expect(document.querySelector('input[name="captchaToken"]')).toBeNull();
+    expect(document.getElementById("portfolio-turnstile-script")).toBeNull();
+    expect(screen.queryByRole("tablist")).toBeNull();
+  });
+
+  it("blocks DEMO login when CAPTCHA is required but the site key is absent", () => {
+    render(<LoginForm isPortfolioDemo captchaRequired />);
+    expect(screen.getByRole("button", { name: "Ingresar" })).toBeDisabled();
+    expect(screen.queryByLabelText("Verificación de seguridad")).toBeNull();
+  });
+
   it("starts on the login tab and switches with tabs and footer controls", () => {
     render(<LoginForm isPortfolioDemo guestAccessEnabled />);
     const loginTab = screen.getByRole("tab", { name: "Iniciar sesión" });
@@ -107,7 +122,14 @@ describe("LoginForm", () => {
       remove: vi.fn(),
       reset: vi.fn(),
     };
-    render(<LoginForm isPortfolioDemo guestAccessEnabled turnstileSiteKey="public-site-key" />);
+    render(
+      <LoginForm
+        isPortfolioDemo
+        guestAccessEnabled
+        captchaRequired
+        turnstileSiteKey="public-site-key"
+      />,
+    );
     expect(screen.getByRole("button", { name: "Ingresar" })).toBeDisabled();
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce());
     act(() => verify("valid-token"));
@@ -124,7 +146,7 @@ describe("LoginForm", () => {
   });
 
   it("keeps the full application login unchanged outside DEMO", () => {
-    render(<LoginForm turnstileSiteKey="public-site-key" />);
+    render(<LoginForm captchaRequired turnstileSiteKey="public-site-key" />);
     const passwordButton = screen.getByRole("button", { name: "Ingresar" });
     expect(passwordButton).toBeEnabled();
     expect(passwordButton).toHaveClass("bg-sky-700");
@@ -146,7 +168,9 @@ describe("LoginForm", () => {
       reset,
     };
     vi.mocked(loginAction).mockResolvedValueOnce({ status: "error", message: "Intento rechazado" });
-    render(<LoginForm isPortfolioDemo turnstileSiteKey="1x00000000000000000000AA" />);
+    render(
+      <LoginForm isPortfolioDemo captchaRequired turnstileSiteKey="1x00000000000000000000AA" />,
+    );
     await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledOnce());
     act(() => verify("spent-token"));
     fireEvent.change(screen.getByLabelText("Email"), {

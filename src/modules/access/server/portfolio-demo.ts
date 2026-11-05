@@ -29,5 +29,9 @@ export function getPortfolioGuestLoginConfig() {
 
   if (enabled && !captchaRequired) throw new Error("PORTFOLIO_GUEST_REQUIRES_CAPTCHA");
 
-  return { enabled, siteKey: isDemo ? siteKey : undefined };
+  return {
+    enabled,
+    captchaRequired: isDemo && captchaRequired,
+    siteKey: isDemo ? siteKey : undefined,
+  };
 }
