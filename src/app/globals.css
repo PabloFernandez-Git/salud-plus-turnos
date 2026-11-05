@@ -69,6 +69,28 @@ body {
   }
 }
 
+@media (min-width: 1200px) and (max-height: 640px) {
+  .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) {
+    padding-block: 1rem;
+  }
+
+  .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) .demo-login-content {
+    padding-block: 0.625rem;
+  }
+
+  .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) .demo-login-tabs {
+    margin-bottom: 0.25rem;
+  }
+
+  .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) .demo-login-footer {
+    padding-top: 0.5rem;
+  }
+
+  .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) .demo-login-footer button {
+    margin-top: 0.25rem;
+  }
+}
+
 @media (min-width: 1200px) and (min-height: 740px) and (max-height: 800px) {
   .demo-login-compact:has(#demo-login-tab[aria-selected="true"]) .demo-login-content {
     padding-block: 1.5rem;
