@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 
 export function DemoLoginShell({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-screen items-start justify-center bg-slate-100 px-4 py-8 sm:px-6 md:items-center md:py-12">
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-[#1165c3] shadow-xl shadow-slate-300/30 md:min-h-[700px] md:grid-cols-[47%_53%]">
+    <main className="demo-login-compact flex min-h-screen items-start justify-center bg-slate-100 px-4 py-8 sm:px-6 md:items-center md:py-12">
+      <section className="demo-login-frame relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-[#1165c3] shadow-xl shadow-slate-300/30 md:min-h-[700px] md:grid-cols-[47%_53%]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-20 bg-slate-50 md:block"
@@ -26,7 +26,7 @@ export function DemoLoginShell({ children }: { children: ReactNode }) {
             <div className="h-1.5 w-20 rounded-full bg-emerald-400" />
           </div>
         </div>
-        <div className="relative z-10 flex min-w-0 flex-col justify-start bg-slate-50 px-6 py-8 sm:px-10 sm:py-10 md:-ml-6 md:rounded-tl-[5rem] md:px-8 lg:px-10 lg:py-12">
+        <div className="demo-login-content relative z-10 flex min-w-0 flex-col justify-start bg-slate-50 px-6 py-8 sm:px-10 sm:py-10 md:-ml-6 md:rounded-tl-[5rem] md:px-8 lg:px-10 lg:py-12">
           <p className="mb-8 text-xl font-semibold tracking-tight text-sky-800 md:hidden">
             Salud Plus
           </p>

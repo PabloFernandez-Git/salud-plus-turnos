@@ -150,7 +150,7 @@ export function LoginForm({
         {guestAccessEnabled ? (
           <div
             aria-label="Opciones de acceso"
-            className="mb-8 grid grid-cols-2 border-b border-slate-200"
+            className="demo-login-tabs mb-8 grid grid-cols-2 border-b border-slate-200"
             role="tablist"
           >
             <button
@@ -198,8 +198,8 @@ export function LoginForm({
           role={guestAccessEnabled ? "tabpanel" : undefined}
           tabIndex={guestAccessEnabled ? 0 : undefined}
         >
-          <div className="rounded-[2rem] bg-white p-6 shadow-lg shadow-slate-200/70 ring-1 ring-slate-200/60 sm:p-8 md:p-6 lg:p-8">
-            <form action={formAction} className="space-y-5" noValidate>
+          <div className="demo-login-card rounded-[2rem] bg-white p-6 shadow-lg shadow-slate-200/70 ring-1 ring-slate-200/60 sm:p-8 md:p-6 lg:p-8">
+            <form action={formAction} className="demo-login-form space-y-5" noValidate>
               <div className="space-y-2 text-left">
                 {activeTab === "login" ? (
                   <>
@@ -231,7 +231,7 @@ export function LoginForm({
                 </p>
               ) : null}
               {activeTab === "login" ? <ActionMessage state={state} /> : null}
-              <div className="space-y-5" hidden={activeTab !== "login"}>
+              <div className="demo-login-fields space-y-5" hidden={activeTab !== "login"}>
                 <LoginFields isPortfolioDemo state={state} />
               </div>
               {captchaEnabled && turnstileSiteKey ? (
@@ -257,7 +257,7 @@ export function LoginForm({
             </form>
           </div>
           {guestAccessEnabled ? (
-            <div className="pt-6 text-center text-sm text-slate-600">
+            <div className="demo-login-footer pt-6 text-center text-sm text-slate-600">
               <p>
                 {activeTab === "login" ? "¿Querés conocer el sistema?" : "¿Ya tenés una cuenta?"}
               </p>
