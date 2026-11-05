@@ -1,5 +1,12 @@
 # Estado actual
 
+**TASK-036 — ACTIVE en `codex/v1-login-unified`.** El login V1 reutiliza la composición visual del
+portfolio sin incorporar su acceso invitado ni Turnstile. La rama parte de `origin/main` `afd502d` en
+un worktree separado; autenticación y permisos no cambian. Ver
+[brief](../.harness/tasks/active/TASK-036-V1-LOGIN-UNIFIED/brief.md) y
+[verificación](../.harness/tasks/active/TASK-036-V1-LOGIN-UNIFIED/implementation-report.md).
+TASK-029 y el portfolio permanecen separados.
+
 **TASK-035 — CLOSED / ARCHIVED propuesto; formalmente ACTIVE hasta integrar este cambio
 documental.** El cierre funcional
 quedó integrado en `main` mediante [PR #46](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/46),
