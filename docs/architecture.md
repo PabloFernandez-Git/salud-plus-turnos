@@ -79,6 +79,12 @@ Server Actions y Route Handlers son adaptadores. La lógica de negocio reutiliza
 → requireRole(...) / requireProfessionalContext(...)
 ```
 
+### Demo pública independiente
+
+La demo de portfolio se publica desde `codex/portfolio-mvp` en Vercel y apunta a un proyecto Supabase DEMO separado de DEV. Next.js y React presentan el centro ficticio. El visitante completa Cloudflare Turnstile y Supabase Auth crea una sesión anónima propia mediante `signInAnonymously()`; el hook de Auth admite solo altas anónimas y un trigger crea el perfil y la membresía del centro DEMO.
+
+PostgreSQL aplica RLS para aislar perfiles y membresías de invitados. En DEMO, los grants de `authenticated` revocan INSERT, UPDATE y DELETE sobre tablas públicas y EXECUTE sobre RPC sensibles; solo se conceden las RPC de lectura auditadas. `PORTFOLIO_DEMO_MODE=true` bloquea además las Server Actions de escritura y la interfaz muestra esos controles deshabilitados. Esta configuración es exclusiva del proyecto DEMO y no modifica la autenticación de la aplicación completa. Ver [guía de DEMO](portfolio-demo.md) y [acceso invitado](portfolio-guest-access.md).
+
 ## Base de datos
 
 - PostgreSQL.
