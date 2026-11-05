@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { AuthCard } from "@/modules/access/components/auth-card";
 import { LoginForm } from "@/modules/access/components/login-form";
+import { LoginShell } from "@/modules/access/components/login-shell";
 import { getPostLoginDestination } from "@/modules/access/server/access";
 import { AuthorizationError } from "@/modules/access/server/authorization";
 
@@ -24,11 +24,8 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <AuthCard
-      description="Ingresá con la cuenta que te asignó tu centro. No hay registro público."
-      title="Iniciar sesión"
-    >
+    <LoginShell>
       <LoginForm callbackError={params.error === "invalid_callback"} />
-    </AuthCard>
+    </LoginShell>
   );
 }

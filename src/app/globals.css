@@ -9,3 +9,21 @@ body {
   min-height: 100vh;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media (min-width: 768px) and (max-height: 800px) {
+  .v1-login-shell {
+    padding-block: 1rem;
+  }
+
+  .v1-login-frame {
+    min-height: 0;
+  }
+
+  .v1-login-content {
+    padding-block: 1.25rem;
+  }
+
+  .v1-login-card {
+    padding-block: 1.5rem;
+  }
+}

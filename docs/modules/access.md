@@ -1,5 +1,13 @@
 # Usuarios y accesos
 
+## Login V1
+
+`/login` usa la composición visual de dos columnas del login de Salud Plus Portfolio DEMO: panel
+azul/turquesa con cruz decorativa, tarjeta blanca redondeada y disposición móvil de una columna.
+Sólo presenta el formulario existente de email y contraseña y el enlace de recuperación. La página
+conserva `getPostLoginDestination` y `LoginForm` conserva `loginAction`, validaciones, errores y
+estado de carga. El login V1 no incluye acceso invitado, datos ficticios ni Turnstile.
+
 ## Modelo
 
 `User` representa identidad de aplicación asociada 1:1 a Supabase Auth mediante el mismo UUID.
