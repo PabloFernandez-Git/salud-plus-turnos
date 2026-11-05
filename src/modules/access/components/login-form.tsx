@@ -260,7 +260,7 @@ export function LoginForm({
                 {activeTab === "login" ? "¿Querés conocer el sistema?" : "¿Ya tenés una cuenta?"}
               </p>
               <button
-                className="mt-1 inline-flex cursor-pointer items-center justify-center gap-2 font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                className="mt-3 inline-flex cursor-pointer items-center justify-center gap-2 font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
                 onClick={() => activateTab(activeTab === "login" ? "guest" : "login", true)}
                 type="button"
               >
