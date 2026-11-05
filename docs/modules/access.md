@@ -8,7 +8,7 @@ El acceso invitado está preparado localmente en esta rama y permanece desactiva
 
 Turnstile está preparado para el login tradicional y el acceso invitado de DEMO con un widget compartido y token enviado a Supabase Auth. La exigencia del token y la Site Key se configuran exclusivamente para DEMO; no se activa CAPTCHA ni el acceso invitado desde el código local.
 
-El login DEMO presenta dos pestañas accesibles: «Iniciar sesión» (inicial) y «Demo invitado». Ambas reutilizan el mismo widget y token Turnstile; los enlaces inferiores cambian de pestaña sin navegación. En escritorio se muestran dos paneles y en móvil se prioriza el formulario. El login fuera de DEMO conserva `AuthCard` y su presentación.
+El login DEMO presenta dos pestañas accesibles: «Iniciar sesión» (inicial) y «Demo invitado». Sus iconos outline son decorativos; los controles inferiores de cambio de pestaña incluyen un icono inicial y una flecha dentro de la misma superficie interactiva. Ambas pestañas reutilizan el mismo widget y token Turnstile; los controles inferiores cambian de pestaña sin navegación. En escritorio se muestran dos paneles y en móvil se prioriza el formulario. El login fuera de DEMO conserva `AuthCard` y su presentación.
 La unión de los paneles tiene una curva superior en el panel claro y otra inferior en el azul. El fondo izquierdo combina un degradado azul y turquesa, dos ondas verdes y una cruz médica translúcida. El formulario activo reside en una tarjeta blanca interior y el enlace de cambio queda fuera del formulario.
 
 ## Modelo

@@ -12,6 +12,39 @@ import { Turnstile, type TurnstileHandle } from "./turnstile";
 
 type DemoTab = "login" | "guest";
 
+function DemoIcon({ name }: { name: "user" | "circle-play" | "arrow-right" }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-5 shrink-0"
+      fill="none"
+      focusable="false"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      {name === "user" ? (
+        <>
+          <circle cx="12" cy="7" r="4" />
+          <path d="M20 21a8 8 0 0 0-16 0" />
+        </>
+      ) : name === "circle-play" ? (
+        <>
+          <circle cx="12" cy="12" r="10" />
+          <path d="m10 8 6 4-6 4V8Z" />
+        </>
+      ) : (
+        <>
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function LoginFields({
   state,
   isPortfolioDemo = false,
@@ -121,7 +154,7 @@ export function LoginForm({
             <button
               aria-controls="demo-login-panel"
               aria-selected={activeTab === "login"}
-              className={`min-h-11 cursor-pointer border-b-2 px-2 py-3 text-sm font-semibold transition focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:text-base ${activeTab === "login" ? "border-sky-700 text-sky-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+              className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 border-b-2 px-2 py-3 text-sm font-semibold transition focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:text-base ${activeTab === "login" ? "border-sky-700 text-sky-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}
               id="demo-login-tab"
               onClick={() => activateTab("login")}
               onKeyDown={onTabKeyDown}
@@ -130,12 +163,13 @@ export function LoginForm({
               tabIndex={activeTab === "login" ? 0 : -1}
               type="button"
             >
+              <DemoIcon name="user" />
               Iniciar sesión
             </button>
             <button
               aria-controls="demo-login-panel"
               aria-selected={activeTab === "guest"}
-              className={`min-h-11 cursor-pointer border-b-2 px-2 py-3 text-sm font-semibold transition focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:text-base ${activeTab === "guest" ? "border-sky-700 text-sky-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+              className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 border-b-2 px-2 py-3 text-sm font-semibold transition focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:text-base ${activeTab === "guest" ? "border-sky-700 text-sky-800" : "border-transparent text-slate-500 hover:text-slate-800"}`}
               id="demo-guest-tab"
               onClick={() => activateTab("guest")}
               onKeyDown={onTabKeyDown}
@@ -144,6 +178,7 @@ export function LoginForm({
               tabIndex={activeTab === "guest" ? 0 : -1}
               type="button"
             >
+              <DemoIcon name="circle-play" />
               Demo invitado
             </button>
           </div>
@@ -225,11 +260,15 @@ export function LoginForm({
                 {activeTab === "login" ? "¿Querés conocer el sistema?" : "¿Ya tenés una cuenta?"}
               </p>
               <button
-                className="mt-1 cursor-pointer font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                className="mt-1 inline-flex cursor-pointer items-center justify-center gap-2 font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
                 onClick={() => activateTab(activeTab === "login" ? "guest" : "login", true)}
                 type="button"
               >
-                {activeTab === "login" ? "Explorá la demo como invitado" : "Iniciá sesión"}
+                <DemoIcon name={activeTab === "login" ? "circle-play" : "user"} />
+                <span>
+                  {activeTab === "login" ? "Explorá la demo como invitado" : "Iniciá sesión"}
+                </span>
+                <DemoIcon name="arrow-right" />
               </button>
             </div>
           ) : null}

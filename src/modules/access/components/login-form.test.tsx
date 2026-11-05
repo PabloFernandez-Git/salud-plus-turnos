@@ -35,6 +35,10 @@ describe("LoginForm", () => {
     const passwordButton = screen.getByRole("button", { name: "Ingresar" });
     expect(loginTab).toHaveAttribute("aria-selected", "true");
     expect(guestTab).toHaveAttribute("aria-selected", "false");
+    expect(loginTab.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(loginTab.querySelector("svg")).toHaveAttribute("stroke", "currentColor");
+    expect(guestTab.querySelector("svg circle")).toBeInTheDocument();
+    expect(guestTab.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByRole("heading", { name: "Iniciar sesión" })).toBeVisible();
     expect(
       screen.getByText("Ingresá con el usuario y contraseña que te asignó tu centro."),
@@ -48,6 +52,7 @@ describe("LoginForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "demo@example.test" } });
     const guestLink = screen.getByRole("button", { name: "Explorá la demo como invitado" });
     expect(guestLink.closest("form")).toBeNull();
+    expect(guestLink.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(2);
     fireEvent.click(guestLink);
     expect(guestTab).toHaveAttribute("aria-selected", "true");
     expect(guestTab).toHaveFocus();
@@ -66,7 +71,9 @@ describe("LoginForm", () => {
       "disabled:opacity-60",
     );
     expect(screen.getByText("¿Ya tenés una cuenta?")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Iniciá sesión" }));
+    const loginLink = screen.getByRole("button", { name: "Iniciá sesión" });
+    expect(loginLink.querySelectorAll('svg[aria-hidden="true"]')).toHaveLength(2);
+    fireEvent.click(loginLink);
     expect(loginTab).toHaveAttribute("aria-selected", "true");
     expect(loginTab).toHaveFocus();
     expect(screen.getByLabelText("Email")).toHaveValue("demo@example.test");
