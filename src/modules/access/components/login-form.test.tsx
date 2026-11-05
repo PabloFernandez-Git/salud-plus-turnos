@@ -46,7 +46,9 @@ describe("LoginForm", () => {
     );
     expect(screen.queryByRole("button", { name: "Explorar demo como invitado" })).toBeNull();
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "demo@example.test" } });
-    fireEvent.click(screen.getByRole("button", { name: "Explorá la demo como invitado" }));
+    const guestLink = screen.getByRole("button", { name: "Explorá la demo como invitado" });
+    expect(guestLink.closest("form")).toBeNull();
+    fireEvent.click(guestLink);
     expect(guestTab).toHaveAttribute("aria-selected", "true");
     expect(guestTab).toHaveFocus();
     expect(loginAction).not.toHaveBeenCalled();

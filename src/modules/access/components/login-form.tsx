@@ -111,7 +111,7 @@ export function LoginForm({
 
   if (isPortfolioDemo) {
     return (
-      <div>
+      <div className="flex flex-1 flex-col">
         {guestAccessEnabled ? (
           <div
             aria-label="Opciones de acceso"
@@ -149,6 +149,7 @@ export function LoginForm({
           </div>
         ) : null}
         <div
+          className="flex flex-1 flex-col justify-center"
           aria-labelledby={
             guestAccessEnabled
               ? activeTab === "login"
@@ -160,76 +161,78 @@ export function LoginForm({
           role={guestAccessEnabled ? "tabpanel" : undefined}
           tabIndex={guestAccessEnabled ? 0 : undefined}
         >
-          <form action={formAction} className="space-y-5" noValidate>
-            <div className="space-y-2 text-left">
-              {activeTab === "login" ? (
-                <>
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-950">
-                    Iniciar sesión
-                  </h1>
-                  <p className="text-sm leading-6 text-slate-600">
-                    Ingresá con el usuario y contraseña que te asignó tu centro.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h1 className="text-xl font-bold tracking-tight text-slate-950 lg:whitespace-nowrap">
-                    Explorá Salud Plus como invitado
-                  </h1>
-                  <p className="text-sm leading-6 text-slate-600">
-                    Conocé nuestro sistema de gestión de turnos médicos. Explorá sus funcionalidades
-                    con datos ficticios y acceso de solo lectura.
-                  </p>
-                </>
-              )}
-            </div>
-            {activeTab === "login" && callbackError ? (
-              <p
-                className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-                role="alert"
-              >
-                No pudimos validar el enlace. Volvé a iniciar sesión.
-              </p>
-            ) : null}
-            {activeTab === "login" ? <ActionMessage state={state} /> : null}
-            <div className="space-y-5" hidden={activeTab !== "login"}>
-              <LoginFields isPortfolioDemo state={state} />
-            </div>
-            {captchaEnabled && turnstileSiteKey ? (
-              <>
-                <Turnstile
-                  onTokenChange={setCaptchaToken}
-                  ref={turnstile}
-                  siteKey={turnstileSiteKey}
-                />
-                <input name="captchaToken" type="hidden" value={captchaToken ?? ""} />
-              </>
-            ) : null}
-            {activeTab === "login" ? (
-              <SubmitButton
-                cursorPointer
-                disabled={captchaEnabled && !captchaToken}
-                idleLabel="Ingresar"
-                pendingLabel="Ingresando…"
-              />
-            ) : (
-              <GuestAccessButton captchaToken={captchaToken} resetCaptcha={resetCaptcha} />
-            )}
-            {guestAccessEnabled ? (
-              <div className="pt-2 text-center text-sm text-slate-600">
-                <p>
-                  {activeTab === "login" ? "¿Querés conocer el sistema?" : "¿Ya tenés una cuenta?"}
-                </p>
-                <button
-                  className="mt-1 cursor-pointer font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-                  onClick={() => activateTab(activeTab === "login" ? "guest" : "login", true)}
-                  type="button"
-                >
-                  {activeTab === "login" ? "Explorá la demo como invitado" : "Iniciá sesión"}
-                </button>
+          <div className="rounded-[2rem] bg-white p-6 shadow-lg shadow-slate-200/70 ring-1 ring-slate-200/60 sm:p-8 md:p-6 lg:p-8">
+            <form action={formAction} className="space-y-5" noValidate>
+              <div className="space-y-2 text-left">
+                {activeTab === "login" ? (
+                  <>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-950">
+                      Iniciar sesión
+                    </h1>
+                    <p className="text-sm leading-6 text-slate-600">
+                      Ingresá con el usuario y contraseña que te asignó tu centro.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="text-xl font-bold tracking-tight text-slate-950 lg:whitespace-nowrap">
+                      Explorá Salud Plus como invitado
+                    </h1>
+                    <p className="text-sm leading-6 text-slate-600">
+                      Conocé nuestro sistema de gestión de turnos médicos. Explorá sus
+                      funcionalidades con datos ficticios y acceso de solo lectura.
+                    </p>
+                  </>
+                )}
               </div>
-            ) : null}
-          </form>
+              {activeTab === "login" && callbackError ? (
+                <p
+                  className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                  role="alert"
+                >
+                  No pudimos validar el enlace. Volvé a iniciar sesión.
+                </p>
+              ) : null}
+              {activeTab === "login" ? <ActionMessage state={state} /> : null}
+              <div className="space-y-5" hidden={activeTab !== "login"}>
+                <LoginFields isPortfolioDemo state={state} />
+              </div>
+              {captchaEnabled && turnstileSiteKey ? (
+                <>
+                  <Turnstile
+                    onTokenChange={setCaptchaToken}
+                    ref={turnstile}
+                    siteKey={turnstileSiteKey}
+                  />
+                  <input name="captchaToken" type="hidden" value={captchaToken ?? ""} />
+                </>
+              ) : null}
+              {activeTab === "login" ? (
+                <SubmitButton
+                  cursorPointer
+                  disabled={captchaEnabled && !captchaToken}
+                  idleLabel="Ingresar"
+                  pendingLabel="Ingresando…"
+                />
+              ) : (
+                <GuestAccessButton captchaToken={captchaToken} resetCaptcha={resetCaptcha} />
+              )}
+            </form>
+          </div>
+          {guestAccessEnabled ? (
+            <div className="pt-6 text-center text-sm text-slate-600">
+              <p>
+                {activeTab === "login" ? "¿Querés conocer el sistema?" : "¿Ya tenés una cuenta?"}
+              </p>
+              <button
+                className="mt-1 cursor-pointer font-semibold text-sky-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                onClick={() => activateTab(activeTab === "login" ? "guest" : "login", true)}
+                type="button"
+              >
+                {activeTab === "login" ? "Explorá la demo como invitado" : "Iniciá sesión"}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     );
