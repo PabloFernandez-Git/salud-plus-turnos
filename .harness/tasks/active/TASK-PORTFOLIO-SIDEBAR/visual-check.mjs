@@ -79,7 +79,7 @@ try {
       await expect(page.getByRole("heading", { name: "Pacientes" })).toBeVisible();
     }
 
-    for (const module of [
+    for (const destination of [
       "agenda",
       "appointments",
       "patients",
@@ -89,11 +89,11 @@ try {
       "users",
       "settings",
     ]) {
-      await page.goto(`${base}/${module}`);
+      await page.goto(`${base}/${destination}`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       assert.ok(
         (await page.evaluate(() => document.documentElement.scrollWidth)) <= width,
-        `${module} overflows at ${width}`,
+        `${destination} overflows at ${width}`,
       );
     }
     assert.deepEqual(errors, [], `${width} page errors`);
