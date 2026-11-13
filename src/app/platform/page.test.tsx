@@ -60,15 +60,20 @@ describe("platform page navigation", () => {
     render(await PlatformPage());
     const centerLink = screen.getByRole("link", { name: "Ir a mi centro" });
     expect(centerLink).toHaveAttribute("href", `/centers/${one.id}`);
-    expect(centerLink).toHaveClass("gap-2");
+    expect(centerLink).toHaveClass("h-11", "w-11", "cursor-pointer");
     expect(centerLink.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(centerLink.querySelector("svg")).toHaveAttribute("stroke", "currentColor");
-    expect(centerLink.querySelector("svg")).toHaveClass("h-[17px]", "w-[17px]");
+    expect(centerLink.querySelector("svg")).toHaveClass("h-5", "w-5");
+    expect(centerLink.querySelector('span[aria-hidden="true"]')).toHaveTextContent(
+      "Ir a mi centro",
+    );
     expect(screen.queryByRole("link", { name: "Seleccionar centro" })).not.toBeInTheDocument();
     const header = screen.getByText("Administración de plataforma").closest("header");
     expect(header).toHaveClass("border-b", "bg-white");
-    expect(header?.firstElementChild).toHaveClass("gap-4", "py-5");
-    expect(screen.getByRole("heading", { name: "Centros" })).toHaveClass("mt-1.5");
+    expect(header?.firstElementChild).toHaveClass("gap-3", "py-4");
+    expect(screen.getByRole("heading", { name: "Centros" })).toHaveClass("mt-1");
+    expect(header).toHaveTextContent("Salud Plus");
+    expect(header).toHaveTextContent("Cuenta: admin@example.test");
     expect(header).toContainElement(centerLink);
     expect(header).toContainElement(screen.getByRole("button", { name: "Cerrar sesión" }));
     expect(header).not.toContainElement(screen.getByRole("button", { name: "Crear centro" }));
@@ -91,7 +96,7 @@ describe("platform page navigation", () => {
     );
     expect(
       screen.getByRole("link", { name: "Seleccionar centro" }).querySelector("svg"),
-    ).toBeNull();
+    ).toBeInTheDocument();
   });
 
   it("omits center navigation with no access and reports query failures", async () => {

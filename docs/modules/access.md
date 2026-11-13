@@ -63,7 +63,7 @@ institucionales de `centers` conserva el grant SELECT y la policy tenant preexis
 membership activa del mismo centro activo. Ni la pantalla ADMIN ni esa lectura dan acceso a otros
 centros; leer la fila no concede permiso para guardar cambios.
 
-El módulo se presenta como **Gestión de usuarios** en Dashboard, encabezado y breadcrumb. El listado
+El módulo se presenta como **Gestión de usuarios** en la barra lateral y en su encabezado. El listado
 vive en `/centers/[centerId]/users`: muestra exclusivamente las memberships visibles del
 Center autorizado, identidad proyectada, rol, estado y la asociación Professional segura cuando
 existe. La ruta, sus queries y sus mutaciones requieren `ADMIN` tenant activo; ocultar el enlace es
@@ -162,11 +162,13 @@ Sólo PLATFORM_ADMIN accede a `/platform`. Puede:
 - crear un centro junto con su primer ADMIN;
 - activar o desactivar un centro.
 
-El acceso de regreso a `/platform` en el dashboard tenant requiere consultar el permiso global
-`platform_admins`; el rol ADMIN de un centro no lo concede. Los módulos interiores mantienen
-«Volver al inicio» en el encabezado, sin el enlace de plataforma. Las comprobaciones de servidor de
+El acceso a `/platform` desde el encabezado del centro requiere consultar el permiso global
+`platform_admins`; el rol ADMIN de un centro no lo concede. El enlace aparece en las pantallas
+del centro cuando corresponde. Las comprobaciones de servidor de
 `/platform` y de cada mutación siguen siendo la autoridad. Desde plataforma, el enlace de vuelta
 usa únicamente memberships activas en centros activos.
+El encabezado de plataforma comparte la identidad visual del centro y muestra la cuenta, el alcance
+del panel y las acciones de retorno y cierre de sesión como iconos con nombre accesible y tooltip.
 
 Si falla la consulta global usada sólo para mostrar el enlace, el centro ya autorizado sigue
 disponible y el enlace se oculta. La resolución de destinos tras el login conserva los centros

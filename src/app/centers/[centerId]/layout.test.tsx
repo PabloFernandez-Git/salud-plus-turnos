@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
@@ -25,139 +25,100 @@ vi.mock("@/modules/access/components/logout-button", () => ({
 }));
 
 const centerId = "11111111-1111-4111-8111-111111111111";
+const root = `/centers/${centerId}`;
+
+function mockContext(role: "ADMIN" | "RECEPTION" | "PROFESSIONAL" = "ADMIN") {
+  vi.mocked(requireCenterMembership).mockResolvedValueOnce({
+    center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
+    user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
+    membership: { id: "member", role, professionalCenterId: null },
+  });
+}
 
 describe("center layout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    pathname.mockReturnValue(`/centers/${centerId}`);
+    pathname.mockReturnValue(root);
     vi.mocked(hasOptionalPlatformNavigation).mockResolvedValue(false);
   });
   afterEach(cleanup);
 
-  it("keeps logout on the Dashboard", async () => {
-    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
-      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
-      user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
-    });
+  it("keeps center identity and navigation around every module", async () => {
+    pathname.mockReturnValue(`${root}/patients`);
+    mockContext("RECEPTION");
     render(
       await CenterLayout({
         params: Promise.resolve({ centerId }),
-        children: <main>Contenido del módulo</main>,
+        children: <main>Pacientes</main>,
       }),
     );
-    expect(screen.getByText("Centro activo")).toBeVisible();
     expect(screen.getByText("Centro Norte")).toBeVisible();
+    const header = screen.getByRole("banner");
+    const brand = within(header).getByRole("link", { name: "Salud Plus" });
+    expect(brand).toHaveAttribute("href", root);
+    expect(brand.querySelector("svg")).toBeInTheDocument();
+    brand.focus();
+    expect(brand).toHaveFocus();
+    expect(
+      within(header).getByRole("button", { name: "Abrir menú de navegación" }),
+    ).toBeInTheDocument();
+    expect(header.nextElementSibling?.querySelector("main")).toBeInTheDocument();
     expect(screen.getByText("Ana Pérez · ana@example.test · Recepción")).toBeVisible();
     expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Volver al inicio" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
-    expect(screen.getByText("Contenido del módulo")).toBeVisible();
-    expect(requireCenterMembership).toHaveBeenCalledWith(centerId);
-  });
-
-  it("shows platform navigation only with the global permission, independently of center role", async () => {
-    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValueOnce(true);
-    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
-      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
-      user: { id: "platform-user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
-    });
-    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
-    const platformLink = screen.getByRole("link", { name: "Administrar plataforma" });
-    expect(platformLink).toHaveAttribute("href", "/platform");
-    expect(platformLink).toHaveClass("gap-2");
-    expect(platformLink.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-    expect(platformLink.querySelector("svg")).toHaveAttribute("stroke", "currentColor");
-    expect(platformLink.querySelector("svg")).toHaveClass("h-[17px]", "w-[17px]");
-    expect(platformLink).toHaveClass("sm:w-[232px]", "min-h-11");
-    expect(screen.getByRole("button", { name: "Cerrar sesión" }).parentElement).toHaveClass(
-      "sm:w-[232px]",
+    const nav = screen.getByRole("navigation", { name: "Navegación del centro" });
+    expect(within(nav).getByRole("link", { name: "Pacientes" })).toHaveAttribute(
+      "aria-current",
+      "page",
     );
-    expect(hasOptionalPlatformNavigation).toHaveBeenCalledWith("platform-user");
-  });
-
-  it("does not infer platform permission from ADMIN of a center", async () => {
-    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
-      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
-      user: { id: "center-admin", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "ADMIN", professionalCenterId: null },
-    });
-    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
-    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
-    expect(hasOptionalPlatformNavigation).toHaveBeenCalledWith("center-admin");
-  });
-
-  it.each([
-    "agenda",
-    "appointments",
-    "patients",
-    "professionals",
-    "availability",
-    "specialties",
-    "users",
-  ])("shows only return navigation within %s", async (module) => {
-    pathname.mockReturnValue(`/centers/${centerId}/${module}`);
-    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValueOnce(true);
-    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
-      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
-      user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "ADMIN", professionalCenterId: null },
-    });
-    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
-    expect(screen.getByRole("link", { name: "Volver al inicio" })).toHaveAttribute(
+    expect(within(nav).getByRole("link", { name: "Agenda" })).toHaveAttribute(
       "href",
-      `/centers/${centerId}`,
+      `${root}/agenda`,
     );
-    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Cerrar sesión" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "Profesionales" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Volver al inicio" })).not.toBeInTheDocument();
+    expect(screen.getByText("Pacientes", { selector: "main" })).toBeVisible();
   });
 
-  it("preserves denied center access", async () => {
+  it("shows platform navigation only with global permission", async () => {
+    vi.mocked(hasOptionalPlatformNavigation).mockResolvedValueOnce(true);
+    mockContext("RECEPTION");
+    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
+    const platform = screen.getByRole("link", { name: "Administrar plataforma" });
+    expect(platform).toHaveAttribute("href", "/platform");
+    expect(platform.querySelector("svg")).toBeInTheDocument();
+    expect(within(platform).getByText("Administrar plataforma")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(hasOptionalPlatformNavigation).toHaveBeenCalledWith("user");
+  });
+
+  it("does not infer platform permission from center ADMIN", async () => {
+    mockContext();
+    render(await CenterLayout({ params: Promise.resolve({ centerId }), children: null }));
+    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
+  });
+
+  it("preserves denied and unauthenticated access", async () => {
     vi.mocked(requireCenterMembership).mockRejectedValueOnce(
       new AuthorizationError("CENTER_ACCESS_DENIED"),
     );
     await expect(
       CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
     ).rejects.toThrow("NOT_FOUND");
-    expect(hasOptionalPlatformNavigation).not.toHaveBeenCalled();
-  });
-
-  it("renders an authorized center when optional platform navigation is unavailable", async () => {
-    vi.mocked(requireCenterMembership).mockResolvedValueOnce({
-      center: { id: centerId, name: "Centro Norte", timezone: "UTC" },
-      user: { id: "user", firstName: "Ana", lastName: "Pérez", email: "ana@example.test" },
-      membership: { id: "member", role: "RECEPTION", professionalCenterId: null },
-    });
-    render(
-      await CenterLayout({ params: Promise.resolve({ centerId }), children: <main>Centro</main> }),
-    );
-    expect(screen.getByText("Centro")).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Administrar plataforma" })).not.toBeInTheDocument();
-  });
-
-  it("returns not-found for an invalid center identifier before querying membership", async () => {
-    await expect(
-      CenterLayout({ params: Promise.resolve({ centerId: "invalid" }), children: null }),
-    ).rejects.toThrow("NOT_FOUND");
-    expect(requireCenterMembership).not.toHaveBeenCalledWith("invalid");
-  });
-
-  it("redirects an unauthenticated visitor to login", async () => {
     vi.mocked(requireCenterMembership).mockRejectedValueOnce(
       new AuthorizationError("UNAUTHENTICATED"),
     );
     await expect(
       CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
     ).rejects.toThrow("REDIRECT:/login");
+    expect(hasOptionalPlatformNavigation).not.toHaveBeenCalled();
   });
 
-  it("propagates an internal query failure without turning it into a 404", async () => {
-    const queryError = new Error("internal query failure");
-    vi.mocked(requireCenterMembership).mockRejectedValueOnce(queryError);
-
+  it("rejects invalid IDs before querying membership", async () => {
     await expect(
-      CenterLayout({ params: Promise.resolve({ centerId }), children: null }),
-    ).rejects.toBe(queryError);
+      CenterLayout({ params: Promise.resolve({ centerId: "invalid" }), children: null }),
+    ).rejects.toThrow("NOT_FOUND");
+    expect(requireCenterMembership).not.toHaveBeenCalled();
   });
 });

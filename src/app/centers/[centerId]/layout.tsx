@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { CenterHeader } from "@/modules/access/components/center-header";
+import { CenterSidebar } from "@/modules/access/components/center-sidebar";
 import { hasOptionalPlatformNavigation } from "@/modules/access/server/access";
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
 
@@ -31,7 +32,7 @@ export default async function CenterLayout({
   const isPlatformAdmin = await hasOptionalPlatformNavigation(context.user.id);
 
   return (
-    <div className="min-h-screen bg-slate-100/80">
+    <div className="center-layout grid min-h-dvh grid-rows-[auto_minmax(0,1fr)] bg-slate-100/80">
       <CenterHeader
         centerId={parsedCenterId.data}
         centerName={context.center.name}
@@ -39,7 +40,10 @@ export default async function CenterLayout({
         role={context.membership.role}
         isPlatformAdmin={isPlatformAdmin}
       />
-      {children}
+      <div className="min-w-0 md:flex">
+        <CenterSidebar centerId={parsedCenterId.data} role={context.membership.role} />
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     </div>
   );
 }
