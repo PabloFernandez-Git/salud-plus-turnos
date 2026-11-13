@@ -1,11 +1,13 @@
 # Estado actual
 
-**TASK-036 — ACTIVE en `codex/v1-login-unified`.** El login V1 reutiliza la composición visual del
-portfolio sin incorporar su acceso invitado ni Turnstile. La rama parte de `origin/main` `afd502d` en
-un worktree separado; autenticación y permisos no cambian. Ver
-[brief](../.harness/tasks/active/TASK-036-V1-LOGIN-UNIFIED/brief.md) y
-[verificación](../.harness/tasks/active/TASK-036-V1-LOGIN-UNIFIED/implementation-report.md).
-TASK-029 y el portfolio permanecen separados.
+**TASK-037 — aprobada para integración en `codex/v1-sidebar-navigation`.** La navegación lateral V1
+fue revisada y aprobada visualmente por la persona usuaria. El layout del centro muestra una sidebar
+compacta y el Dashboard conserva la información operativa; la visibilidad por rol y la autorización
+de servidor permanecen. La verificación automatizada y visual local está en el
+[expediente](../.harness/tasks/archive/TASK-037-V1-SIDEBAR/). No se desplegó la aplicación.
+
+**TASK-036 — integrada en `origin/main` mediante PR #48.** El login V1 aprobado es la base de
+TASK-037; su implementación y cambios de Auth quedan fuera del alcance de la navegación lateral.
 
 **TASK-035 — CLOSED / ARCHIVED propuesto; formalmente ACTIVE hasta integrar este cambio
 documental.** El cierre funcional

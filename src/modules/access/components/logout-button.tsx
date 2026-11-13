@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { modalActionGroupClass } from "@/components/modal-action-group";
 
@@ -7,15 +8,46 @@ import { logoutAction, type AuthActionState } from "../actions/auth-actions";
 import { ActionMessage } from "./action-message";
 import { SubmitButton } from "./submit-button";
 
-function ImmediateLogoutButton({ variant }: { variant: "primary" | "quiet" }) {
-  const [state, formAction] = useActionState(logoutAction, {
+function ImmediateLogoutButton({
+  variant,
+  iconOnly,
+}: {
+  variant: "primary" | "quiet";
+  iconOnly: boolean;
+}) {
+  const [state, formAction, isPending] = useActionState(logoutAction, {
     status: "idle",
   } satisfies AuthActionState);
 
   return (
-    <form action={formAction} className="space-y-2">
-      <ActionMessage state={state} />
-      <SubmitButton idleLabel="Cerrar sesión" pendingLabel="Cerrando sesión…" variant={variant} />
+    <form action={formAction} className={iconOnly ? "relative" : "space-y-2"}>
+      {iconOnly ? (
+        state.message && (
+          <div className="absolute top-full left-0 z-50 mt-2 w-[min(20rem,calc(100vw-2.5rem))] sm:right-0 sm:left-auto">
+            <ActionMessage state={state} />
+          </div>
+        )
+      ) : (
+        <ActionMessage state={state} />
+      )}
+      {iconOnly ? (
+        <button
+          aria-label={isPending ? "Cerrando sesión…" : "Cerrar sesión"}
+          className="group relative inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isPending}
+          type="submit"
+        >
+          <LogOut aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-full z-50 mt-2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:right-0 sm:left-auto"
+          >
+            {isPending ? "Cerrando sesión…" : "Cerrar sesión"}
+          </span>
+        </button>
+      ) : (
+        <SubmitButton idleLabel="Cerrar sesión" pendingLabel="Cerrando sesión…" variant={variant} />
+      )}
     </form>
   );
 }
@@ -130,23 +162,32 @@ function LogoutConfirmation({ onClose }: { onClose: () => void }) {
 export function LogoutButton({
   variant = "primary",
   confirm = false,
+  iconOnly = false,
 }: {
   variant?: "primary" | "quiet";
   confirm?: boolean;
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  if (!confirm) return <ImmediateLogoutButton variant={variant} />;
+  if (!confirm) return <ImmediateLogoutButton iconOnly={iconOnly} variant={variant} />;
 
   return (
     <>
       <button
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        aria-label="Cerrar sesión"
+        className="group relative inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         onClick={() => setOpen(true)}
         ref={triggerRef}
         type="button"
       >
-        Cerrar sesión
+        <LogOut aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-full z-50 mt-2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:right-0 sm:left-auto"
+        >
+          Cerrar sesión
+        </span>
       </button>
       {open && (
         <LogoutConfirmation

@@ -26,6 +26,8 @@ afterEach(() => {
 function openConfirmation() {
   render(<LogoutButton variant="quiet" confirm />);
   const trigger = screen.getByRole("button", { name: "Cerrar sesión" });
+  expect(trigger.querySelector("svg")).toBeInTheDocument();
+  expect(within(trigger).getByText("Cerrar sesión")).toHaveAttribute("aria-hidden", "true");
   trigger.focus();
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog", {
@@ -123,5 +125,18 @@ describe("dashboard logout confirmation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cerrar sesión" }));
     await waitFor(() => expect(logout).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders the platform logout as an accessible square icon control", async () => {
+    logout.mockResolvedValue({ status: "error", message: "No pudimos cerrar la sesión." });
+    render(<LogoutButton variant="quiet" iconOnly />);
+    const trigger = screen.getByRole("button", { name: "Cerrar sesión" });
+    expect(trigger).toHaveClass("h-11", "w-11", "cursor-pointer");
+    expect(trigger.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(trigger.querySelector('span[aria-hidden="true"]')).toHaveTextContent("Cerrar sesión");
+    fireEvent.click(trigger);
+    await waitFor(() => expect(logout).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos cerrar la sesión.");
   });
 });
