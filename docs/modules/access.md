@@ -2,6 +2,13 @@
 
 ## Demo pública de portfolio
 
+La adaptación visual local de TASK-037 coloca la navegación autorizada en una sidebar de 64 px que
+se expande a 240 px por hover o foco y en un menú modal para móvil. El encabezado ocupa todo el ancho,
+incluye la marca enlazada al Dashboard y mantiene la identidad «Invitado» y «Demo de lectura» para
+sesiones anónimas. El aviso superior de datos ficticios y edición deshabilitada permanece visible.
+Las rutas disponibles, los guards de servidor y las restricciones de escritura de DEMO no cambian.
+La adaptación recibió aprobación visual; su integración y publicación aún están pendientes.
+
 La rama `codex/portfolio-mvp` usa un proyecto Supabase DEMO separado para las pantallas de lectura. La migración `20261103120000_portfolio_demo_read_only.sql` revoca DML directo y las RPC públicas salvo una lista explícita de consultas. `PORTFOLIO_DEMO_MODE=true` bloquea también las Server Actions de escritura, incluidas las de provisión que podrían usar Auth Admin. Esta configuración no cambia los roles del producto ni se aplica a DEV/PROD. Ver [guía de la demo](../portfolio-demo.md).
 
 El acceso invitado está activo en la demo pública. Su migración y configuración son exclusivas de DEMO: un hook Auth y un trigger rechazan altas no anónimas, el trigger crea perfil y membership del centro ficticio para cada UUID anónimo, y policies restrictivas aíslan los perfiles y memberships invitados. La aplicación fuera de DEMO conserva el login normal. Las verificaciones remotas y la limpieza controlada están en la [guía de invitados](../portfolio-guest-access.md).

@@ -17,7 +17,10 @@ HTMLDialogElement.prototype.showModal = function () {
 HTMLDialogElement.prototype.close = function () {
   this.removeAttribute("open");
 };
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+  usePathname: () => `/centers/11111111-1111-4111-8111-111111111111/professionals`,
+}));
 vi.mock("../actions/professional-actions", () => ({
   resolveProfessionalAction: (data: FormData) => resolve(data),
   createProfessionalAction: (data: FormData) => create(data),

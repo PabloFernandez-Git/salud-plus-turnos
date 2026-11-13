@@ -96,14 +96,45 @@ describe("daily dashboard panel", () => {
     expect(
       screen.getByText("Domingo 1 de noviembre · Actualizado a las 01:20 (hora del centro)"),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Actualizar" }));
-    expect(screen.getByText("Salud Plus, cargando")).toBeInTheDocument();
+    const refresh = screen.getByRole("button", { name: "Actualizar" });
+    expect(refresh.querySelector("svg")).toBeInTheDocument();
+    expect(refresh.querySelector('span[aria-hidden="true"]')).toHaveTextContent("Actualizar");
+    fireEvent.click(refresh);
     await screen.findByText("No pudimos cargar la actividad. Intentá de nuevo.");
     expect(screen.queryByText("Salud Plus, cargando")).not.toBeInTheDocument();
     expect(screen.queryByText(/Profesionales con turnos hoy/)).not.toBeInTheDocument();
     expect(screen.queryByText("Fecha y hora del centro al cargar")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Actualizar" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+  });
+
+  it("spins and disables refresh while a request is pending, then restores the control", async () => {
+    let finish!: (value: ReturnType<typeof snapshot>) => void;
+    vi.mocked(refreshDailyDashboardAction)
+      .mockResolvedValueOnce(snapshot("staff") as never)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve as typeof finish;
+          }) as never,
+      );
+    render(<DailyDashboardPanel {...props} />);
+    await screen.findByText(/Profesionales con turnos hoy/);
+    const refresh = screen.getByRole("button", { name: "Actualizar" });
+    expect(refresh).toHaveClass("cursor-pointer", "bg-sky-50", "text-sky-700");
+    fireEvent.click(refresh);
+    expect(refresh).toBeDisabled();
+    expect(refresh).toHaveAttribute("aria-busy", "true");
+    expect(refresh.querySelector("svg")).toHaveClass("motion-safe:animate-spin");
+    expect(screen.getByText(/Profesionales con turnos hoy/)).toBeVisible();
+    fireEvent.click(refresh);
+    fireEvent(document, new Event("visibilitychange"));
+    expect(refreshDailyDashboardAction).toHaveBeenCalledTimes(2);
+    await act(async () => finish(snapshot("staff", 0)));
+    expect(refresh).toBeEnabled();
+    expect(refresh).toHaveAttribute("aria-busy", "false");
+    expect(refresh.querySelector("svg")).not.toHaveClass("motion-safe:animate-spin");
+    expect(screen.getByText("No hay turnos vigentes para hoy.")).toBeVisible();
   });
 
   it("uses the minimal professional projection and distinguishes empty states", async () => {
@@ -182,6 +213,7 @@ describe("daily dashboard panel", () => {
     vi.mocked(refreshDailyDashboardAction).mockResolvedValue(snapshot("staff") as never);
     render(<DailyDashboardPanel {...props} />);
     await screen.findByText(/Profesionales con turnos hoy/);
+    await act(async () => {});
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
     fireEvent(document, new Event("visibilitychange"));
     await waitFor(() => expect(refreshDailyDashboardAction).toHaveBeenCalledTimes(2));

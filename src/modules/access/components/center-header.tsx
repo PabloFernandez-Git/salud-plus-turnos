@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Building2, HeartPulse } from "lucide-react";
 
 import { NavigationLoader } from "@/components/navigation-loader";
 import type { CenterMembershipContext } from "../server/authorization";
 import { LogoutButton } from "./logout-button";
+import { CenterMobileNavigation } from "./center-sidebar";
 
 const roleLabels = {
   ADMIN: "Administrador",
@@ -35,59 +37,51 @@ export function CenterHeader({
     isPortfolioDemo &&
     user.email.startsWith("guest+") &&
     user.email.endsWith("@guest.salud-plus.invalid");
-
   return (
-    <header className="border-b border-slate-200 bg-white [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-sky-700">
-            Centro activo
-          </p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            {centerName}
-          </p>
-          <p className="mt-1 break-words text-sm text-slate-600">
-            {user.firstName} {user.lastName} · {isGuest ? "Invitado" : user.email} ·{" "}
-            {isPortfolioDemo ? "Demo de lectura" : roleLabels[role]}
-          </p>
-        </div>
-        <div
-          className={`flex w-full shrink-0 flex-col gap-2 sm:justify-end ${isDashboard && isPlatformAdmin ? "sm:w-auto sm:flex-col lg:flex-row" : "sm:w-auto"}`}
-        >
-          {isPlatformAdmin && isDashboard ? (
+    <header className="relative z-40 border-b border-slate-200 bg-white [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed">
+      <div className="flex w-full flex-col gap-3 px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-8">
+          <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto">
             <Link
-              className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:w-[232px]"
+              className="inline-flex cursor-pointer items-center gap-3 rounded-md text-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+              href={`/centers/${centerId}`}
+            >
+              <HeartPulse aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+              <span className="whitespace-nowrap text-lg font-bold tracking-tight">Salud Plus</span>
+            </Link>
+            <CenterMobileNavigation centerId={centerId} role={role} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest text-sky-700">
+              Centro activo
+            </p>
+            <p className="mt-1 text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">
+              {centerName}
+            </p>
+            <p className="mt-1 break-words text-sm text-slate-600">
+              {user.firstName} {user.lastName} · {isGuest ? "Invitado" : user.email} ·{" "}
+              {isPortfolioDemo ? "Demo de lectura" : roleLabels[role]}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:shrink-0 lg:justify-end">
+          {isPlatformAdmin && (!isPortfolioDemo || isDashboard) && (
+            <Link
+              aria-label="Administrar plataforma"
+              className="group relative inline-flex h-11 w-11 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-800 transition hover:bg-sky-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
               href="/platform"
             >
-              <svg
+              <Building2 aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+              <span
                 aria-hidden="true"
-                className="h-[17px] w-[17px] shrink-0"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.8"
-                viewBox="0 0 24 24"
+                className="pointer-events-none absolute left-0 top-full z-50 mt-2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:right-0 sm:left-auto"
               >
-                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M6 12H4a2 2 0 0 0-2 2v8h20v-6a2 2 0 0 0-2-2h-2" />
-                <path d="M10 6h4M10 10h4M10 14h4M10 18h4" />
-              </svg>
-              Administrar plataforma
+                Administrar plataforma
+              </span>
               <NavigationLoader />
             </Link>
-          ) : null}
-          {isDashboard ? (
-            <div className={isPlatformAdmin ? "sm:w-[232px]" : undefined}>
-              <LogoutButton variant="quiet" confirm />
-            </div>
-          ) : (
-            <Link
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-              href={dashboardPath}
-            >
-              Volver al inicio
-            </Link>
           )}
+          <LogoutButton variant="quiet" confirm />
         </div>
       </div>
     </header>

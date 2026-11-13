@@ -47,9 +47,9 @@ describe("center settings screen", () => {
   it("renders current data and disables redundant updates after whitespace changes", () => {
     render(<CenterSettingsScreen settings={settings} />);
     expect(screen.getByRole("heading", { name: "Configuración del centro" })).toBeVisible();
-    expect(screen.getByRole("navigation", { name: "Ruta de navegación" })).toHaveTextContent(
-      "Inicio/Configuración del centro",
-    );
+    expect(
+      screen.queryByRole("navigation", { name: "Ruta de navegación" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Nombre del centro")).toHaveValue("Centro A");
     expect(screen.getByText(/Buenos Aires, Argentina/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Guardar cambios" })).toBeDisabled();

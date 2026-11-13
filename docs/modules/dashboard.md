@@ -2,6 +2,14 @@
 
 Dashboard operativo, no analítica histórica.
 
+## Navegación Portfolio DEMO aprobada visualmente
+
+El Dashboard de la rama de adaptación conserva Actividad de hoy y Próximos turnos, pero retira las
+tarjetas de navegación. Los destinos existentes se muestran en la sidebar del layout de centro, con
+íconos y ruta activa; el menú móvil ofrece los mismos destinos. Actualizar es un control de ícono
+con nombre accesible, animación durante la lectura y bloqueo de una segunda solicitud. El resultado
+continúa siendo de solo lectura. El cambio es local y no modifica permisos, datos ni servicios.
+
 ## Navegación del centro
 
 `/centers/[centerId]` muestra el nombre del centro, la identidad y el rol de la membership

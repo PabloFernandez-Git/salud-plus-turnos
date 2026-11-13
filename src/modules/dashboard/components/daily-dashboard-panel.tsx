@@ -1,5 +1,6 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -77,10 +78,14 @@ export function DailyDashboardPanel({
 }) {
   const router = useRouter();
   const [revision, setRevision] = useState(0);
-  const key = `${centerId}:${membershipId}:${role}:${revision}`;
+  const scopeKey = `${centerId}:${membershipId}:${role}`;
+  const key = `${scopeKey}:${revision}`;
   const [state, setState] = useState<LoadState>({ key, phase: "loading", snapshot: null });
+  const isRefreshing =
+    state.key !== key && state.key.startsWith(`${scopeKey}:`) && state.phase === "ready";
   const visibleState =
-    state.key === key ? state : { key, phase: "loading" as const, snapshot: null };
+    state.key === key || isRefreshing ? state : { key, phase: "loading" as const, snapshot: null };
+  const isLoading = visibleState.phase === "loading" || isRefreshing;
 
   useEffect(() => {
     let active = true;
@@ -121,21 +126,21 @@ export function DailyDashboardPanel({
 
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") setRevision((n) => n + 1);
+      if (document.visibilityState === "visible" && !isLoading) setRevision((n) => n + 1);
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+  }, [isLoading]);
 
   useEffect(() => {
     const snapshot = visibleState.snapshot;
-    if (!snapshot) return;
+    if (!snapshot || isRefreshing) return;
     const timer = window.setTimeout(
       () => setRevision((n) => n + 1),
       millisecondsUntilNextCenterDay(Date.now(), snapshot.row.timezone),
     );
     return () => window.clearTimeout(timer);
-  }, [visibleState.snapshot]);
+  }, [visibleState.snapshot, isRefreshing]);
 
   if (visibleState.phase === "loading")
     return (
@@ -170,11 +175,26 @@ export function DailyDashboardPanel({
             </div>
             {visibleState.phase === "ready" && (
               <button
+                aria-label="Actualizar"
+                aria-busy={isRefreshing}
+                disabled={isRefreshing}
                 type="button"
-                onClick={() => setRevision((n) => n + 1)}
-                className="min-h-11 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+                onClick={() => {
+                  if (!isRefreshing) setRevision((n) => n + 1);
+                }}
+                className="group relative inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-wait disabled:opacity-70"
               >
-                Actualizar
+                <RefreshCw
+                  aria-hidden="true"
+                  className={`h-5 w-5 ${isRefreshing ? "motion-safe:animate-spin" : ""}`}
+                  strokeWidth={1.8}
+                />
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-full right-0 z-50 mt-2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  Actualizar
+                </span>
               </button>
             )}
           </div>

@@ -1,5 +1,13 @@
 # Estado actual
 
+**PORTFOLIO_SIDEBAR_READY_FOR_MERGE — diseño aprobado, integración y publicación pendientes.**
+La rama `codex/portfolio-sidebar-navigation` parte de `ce6e8d3` y traslada la interfaz de TASK-037
+conservando el aviso DEMO y la identidad de invitado. La revisión visual sintética pasó en cuatro
+viewports y obtuvo aprobación visual humana. La verificación final pasó 517 pruebas focales y de
+seguridad, TypeScript, ESLint y Prettier. Autenticación real con Turnstile y permisos RLS desplegados
+siguen pendientes de una revisión separada en el dominio autorizado. Ver
+[brief](../.harness/tasks/active/TASK-PORTFOLIO-SIDEBAR/brief.md).
+
 **Demo pública de portfolio — publicada y verificada manualmente.** [Salud Plus DEMO](https://salud-plus-portfolio.vercel.app) sirve `codex/portfolio-mvp` en Vercel Production desde `334b8d20d44da3741dd32f24103d8fd70479f2f7` (READY, comprobado al actualizar este estado). CAPTCHA y acceso invitado están activos en Production. El visitante entra sin credenciales compartidas y solo consulta datos ficticios del proyecto Supabase DEMO independiente. El operador verificó el ingreso invitado, login y cierre de sesión, lectura de pacientes y profesionales y controles de escritura deshabilitados. `PORTFOLIO_DEMO_MODE=true` bloquea Server Actions de escritura; grants y RLS de DEMO mantienen la protección en PostgreSQL. Ver [guía de DEMO](portfolio-demo.md) y [acceso invitado](portfolio-guest-access.md).
 
 **Pruebas remotas de seguridad informadas por el operador, con dos JWT anónimos:** UID diferentes e `is_anonymous=true`; perfiles y membresías propios HTTP 200 en Chrome y Edge, con listas vacías para las filas del otro invitado. INSERT, UPDATE y DELETE en `centers` y la RPC `staff_create_appointment` devolvieron HTTP 403 / `42501`. La RPC `staff_get_daily_dashboard` con otro centro devolvió HTTP 403 / `42501` (`DASHBOARD_ACCESS_DENIED`). Un alta tradicional con CAPTCHA válido recibió HTTP 403 (`Only anonymous DEMO signups are allowed.`) y la consulta posterior a `auth.users` mostró cero cuentas de prueba creadas. El alcance es específico: no se probaron todas las tablas, permisos ni RPC y esto no constituye una auditoría exhaustiva. Estas verificaciones de DEMO no cierran funcionalidades pendientes de la aplicación completa; DEV, `main` y TASK-029 permanecen separados.
