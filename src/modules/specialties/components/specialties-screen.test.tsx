@@ -9,7 +9,10 @@ const refresh = vi.fn();
 const create = vi.fn();
 const update = vi.fn();
 const setActive = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh }),
+  usePathname: () => `/centers/11111111-1111-4111-8111-111111111111/specialties`,
+}));
 vi.mock("../actions/specialty-actions", () => ({
   createSpecialtyAction: (formData: FormData) => create(formData),
   updateSpecialtyAction: (formData: FormData) => update(formData),

@@ -4,6 +4,11 @@
 
 La demo representa un único centro con datos exclusivamente ficticios. Se puede explorar sin correo ni contraseña desde **Demo invitado → Explorar demo como invitado**. Es de solo lectura y no debe utilizarse para gestionar información médica real. Los flujos de escritura de la aplicación completa permanecen deshabilitados en esta publicación.
 
+La rama `codex/portfolio-sidebar-navigation` adapta la navegación visual de TASK-037, aprobada
+para integración: sidebar compacta, menú móvil y encabezado de ancho completo. Conserva el aviso
+DEMO, el login aprobado, Turnstile y todos los límites de solo lectura. Esta adaptación aún no está publicada;
+la URL de arriba sigue correspondiendo a `codex/portfolio-mvp`.
+
 ## Configuración de la publicación
 
 - Vercel sirve Next.js desde la rama de portfolio; `PORTFOLIO_DEMO_MODE=true`, `PORTFOLIO_CAPTCHA_REQUIRED=true` y `PORTFOLIO_GUEST_ACCESS_ENABLED=true` en Production, comprobados al actualizar esta guía.

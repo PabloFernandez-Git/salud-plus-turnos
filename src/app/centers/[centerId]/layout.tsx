@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { CenterHeader } from "@/modules/access/components/center-header";
+import { CenterSidebar } from "@/modules/access/components/center-sidebar";
 import { hasOptionalPlatformNavigation } from "@/modules/access/server/access";
 import { AuthorizationError, requireCenterMembership } from "@/modules/access/server/authorization";
 
@@ -29,10 +30,13 @@ export default async function CenterLayout({
   }
 
   const isPlatformAdmin = await hasOptionalPlatformNavigation(context.user.id);
+  const isPortfolioDemo = process.env.PORTFOLIO_DEMO_MODE === "true";
 
   return (
-    <div className="min-h-screen bg-slate-100/80">
-      {process.env.PORTFOLIO_DEMO_MODE === "true" ? (
+    <div
+      className={`center-layout grid min-h-dvh bg-slate-100/80 ${isPortfolioDemo ? "grid-rows-[auto_auto_minmax(0,1fr)]" : "grid-rows-[auto_minmax(0,1fr)]"}`}
+    >
+      {isPortfolioDemo ? (
         <div className="border-b border-sky-200 bg-sky-50 px-5 py-2 text-center text-sm font-medium text-sky-900">
           Estás explorando una versión de demostración con datos ficticios. Las funciones de
           creación y edición están deshabilitadas.
@@ -44,9 +48,12 @@ export default async function CenterLayout({
         user={context.user}
         role={context.membership.role}
         isPlatformAdmin={isPlatformAdmin}
-        isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
+        isPortfolioDemo={isPortfolioDemo}
       />
-      {children}
+      <div className="min-w-0 md:flex">
+        <CenterSidebar centerId={parsedCenterId.data} role={context.membership.role} />
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     </div>
   );
 }

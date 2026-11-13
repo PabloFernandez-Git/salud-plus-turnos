@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+  usePathname: () => `/centers/11111111-1111-4111-8111-111111111111/users`,
 }));
 
 vi.mock("../actions/center-user-actions", () => ({
@@ -57,7 +58,7 @@ describe("Center user navigation", () => {
     expect(screen.queryByRole("link", { name: "Gestión de usuarios" })).not.toBeInTheDocument();
   });
 
-  it("shows Gestión de usuarios → Inicio navigation", () => {
+  it("removes the redundant breadcrumb from Gestión de usuarios", () => {
     render(
       <CenterUsersScreen
         actorUserId="99999999-9999-4999-8999-999999999999"
@@ -70,10 +71,7 @@ describe("Center user navigation", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Inicio" })).toHaveAttribute(
-      "href",
-      `/centers/${centerId}`,
-    );
+    expect(screen.queryByRole("link", { name: "Inicio" })).not.toBeInTheDocument();
   });
 });
 
@@ -117,8 +115,8 @@ describe("CenterUsersScreen", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Gestión de usuarios" })).toBeVisible();
     expect(
-      screen.getByText("Gestión de usuarios", { selector: '[aria-current="page"]' }),
-    ).toBeVisible();
+      screen.queryByRole("navigation", { name: "Ruta de navegación" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Centro Norte")).not.toBeInTheDocument();
     expect(screen.getByText("Administrá los usuarios, roles y accesos del centro.")).toHaveClass(
       "max-w-3xl",

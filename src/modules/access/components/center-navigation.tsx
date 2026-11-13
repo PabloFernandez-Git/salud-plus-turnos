@@ -1,209 +1,126 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import {
+  CalendarClock,
+  CalendarDays,
+  Clock3,
+  HeartPulse,
+  House,
+  Settings2,
+  ShieldCheck,
+  Stethoscope,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import type { Database } from "@/lib/supabase/database.types";
 
 type MembershipRole = Database["public"]["Enums"]["membership_role"];
-type Destination = { title: string; description: string; path: string; icon: ReactNode };
+type Destination = { title: string; path: string; icon: LucideIcon };
 
-function Icon({ kind }: { kind: string }) {
-  const paths: Record<string, ReactNode> = {
-    agenda: (
-      <>
-        <rect x="3" y="5" width="18" height="16" rx="2" />
-        <path d="M7 3v4M17 3v4M3 10h18M8 14h3v3H8z" />
-      </>
-    ),
-    appointments: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-      </>
-    ),
-    patients: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19v-1a5.5 5.5 0 0 1 11 0v1M17 9h5M19.5 6.5v5" />
-      </>
-    ),
-    professionals: (
-      <>
-        <circle cx="12" cy="7" r="3" />
-        <path d="M5 21v-2a7 7 0 0 1 14 0v2M3 12v3h3M21 12v3h-3" />
-      </>
-    ),
-    availability: (
-      <>
-        <rect x="3" y="5" width="18" height="16" rx="2" />
-        <path d="M7 3v4M17 3v4M3 10h18m-12 6 2 2 4-4" />
-      </>
-    ),
-    specialties: (
-      <>
-        <path d="M12 21s-8-4.8-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.2-8 11-8 11Z" />
-        <path d="M8 13h2l1-2 2 4 1-2h2" />
-      </>
-    ),
-    users: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 5" />
-      </>
-    ),
-    settings: (
-      <>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" />
-      </>
-    ),
-  };
-  return (
-    <svg
-      className="h-6 w-6"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {paths[kind]}
-    </svg>
-  );
-}
-
-function NavigationCard({ centerId, destination }: { centerId: string; destination: Destination }) {
-  return (
-    <Link
-      aria-describedby={`nav-${destination.path}-description`}
-      aria-label={destination.title}
-      className="group flex min-h-44 flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-colors transition-shadow hover:border-sky-300 hover:shadow-md focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-sky-700"
-      href={`/centers/${centerId}/${destination.path}`}
-    >
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-        {destination.icon}
-      </span>
-      <span className="mt-5 flex items-center justify-between gap-3 text-lg font-semibold text-slate-900">
-        {destination.title}
-        <svg
-          className="h-5 w-5 shrink-0 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-sky-700"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M5 12h14m-6-6 6 6-6 6" />
-        </svg>
-      </span>
-      <span
-        id={`nav-${destination.path}-description`}
-        className="mt-1 text-sm leading-6 text-slate-600"
-      >
-        {destination.description}
-      </span>
-    </Link>
-  );
-}
-
-export function CenterNavigation({ centerId, role }: { centerId: string; role: MembershipRole }) {
+export function CenterNavigation({
+  centerId,
+  role,
+  onNavigate,
+  compact = false,
+  expanded = true,
+}: {
+  centerId: string;
+  role: MembershipRole;
+  onNavigate?: () => void;
+  compact?: boolean;
+  expanded?: boolean;
+}) {
+  const pathname = usePathname();
+  const root = `/centers/${centerId}`;
+  const pathWithinCenter = pathname.startsWith(`${root}/`) ? pathname.slice(root.length + 1) : "";
+  const segments = pathWithinCenter.split("/");
+  const activePath =
+    segments[0] === "professionals" && segments[2] === "availability"
+      ? "availability"
+      : segments[0];
   const daily: Destination[] = [
-    {
-      title: "Agenda",
-      description:
-        role === "PROFESSIONAL"
-          ? "Consultá tu actividad por día, semana o mes"
-          : "Consultá la actividad del centro por día, semana o mes",
-      path: "agenda",
-      icon: <Icon kind="agenda" />,
-    },
-    {
-      title: "Turnos",
-      description:
-        role === "PROFESSIONAL"
-          ? "Consultá tus turnos y su estado"
-          : "Consultá y gestioná los turnos del centro",
-      path: "appointments",
-      icon: <Icon kind="appointments" />,
-    },
+    { title: "Agenda", path: "agenda", icon: CalendarDays },
+    { title: "Turnos", path: "appointments", icon: Clock3 },
     ...(role === "PROFESSIONAL"
       ? []
-      : [
-          {
-            title: "Pacientes",
-            description: "Buscá y administrá las fichas de pacientes",
-            path: "patients",
-            icon: <Icon kind="patients" />,
-          },
-        ]),
+      : [{ title: "Pacientes", path: "patients", icon: UsersRound }]),
   ];
   const administration: Destination[] = [
     ...(role === "ADMIN"
-      ? [
-          {
-            title: "Profesionales",
-            description: "Gestioná el equipo de atención del centro",
-            path: "professionals",
-            icon: <Icon kind="professionals" />,
-          },
-        ]
+      ? [{ title: "Profesionales", path: "professionals", icon: Stethoscope }]
       : []),
-    {
-      title: "Disponibilidad",
-      description:
-        role === "PROFESSIONAL"
-          ? "Consultá y organizá tus horarios de atención"
-          : "Consultá y organizá los horarios de atención",
-      path: "availability",
-      icon: <Icon kind="availability" />,
-    },
+    { title: "Disponibilidad", path: "availability", icon: CalendarClock },
     ...(role === "ADMIN"
       ? [
-          {
-            title: "Especialidades",
-            description: "Administrá las especialidades del centro",
-            path: "specialties",
-            icon: <Icon kind="specialties" />,
-          },
-          {
-            title: "Gestión de usuarios",
-            description: "Gestioná los accesos y roles del equipo",
-            path: "users",
-            icon: <Icon kind="users" />,
-          },
-          {
-            title: "Configuración del centro",
-            description: "Actualizá los datos institucionales del centro",
-            path: "settings",
-            icon: <Icon kind="settings" />,
-          },
+          { title: "Especialidades", path: "specialties", icon: HeartPulse },
+          { title: "Gestión de usuarios", path: "users", icon: ShieldCheck },
+          { title: "Configuración del centro", path: "settings", icon: Settings2 },
         ]
       : []),
   ];
 
+  function navigationLink(destination: Destination) {
+    const href = destination.path ? `${root}/${destination.path}` : root;
+    const active = destination.path
+      ? activePath === destination.path
+      : pathname === root || pathname === `${root}/`;
+    const Icon = destination.icon;
+    return (
+      <Link
+        aria-label={destination.title}
+        aria-current={active ? "page" : undefined}
+        className={`flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${active ? "bg-sky-100 text-sky-800" : "text-slate-700 hover:bg-slate-100 hover:text-slate-950"}`}
+        href={href}
+        key={href}
+        onClick={onNavigate}
+      >
+        <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
+        <span
+          aria-hidden={compact}
+          className={
+            compact
+              ? `whitespace-nowrap transition-opacity duration-150 ${expanded ? "opacity-100" : "opacity-0"}`
+              : undefined
+          }
+        >
+          {destination.title}
+        </span>
+      </Link>
+    );
+  }
+
   return (
-    <nav aria-label="Navegación del centro" className="space-y-10">
-      <section aria-labelledby="daily-heading">
-        <h3 id="daily-heading" className="text-base font-semibold text-slate-900">
-          Operación diaria
-        </h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {daily.map((destination) => (
-            <NavigationCard key={destination.path} centerId={centerId} destination={destination} />
-          ))}
-        </div>
+    <nav aria-label="Navegación del centro" className={compact ? "space-y-4" : "space-y-6"}>
+      <section aria-label="Inicio">
+        {navigationLink({ title: "Dashboard", path: "", icon: House })}
       </section>
-      <section aria-labelledby="administration-heading">
-        <h3 id="administration-heading" className="text-base font-semibold text-slate-900">
+      <section
+        aria-labelledby="daily-navigation-heading"
+        className={compact ? "border-t border-slate-200 pt-3" : undefined}
+      >
+        <h2
+          className={`px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${compact ? `h-5 overflow-hidden whitespace-nowrap transition-opacity duration-150 ${expanded ? "opacity-100" : "opacity-0"}` : ""}`}
+          id="daily-navigation-heading"
+        >
+          Operación diaria
+        </h2>
+        <div className={`${compact ? "mt-1" : "mt-2"} space-y-1`}>{daily.map(navigationLink)}</div>
+      </section>
+      <section
+        aria-labelledby="administration-navigation-heading"
+        className={compact ? "border-t border-slate-200 pt-3" : undefined}
+      >
+        <h2
+          className={`px-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${compact ? `h-5 overflow-hidden whitespace-nowrap transition-opacity duration-150 ${expanded ? "opacity-100" : "opacity-0"}` : ""}`}
+          id="administration-navigation-heading"
+        >
           Administración del centro
-        </h3>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {administration.map((destination) => (
-            <NavigationCard key={destination.path} centerId={centerId} destination={destination} />
-          ))}
+        </h2>
+        <div className={`${compact ? "mt-1" : "mt-2"} space-y-1`}>
+          {administration.map(navigationLink)}
         </div>
       </section>
     </nav>
