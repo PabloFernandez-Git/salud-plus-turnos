@@ -16,6 +16,7 @@ export function CenterSidebar({
 }) {
   const [hovered, setHovered] = useState(false);
   const [focusInside, setFocusInside] = useState(false);
+  const focusFromMouse = useRef(false);
   const expanded = hovered || focusInside;
 
   return (
@@ -25,10 +26,24 @@ export function CenterSidebar({
         className={`absolute inset-y-0 left-0 flex flex-col overflow-x-hidden overflow-y-auto border-r border-slate-200 bg-white px-2 py-6 transition-[width,box-shadow] duration-200 ease-out motion-reduce:transition-none ${expanded ? "w-60 shadow-[4px_0_18px_-8px_rgba(15,23,42,0.22)]" : "w-16"}`}
         data-expanded={expanded}
         onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
             setFocusInside(false);
+            focusFromMouse.current = false;
+          }
         }}
-        onFocusCapture={() => setFocusInside(true)}
+        onFocusCapture={() => {
+          if (!focusFromMouse.current) setFocusInside(true);
+        }}
+        onKeyDownCapture={() => {
+          focusFromMouse.current = false;
+          setFocusInside(true);
+        }}
+        onPointerDownCapture={(event) => {
+          if (event.pointerType === "mouse") {
+            focusFromMouse.current = true;
+            setFocusInside(false);
+          }
+        }}
         onPointerEnter={(event) => {
           if (event.pointerType === "mouse") setHovered(true);
         }}

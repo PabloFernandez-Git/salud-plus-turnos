@@ -26,6 +26,140 @@ afterEach(cleanup);
 
 describe("AgendaCalendar", () => {
   it.each([
+    { date: "2026-11-18", view: "day", title: "miércoles, 18 de noviembre de 2026" },
+    { date: "2026-11-18", view: "week", title: "Semana del 16 al 22 de noviembre de 2026" },
+    {
+      date: "2026-11-30",
+      view: "week",
+      title: "Semana del 30 de noviembre al 6 de diciembre de 2026",
+    },
+    {
+      date: "2026-12-31",
+      view: "week",
+      title: "Semana del 28 de diciembre de 2026 al 3 de enero de 2027",
+    },
+    { date: "2026-11-18", view: "month", title: "Noviembre de 2026" },
+    { date: "2026-12-18", view: "month", title: "Diciembre de 2026" },
+    { date: "2027-01-18", view: "month", title: "Enero de 2027" },
+  ] as const)("shows the visible $view period for $date", ({ date, view, title }) => {
+    render(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="UTC"
+        today={date}
+        role="ADMIN"
+        filters={{ date, view }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+      />,
+    );
+    expect(screen.getByText(title)).toBeVisible();
+  });
+
+  it.each([
+    {
+      view: "day",
+      dates: ["18/11/2026 – 19/11/2026"],
+    },
+    {
+      view: "week",
+      dates: ["14/11/2026 – 16/11/2026", "18/11/2026 – 19/11/2026", "21/11/2026"],
+    },
+    {
+      view: "month",
+      dates: [
+        "14/11/2026 – 16/11/2026",
+        "18/11/2026 – 19/11/2026",
+        "21/11/2026",
+        "24/11/2026 – 26/11/2026",
+      ],
+    },
+  ] as const)(
+    "shows only intersecting blocks in $view while keeping the professional filter",
+    ({ view, dates }) => {
+      const ranges = [
+        ["2026-11-14", "2026-11-16"],
+        ["2026-11-18", "2026-11-19"],
+        ["2026-11-21", "2026-11-21"],
+        ["2026-11-24", "2026-11-26"],
+        ["2026-12-01", "2026-12-01"],
+        ["2026-11-18", "2026-11-18"],
+      ];
+      render(
+        <AgendaCalendar
+          centerId={centerId}
+          centerName="Centro"
+          timezone="UTC"
+          today="2026-11-18"
+          role="ADMIN"
+          filters={{ date: "2026-11-18", view, professionalCenterId: professionalId }}
+          loadFailed={false}
+          professionals={[]}
+          appointments={[]}
+          blocks={ranges.map(([startDate, endDate], index) => ({
+            id: `33333333-3333-4333-8333-${String(index).padStart(12, "0")}`,
+            professionalCenterId:
+              index === 5 ? "44444444-4444-4444-8444-444444444444" : professionalId,
+            startDate,
+            endDate,
+            reason: "VACATION",
+            updatedAt: "2026-11-01T00:00:00Z",
+          }))}
+        />,
+      );
+      const notice = screen.getByLabelText("Bloqueos excepcionales");
+      expect([...notice.querySelectorAll("li strong")].map((item) => item.textContent)).toEqual(
+        dates,
+      );
+    },
+  );
+
+  it.each(["day", "week", "month"] as const)(
+    "distinguishes exceptional blocks from booked appointments in %s view",
+    (view) => {
+      const { container } = render(
+        <AgendaCalendar
+          centerId={centerId}
+          centerName="Centro"
+          timezone="Pacific/Auckland"
+          today="2026-10-21"
+          role="ADMIN"
+          filters={{ date: "2026-10-21", view, professionalCenterId: professionalId }}
+          loadFailed={false}
+          professionals={[
+            {
+              id: professionalId,
+              firstName: "Ana",
+              lastName: "Pérez",
+              usualAppointmentDurationMinutes: 30,
+              updatedAt: "2026-10-01T00:00:00Z",
+            },
+          ]}
+          appointments={[]}
+          blocks={[
+            {
+              id: "33333333-3333-4333-8333-333333333333",
+              professionalCenterId: professionalId,
+              startDate: "2026-10-21",
+              endDate: "2026-10-22",
+              reason: "VACATION",
+              updatedAt: "2026-10-01T00:00:00Z",
+            },
+          ]}
+        />,
+      );
+      expect(
+        screen.getByRole("heading", { name: "Fechas bloqueadas excepcionalmente" }),
+      ).toBeVisible();
+      expect(screen.getByText(/Ana Pérez · Vacaciones/)).toBeVisible();
+      if (view === "month")
+        expect(container.querySelector(".agenda-block-badge")).toHaveTextContent("1 bloqueo");
+      else expect(container.querySelector(".agenda-blocked-day")).toBeInTheDocument();
+    },
+  );
+  it.each([
     { date: "2026-10-21", index: 4, selected: "2026-10-23" },
     { date: "2026-10-30", index: 6, selected: "2026-11-01" },
     { date: "2026-12-31", index: 4, selected: "2027-01-01" },

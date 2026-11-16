@@ -92,6 +92,7 @@ Server Actions y Route Handlers son adaptadores. La lógica de negocio reutiliza
 - Centro: timezone IANA.
 - Turnos: `timestamptz`.
 - Disponibilidad recurrente: día de semana + `time` local.
+- Bloqueos excepcionales: rango inclusivo de `date` civil por ProfessionalCenter; el Centro aporta la zona IANA.
 - Fechas puras (ej. nacimiento): `date`.
 - Agenda renderizada según timezone del centro activo.
 

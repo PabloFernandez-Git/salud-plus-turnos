@@ -13,6 +13,26 @@ Un turno pertenece a un único centro y relaciona:
 - estado;
 - observación administrativa opcional.
 
+## Integración con bloqueos excepcionales (TASK-038)
+
+La migración local hace que `appointment_slot_grid` devuelva cero slots cuando la fecha civil del
+centro está bloqueada para el ProfessionalCenter. CREATE y RESCHEDULE usan ese mismo grid después de
+tomar un advisory lock compartido por ProfessionalCenter, en orden posterior al lock compartido del
+Center y anterior a los locks de filas. El alta o retiro del bloqueo toma el advisory lock exclusivo
+equivalente. Así, una reserva concurrente termina antes del conteo del bloqueo o vuelve a validar el
+slot después de que el bloqueo se confirme. La exclusión existente entre turnos no cambia.
+
+La transición a CANCELLED también altera el conteo. Toma primero el lock exclusivo del Center,
+después el lock compartido del ProfessionalCenter y por último `FOR UPDATE` sobre el turno. El
+lock exclusivo del Center estabiliza la asignación del turno frente a RESCHEDULE mientras se obtiene
+el ProfessionalCenter; evita invertir el orden de locks o contar una cancelación concurrente a medias.
+Las reglas de estado, tiempo, rol y token CAS de la cancelación se conservan.
+
+Los turnos previamente reservados conservan identidad, horario, estado y nota. Su cantidad se
+presenta antes de confirmar un bloqueo; no se cancelan automáticamente. Al retirar el bloqueo,
+vuelven a ofrecerse los slots que permitan la franja semanal y los turnos que ya ocupan horario.
+Esta migración está aplicada a DEV; PROD queda pendiente.
+
 ## Estados
 
 ```text

@@ -24,6 +24,8 @@ import {
 } from "../actions/availability-actions";
 import type { AvailabilityActionState } from "../server/availability-actions";
 import type { AvailabilityInterval, AvailabilityProfessionalCenter } from "../server/availability";
+import type { AvailabilityBlock } from "../server/availability-blocks";
+import { AvailabilityBlocksSection } from "./availability-blocks-section";
 import {
   appointmentDurationSchema,
   availabilityTimeSchema,
@@ -65,6 +67,8 @@ export function AvailabilityScreen({
   centerId,
   professional,
   intervals,
+  blocks = [],
+  today,
   canEdit,
   canViewProfessionals,
 }: {
@@ -73,6 +77,8 @@ export function AvailabilityScreen({
   timezone: string;
   professional: AvailabilityProfessionalCenter;
   intervals: AvailabilityInterval[];
+  blocks?: AvailabilityBlock[];
+  today: string;
   canEdit: boolean;
   canViewProfessionals: boolean;
 }) {
@@ -417,6 +423,14 @@ export function AvailabilityScreen({
             </p>
           )}
         </section>
+
+        <AvailabilityBlocksSection
+          centerId={centerId}
+          professionalCenterId={professional.id}
+          today={today}
+          blocks={blocks}
+          canEdit={canEdit}
+        />
 
         <div className="space-y-4">
           {weekdays.map((day, index) => {
