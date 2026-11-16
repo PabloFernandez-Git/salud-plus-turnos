@@ -102,3 +102,18 @@ columnas completas y el scroll horizontal sigue disponible.
 ## Refinamiento UX TASK-023
 
 En Semana, el botón de cada encabezado de fecha abre Día para esa fecha civil, conservando el Center y los filtros compatibles. Admite ratón, Enter y Espacio, con hover y foco visibles. La selección de franjas y la navegación de Mes se conservan. El encabezado del módulo muestra Crear turno sólo a staff y omite la acción redundante Lista de turnos; Turnos permanece en la navegación del centro.
+
+## Bloqueos excepcionales (TASK-038)
+
+Agenda consulta los bloqueos activos del período mediante una RPC autorizada. Día y Semana muestran
+un resumen de fechas, motivo y profesional; el sombreado se aplica por recurso en Día y a la fecha
+completa en Semana cuando se filtró un profesional o se ve la agenda propia. Mes muestra además una
+insignia de cantidad por día. Una fecha bloqueada se distingue del horario sin franja semanal y de
+los eventos de turnos, que permanecen visibles aunque se agregue un bloqueo. Si se señala una franja
+bloqueada para un profesional, la pantalla explica por qué no se ofrecen horarios; PostgreSQL sigue
+siendo la autoridad final. Los filtros por profesional y especialidad se respetan en servidor.
+
+El título de Semana muestra el intervalo civil de lunes a domingo. El componente limita el aviso y
+las marcas de bloqueos a los rangos que intersectan el período visible de Día, Semana o Mes, usando
+el mismo `agendaRange` que la consulta autorizada. El filtro por profesional se conserva en la vista;
+el filtro por especialidad y el acceso por rol continúan aplicándose en servidor.

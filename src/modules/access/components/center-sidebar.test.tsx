@@ -82,4 +82,46 @@ describe("center sidebar desktop rail", () => {
     fireEvent.blur(agenda, { relatedTarget: document.body });
     expect(sidebar).toHaveAttribute("data-expanded", "false");
   });
+
+  it("contracts after mouse navigation only when the pointer exits, across route changes", () => {
+    const view = render(<CenterSidebar centerId={centerId} role="ADMIN" />);
+    const sidebar = screen.getByRole("complementary", { name: "Barra lateral del centro" });
+
+    for (const [module, path] of [
+      ["Agenda", "agenda"],
+      ["Turnos", "appointments"],
+      ["Agenda", "agenda"],
+      ["Turnos", "appointments"],
+    ] as const) {
+      fireEvent.pointerEnter(sidebar, { pointerType: "mouse" });
+      expect(sidebar).toHaveAttribute("data-expanded", "true");
+      const link = within(sidebar).getByRole("link", { name: module });
+      fireEvent.pointerDown(link, { pointerType: "mouse" });
+      link.focus();
+      link.addEventListener("click", (event) => event.preventDefault(), { once: true });
+      fireEvent.click(link);
+      pathname.mockReturnValue(`/centers/${centerId}/${path}`);
+      view.rerender(<CenterSidebar centerId={centerId} role="ADMIN" />);
+      expect(link).toHaveFocus();
+      expect(sidebar).toHaveAttribute("data-expanded", "true");
+      fireEvent.pointerLeave(sidebar, { pointerType: "mouse" });
+      expect(sidebar).toHaveAttribute("data-expanded", "false");
+    }
+  });
+
+  it("expands again when keyboard focus takes over after a mouse click", () => {
+    render(<CenterSidebar centerId={centerId} role="ADMIN" />);
+    const sidebar = screen.getByRole("complementary", { name: "Barra lateral del centro" });
+    const agenda = within(sidebar).getByRole("link", { name: "Agenda" });
+    fireEvent.pointerEnter(sidebar, { pointerType: "mouse" });
+    fireEvent.pointerDown(agenda, { pointerType: "mouse" });
+    agenda.focus();
+    fireEvent.pointerLeave(sidebar, { pointerType: "mouse" });
+    expect(sidebar).toHaveAttribute("data-expanded", "false");
+
+    fireEvent.keyDown(agenda, { key: "Tab" });
+    expect(sidebar).toHaveAttribute("data-expanded", "true");
+    fireEvent.blur(agenda, { relatedTarget: document.body });
+    expect(sidebar).toHaveAttribute("data-expanded", "false");
+  });
 });

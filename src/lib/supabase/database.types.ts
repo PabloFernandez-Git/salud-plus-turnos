@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17";
+    PostgrestVersion: "14.18";
   };
   public: {
     Tables: {
@@ -109,6 +109,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "availabilities_professional_center_fk";
+            columns: ["professional_center_id", "center_id"];
+            isOneToOne: false;
+            referencedRelation: "professional_centers";
+            referencedColumns: ["id", "center_id"];
+          },
+        ];
+      };
+      availability_blocks: {
+        Row: {
+          center_id: string;
+          created_at: string;
+          end_date: string;
+          id: string;
+          is_active: boolean;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
+          updated_at: string;
+        };
+        Insert: {
+          center_id: string;
+          created_at?: string;
+          end_date: string;
+          id?: string;
+          is_active?: boolean;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
+          updated_at?: string;
+        };
+        Update: {
+          center_id?: string;
+          created_at?: string;
+          end_date?: string;
+          id?: string;
+          is_active?: boolean;
+          professional_center_id?: string;
+          reason?: string;
+          start_date?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "availability_blocks_professional_center_fk";
             columns: ["professional_center_id", "center_id"];
             isOneToOne: false;
             referencedRelation: "professional_centers";
@@ -629,24 +673,6 @@ export type Database = {
           role: Database["public"]["Enums"]["membership_role"];
         }[];
       };
-      admin_update_center_settings: {
-        Args: {
-          p_address: string | null;
-          p_center_id: string;
-          p_email: string | null;
-          p_expected_updated_at: string;
-          p_name: string;
-          p_phone: string | null;
-        };
-        Returns: {
-          address: string | null;
-          center_id: string;
-          email: string | null;
-          name: string;
-          phone: string | null;
-          updated_at: string;
-        }[];
-      };
       admin_set_professional_center_active: {
         Args: {
           p_center_id: string;
@@ -672,6 +698,24 @@ export type Database = {
           is_active: boolean;
           name: string;
           specialty_id: string;
+          updated_at: string;
+        }[];
+      };
+      admin_update_center_settings: {
+        Args: {
+          p_address: string | null;
+          p_center_id: string;
+          p_email: string | null;
+          p_expected_updated_at: string;
+          p_name: string;
+          p_phone: string | null;
+        };
+        Returns: {
+          address: string | null;
+          center_id: string;
+          email: string | null;
+          name: string;
+          phone: string | null;
           updated_at: string;
         }[];
       };
@@ -899,6 +943,20 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      professional_get_own_daily_dashboard: {
+        Args: { p_center_id: string };
+        Returns: {
+          as_of: string;
+          attended_count: number;
+          cancelled_count: number;
+          confirmed_count: number;
+          local_date: string;
+          no_show_count: number;
+          pending_count: number;
+          timezone: string;
+          upcoming: Json;
+        }[];
+      };
       professional_list_own_appointments: {
         Args: {
           p_center_id: string;
@@ -979,6 +1037,22 @@ export type Database = {
           weekday: number;
         }[];
       };
+      staff_create_availability_block: {
+        Args: {
+          p_center_id: string;
+          p_confirm_affected: boolean;
+          p_end_date: string;
+          p_expected_affected_count: number;
+          p_professional_center_id: string;
+          p_reason: string;
+          p_start_date: string;
+        };
+        Returns: {
+          affected_count: number;
+          block_id: string;
+          updated_at: string;
+        }[];
+      };
       staff_create_patient_with_center: {
         Args: {
           p_administrative_notes: string;
@@ -1016,6 +1090,18 @@ export type Database = {
           weekday: number;
         }[];
       };
+      staff_deactivate_availability_block: {
+        Args: {
+          p_block_id: string;
+          p_center_id: string;
+          p_expected_updated_at: string;
+          p_professional_center_id: string;
+        };
+        Returns: {
+          block_id: string;
+          updated_at: string;
+        }[];
+      };
       staff_deactivate_patient_center: {
         Args: {
           p_center_id: string;
@@ -1046,6 +1132,21 @@ export type Database = {
           starts_at: string;
           status: Database["public"]["Enums"]["appointment_status"];
           updated_at: string;
+        }[];
+      };
+      staff_get_daily_dashboard: {
+        Args: { p_center_id: string };
+        Returns: {
+          as_of: string;
+          attended_count: number;
+          cancelled_count: number;
+          confirmed_count: number;
+          local_date: string;
+          no_show_count: number;
+          pending_count: number;
+          professional_centers_with_appointments_count: number;
+          timezone: string;
+          upcoming: Json;
         }[];
       };
       staff_link_person_to_center: {
@@ -1094,6 +1195,22 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      staff_list_availability_blocks: {
+        Args: {
+          p_center_id: string;
+          p_from_date?: string;
+          p_professional_center_id?: string;
+          p_to_date?: string;
+        };
+        Returns: {
+          block_id: string;
+          end_date: string;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
+          updated_at: string;
+        }[];
+      };
       staff_list_availability_professional_centers: {
         Args: { p_center_id: string };
         Returns: {
@@ -1110,6 +1227,36 @@ export type Database = {
           specialty_id: string;
           specialty_name: string;
         }[];
+      };
+      staff_list_patient_appointments: {
+        Args: {
+          p_as_of: string;
+          p_center_id: string;
+          p_cursor_id?: string;
+          p_cursor_starts_at?: string;
+          p_limit?: number;
+          p_patient_center_id: string;
+          p_section: string;
+        };
+        Returns: {
+          appointment_id: string;
+          ends_at: string;
+          has_more: boolean;
+          professional_first_name: string;
+          professional_last_name: string;
+          specialty_name: string;
+          starts_at: string;
+          status: Database["public"]["Enums"]["appointment_status"];
+        }[];
+      };
+      staff_preview_availability_block: {
+        Args: {
+          p_center_id: string;
+          p_end_date: string;
+          p_professional_center_id: string;
+          p_start_date: string;
+        };
+        Returns: number;
       };
       staff_reactivate_patient_center: {
         Args: {
@@ -1175,9 +1322,9 @@ export type Database = {
         Returns: {
           ends_at: string;
           local_date: string;
-          local_start_time: string;
           local_end_date: string;
           local_end_time: string;
+          local_start_time: string;
           starts_at: string;
         }[];
       };

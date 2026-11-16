@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, getDay, parse, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar,
   dateFnsLocalizer,
@@ -16,12 +16,16 @@ import {
 } from "react-big-calendar";
 import { ModuleHeader, modulePrimaryActionClass } from "@/components/module-header";
 import type { AvailabilityProfessionalCenter } from "@/modules/availability/server/availability";
+import type { AvailabilityBlock } from "@/modules/availability/server/availability-blocks";
+import { blockReasonLabels } from "@/modules/availability/schemas/availability-block";
+import { readableCivilDate } from "@/modules/appointments/search/appointment-search";
 import { appointmentStatusLabels } from "@/modules/appointments/components/appointments-list";
 import {
   BookingSelector,
   type BookingChoice,
 } from "@/modules/appointments/components/booking-selector";
 import {
+  agendaRange,
   agendaUrl,
   appointmentPrefillUrl,
   calendarDate,
@@ -58,6 +62,18 @@ type Event = {
   timeLabel: string;
 };
 
+function weekPeriodLabel(fromDate: string, toDate: string) {
+  const start = calendarDate(fromDate);
+  const end = calendarDate(toDate);
+  const month = new Intl.DateTimeFormat("es-AR", { month: "long" });
+  const sameMonth =
+    start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth();
+  const startLabel = sameMonth
+    ? `${start.getDate()}`
+    : `${start.getDate()} de ${month.format(start)}${start.getFullYear() !== end.getFullYear() ? ` de ${start.getFullYear()}` : ""}`;
+  return `Semana del ${startLabel} al ${end.getDate()} de ${month.format(end)} de ${end.getFullYear()}`;
+}
+
 function AgendaEvent({ event }: EventProps<Event>) {
   const detail = `${event.timeLabel} · ${event.title} · ${event.professionalName} · ${event.specialtyName} · ${appointmentStatusLabels[event.status]}`;
   return (
@@ -81,6 +97,7 @@ export function AgendaCalendar({
   role,
   filters,
   appointments,
+  blocks = [],
   professionals,
   specialties = [],
   specialtyUnavailable = false,
@@ -93,6 +110,7 @@ export function AgendaCalendar({
   role: "ADMIN" | "RECEPTION" | "PROFESSIONAL";
   filters: AgendaFilters;
   appointments: AgendaAppointment[];
+  blocks?: AvailabilityBlock[];
   professionals: AvailabilityProfessionalCenter[];
   specialties?: { specialty_id: string; specialty_name: string }[];
   specialtyUnavailable?: boolean;
@@ -110,6 +128,7 @@ export function AgendaCalendar({
   const [bookingChoice, setBookingChoice] = useState<BookingChoice | null>(null);
   const [currentInstant, setCurrentInstant] = useState<Date | null>(null);
   const date = useMemo(() => calendarDate(filters.date), [filters.date]);
+  const { fromDate, toDate } = agendaRange(filters);
   useEffect(() => {
     if (filters.view !== "day") return;
     let timeout: number;
@@ -219,6 +238,25 @@ export function AgendaCalendar({
     }
     return byDate;
   }, [projected]);
+  const visibleBlocks = useMemo(
+    () =>
+      blocks.filter(
+        (block) =>
+          block.startDate <= toDate &&
+          block.endDate >= fromDate &&
+          (!filters.professionalCenterId ||
+            block.professionalCenterId === filters.professionalCenterId),
+      ),
+    [blocks, filters.professionalCenterId, fromDate, toDate],
+  );
+  const blocksOnDate = useCallback(
+    (dateValue: string) =>
+      visibleBlocks.filter((block) => block.startDate <= dateValue && block.endDate >= dateValue),
+    [visibleBlocks],
+  );
+  const professionalNames = new Map(
+    professionals.map((person) => [person.id, `${person.firstName} ${person.lastName}`]),
+  );
   const components = useMemo(
     () => ({
       event: AgendaEvent,
@@ -235,32 +273,43 @@ export function AgendaCalendar({
         dateHeader: ({ date: day, label, isOffRange, onDrillDown }: DateHeaderProps) => {
           const summary = counts.get(civilDate(day));
           const count = summary?.count ?? 0;
+          const dayBlocks = blocksOnDate(civilDate(day));
           return (
             <button
               type="button"
               disabled={isOffRange}
               onClick={onDrillDown}
               className="agenda-month-summary"
-              aria-label={`${label}: ${count} ${count === 1 ? "turno" : "turnos"}. Abrir día`}
+              aria-label={`${label}: ${count} ${count === 1 ? "turno" : "turnos"}${dayBlocks.length > 0 ? `; ${dayBlocks.length} ${dayBlocks.length === 1 ? "bloqueo excepcional" : "bloqueos excepcionales"}` : ""}. Abrir día`}
             >
               <strong>{label}</strong>
               <span>
                 {count} {count === 1 ? "turno" : "turnos"}
               </span>
               {summary && <small>{[...summary.professionals].join(", ")}</small>}
+              {dayBlocks.length > 0 && (
+                <em className="agenda-block-badge">
+                  {dayBlocks.length} {dayBlocks.length === 1 ? "bloqueo" : "bloqueos"}
+                </em>
+              )}
             </button>
           );
         },
       },
     }),
-    [counts],
+    [counts, blocksOnDate],
   );
-  const period = new Intl.DateTimeFormat(
-    "es-AR",
-    filters.view === "month"
-      ? { month: "long", year: "numeric" }
-      : { weekday: "long", day: "numeric", month: "long", year: "numeric" },
-  ).format(date);
+  const period =
+    filters.view === "week"
+      ? weekPeriodLabel(fromDate, toDate)
+      : new Intl.DateTimeFormat(
+          "es-AR",
+          filters.view === "month"
+            ? { month: "long", year: "numeric" }
+            : { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+        ).format(date);
+  const heading =
+    filters.view === "month" ? period[0].toLocaleUpperCase("es-AR") + period.slice(1) : period;
   function selectSlot({ start, resourceId }: SlotInfo) {
     if (role === "PROFESSIONAL" || filters.view === "month") return;
     if (!filters.specialtyId) {
@@ -277,10 +326,24 @@ export function AgendaCalendar({
       setBookingChoice(null);
       return;
     }
+    const selectedDate = civilDate(start);
+    if (
+      visibleBlocks.some(
+        (block) =>
+          block.professionalCenterId === professionalCenterId &&
+          block.startDate <= selectedDate &&
+          block.endDate >= selectedDate,
+      )
+    ) {
+      setSlotHelp("Esta fecha tiene un bloqueo excepcional para el profesional elegido.");
+      setSlotSelection(null);
+      setBookingChoice(null);
+      return;
+    }
     setSlotHelp(null);
     setBookingChoice(null);
     setSlotSelection({
-      date: civilDate(start),
+      date: selectedDate,
       professionalCenterId,
       requestedTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
     });
@@ -344,7 +407,15 @@ export function AgendaCalendar({
               </Link>
             </div>
           </div>
-          <p className="mt-3 capitalize text-lg font-bold text-slate-900">{period}</p>
+          <p
+            className={
+              filters.view === "week" || filters.view === "month"
+                ? "mt-3 text-lg font-bold text-slate-900"
+                : "mt-3 capitalize text-lg font-bold text-slate-900"
+            }
+          >
+            {heading}
+          </p>
           <form
             className="mt-4 flex flex-wrap items-end gap-3"
             method="get"
@@ -458,6 +529,34 @@ export function AgendaCalendar({
             <p role="alert">No pudimos cargar la agenda completa. Reintentá la consulta.</p>
           ) : (
             <>
+              {visibleBlocks.length > 0 && (
+                <div
+                  className="mb-4 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-slate-900"
+                  aria-label="Bloqueos excepcionales"
+                >
+                  <h2 className="font-semibold text-slate-900">
+                    Fechas bloqueadas excepcionalmente
+                  </h2>
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {visibleBlocks.map((block) => (
+                      <li
+                        key={block.id}
+                        className="max-w-full rounded-md border border-amber-200 bg-white px-3 py-2"
+                      >
+                        <strong className="block text-sm font-semibold leading-5 text-slate-900">
+                          {readableCivilDate(block.startDate)}
+                          {block.startDate !== block.endDate &&
+                            ` – ${readableCivilDate(block.endDate)}`}
+                        </strong>
+                        <span className="mt-0.5 block text-xs leading-5 text-slate-600">
+                          {professionalNames.get(block.professionalCenterId) ?? "Mi agenda"} ·{" "}
+                          {blockReasonLabels[block.reason]}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {appointments.length === 0 && (
                 <p className="mb-3 text-sm text-slate-600">
                   {specialtyUnavailable
@@ -564,6 +663,20 @@ export function AgendaCalendar({
                               ? { className: "agenda-current-time-slot" }
                               : {}
                     }
+                    dayPropGetter={(day, resourceId) => {
+                      const dateValue = civilDate(day);
+                      const blocked = blocksOnDate(dateValue).some((block) =>
+                        filters.view === "day"
+                          ? role === "PROFESSIONAL" ||
+                            block.professionalCenterId === resourceId ||
+                            (!resourceId &&
+                              block.professionalCenterId === filters.professionalCenterId)
+                          : filters.view === "month" ||
+                            role === "PROFESSIONAL" ||
+                            Boolean(filters.professionalCenterId),
+                      );
+                      return blocked ? { className: "agenda-blocked-day" } : {};
+                    }}
                     dayLayoutAlgorithm="no-overlap"
                     toolbar={false}
                     selectable={

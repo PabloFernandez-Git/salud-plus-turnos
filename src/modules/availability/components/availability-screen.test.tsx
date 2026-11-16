@@ -62,6 +62,7 @@ function show(
       centerId={centerId}
       centerName="Centro Salud"
       timezone="America/Argentina/Buenos_Aires"
+      today="2026-11-16"
       professional={professional}
       intervals={rows}
       canEdit={canEdit}
@@ -83,7 +84,7 @@ describe("AvailabilityScreen", () => {
     expect(screen.queryByText(/America\/Argentina\/Buenos_Aires/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Todavía no hay horarios/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Sin disponibilidad")).toHaveLength(7);
-    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(8);
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(9);
     expect(screen.getByRole("spinbutton", { name: "Minutos" })).toHaveValue(30);
     expect(screen.getByRole("button", { name: "Guardar duración" })).toBeDisabled();
   });
@@ -137,6 +138,7 @@ describe("AvailabilityScreen", () => {
         centerId={centerId}
         centerName="Centro Salud"
         timezone="America/Argentina/Buenos_Aires"
+        today="2026-11-16"
         professional={professional}
         intervals={[]}
         canEdit

@@ -1,5 +1,17 @@
 # Estado actual
 
+**TASK-038 — aprobada para Pull Request hacia `main` (2026-11-16).** Los bloqueos excepcionales de
+Disponibilidad y su integración con Agenda y Turnos recibieron revisión técnica independiente
+`APPROVED`, validación funcional autenticada en Supabase DEV y aprobación visual del usuario. La
+migración `20261116120000_add_availability_blocks.sql` está aplicada en DEV; el usuario confirmó
+28/28 migraciones sincronizadas y un dry-run sin pendientes. Los tipos TypeScript se regeneraron
+desde DEV, conservando las anotaciones anulables del contrato existente de centros. Las pruebas
+locales de permisos, fechas finitas y concurrencia pasaron. La sidebar se contrae al salir el mouse
+después de navegar y el encabezado mensual de Agenda usa «Diciembre de 2026»; ambos ajustes finales
+pasaron pruebas focales, controles estáticos y revisión interactiva sintética. La limpieza exacta de
+fixtures DEV quedó auditada. Pendiente: publicar el PR, revisar CI y fusionarlo mediante decisión
+separada. PROD no fue modificado.
+
 **TASK-037 — aprobada para integración en `codex/v1-sidebar-navigation`.** La navegación lateral V1
 fue revisada y aprobada visualmente por la persona usuaria. El layout del centro muestra una sidebar
 compacta y el Dashboard conserva la información operativa; la visibilidad por rol y la autorización

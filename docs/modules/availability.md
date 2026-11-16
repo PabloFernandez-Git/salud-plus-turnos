@@ -8,7 +8,7 @@ Pertenece a `ProfessionalCenter`.
 - duración habitual de turno por ProfessionalCenter: 30 minutos por defecto, rango 5–480 y
   múltiplos de 5;
 - múltiples franjas el mismo día;
-- sin excepciones/vacaciones/feriados en v1.
+- bloqueos excepcionales de días completos desde TASK-038.
 
 Ejemplo:
 
@@ -29,11 +29,33 @@ Los slots se calculan, no se persisten:
 
 ```text
 horario habitual
+- bloqueos excepcionales activos
 - turnos que bloquean
 = disponibilidad
 ```
 
 Las reglas recurrentes usan hora local del centro.
+
+## Bloqueos excepcionales (TASK-038)
+
+`availability_blocks` guarda un rango inclusivo de fechas civiles por `ProfessionalCenter`, motivo
+codificado (`VACATION`, `ABSENCE`, `HOLIDAY`, `OTHER`) y retiro lógico. No guarda detalles personales ni
+modifica las franjas semanales. La exclusión GiST impide rangos activos superpuestos, incluso en
+concurrencia. El CHECK y las RPC rechazan fechas PostgreSQL `infinity` y `-infinity`; solo se aceptan
+fechas civiles finitas. La relación compuesta `(professional_center_id, center_id)` y RLS mantienen el
+aislamiento.
+
+ADMIN y RECEPTION consultan, revisan turnos afectados, crean y retiran. PROFESSIONAL ve solo los
+bloqueos de su vínculo activo. La pantalla usa el mismo detalle de Disponibilidad y un diálogo de
+confirmación. El conteo de turnos no cancelados se vuelve a evaluar bajo lock antes de insertar; si
+cambia desde la revisión, hay que repetirla. Una confirmación explícita permite guardar el bloqueo
+cuando ya existen turnos, sin alterarlos ni cancelarlos. El listado de turnos se abre con filtro de
+profesional y período; para rangos mayores a 31 días se avanza el filtro.
+
+La migración TASK-038 está aplicada en Supabase DEV; PROD queda pendiente. Los tipos se regeneraron
+desde DEV y conservan los contratos anulables existentes.
+La vista previa sintética de `scripts/task038-visual.mjs --serve` usa los componentes reales en
+`localhost:31038` sin consultar Supabase; no sustituye la validación autenticada en DEV.
 
 La duración habitual funciona como default operativo para proponer slots; un turno concreto conserva
 sus propios `starts_at` y `ends_at` y puede tener otra duración válida.
