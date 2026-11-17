@@ -76,6 +76,34 @@ afterEach(() => {
 });
 
 describe("AvailabilityScreen", () => {
+  it("lists all block reasons without creation or removal controls", () => {
+    render(
+      <AvailabilityScreen
+        centerId={centerId}
+        centerName="Centro Salud"
+        timezone="America/Argentina/Buenos_Aires"
+        professional={professional}
+        intervals={intervals}
+        blocks={(["VACATION", "ABSENCE", "HOLIDAY", "OTHER"] as const).map((reason, index) => ({
+          id: `55555555-5555-4555-8555-${String(index).padStart(12, "0")}`,
+          professionalCenterId: professional.id,
+          startDate: `2026-11-${String(index + 16).padStart(2, "0")}`,
+          endDate: `2026-11-${String(index + 16).padStart(2, "0")}`,
+          reason,
+          updatedAt: "2026-11-01T00:00:00Z",
+        }))}
+        canEdit
+        canViewProfessionals
+        isPortfolioDemo
+      />,
+    );
+    for (const label of ["Vacaciones", "Ausencia", "Feriado", "Otro"])
+      expect(screen.getByText(label)).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /Crear bloqueo|Quitar bloqueo/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps schedule controls visible but disabled in portfolio mode", () => {
     render(
       <AvailabilityScreen
@@ -111,7 +139,7 @@ describe("AvailabilityScreen", () => {
     expect(screen.queryByText(/America\/Argentina\/Buenos_Aires/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Todavía no hay horarios/)).not.toBeInTheDocument();
     expect(screen.getAllByText("Sin disponibilidad")).toHaveLength(7);
-    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(8);
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(9);
     expect(screen.getByRole("spinbutton", { name: "Minutos" })).toHaveValue(30);
     expect(screen.getByRole("button", { name: "Guardar duración" })).toBeDisabled();
   });

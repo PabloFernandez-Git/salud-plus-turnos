@@ -116,6 +116,50 @@ export type Database = {
           },
         ];
       };
+      availability_blocks: {
+        Row: {
+          center_id: string;
+          created_at: string;
+          end_date: string;
+          id: string;
+          is_active: boolean;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
+          updated_at: string;
+        };
+        Insert: {
+          center_id: string;
+          created_at?: string;
+          end_date: string;
+          id?: string;
+          is_active?: boolean;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
+          updated_at?: string;
+        };
+        Update: {
+          center_id?: string;
+          created_at?: string;
+          end_date?: string;
+          id?: string;
+          is_active?: boolean;
+          professional_center_id?: string;
+          reason?: string;
+          start_date?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "availability_blocks_professional_center_fk";
+            columns: ["professional_center_id", "center_id"];
+            isOneToOne: false;
+            referencedRelation: "professional_centers";
+            referencedColumns: ["id", "center_id"];
+          },
+        ];
+      };
       center_memberships: {
         Row: {
           center_id: string;
@@ -1091,6 +1135,22 @@ export type Database = {
           specialty_name: string;
           starts_at: string;
           status: Database["public"]["Enums"]["appointment_status"];
+          updated_at: string;
+        }[];
+      };
+      staff_list_availability_blocks: {
+        Args: {
+          p_center_id: string;
+          p_from_date?: string;
+          p_professional_center_id?: string;
+          p_to_date?: string;
+        };
+        Returns: {
+          block_id: string;
+          end_date: string;
+          professional_center_id: string;
+          reason: string;
+          start_date: string;
           updated_at: string;
         }[];
       };

@@ -1,5 +1,9 @@
 # Disponibilidad
 
+## Portfolio DEMO — TASK-PORTFOLIO-038
+
+El portfolio muestra los bloqueos excepcionales activos por profesional con fecha inicial, final y motivo (vacaciones, ausencia, feriado u otro). El visitante no dispone de controles para crear o retirar bloqueos. Las franjas semanales existentes conservan sus controles deshabilitados en modo DEMO. Una variante SQL exclusiva de DEMO concede solo `SELECT` y la RPC de listado a `authenticated`; las fechas bloqueadas dejan de ofrecer slots nuevos sin cancelar turnos previos.
+
 Pertenece a `ProfessionalCenter`.
 
 ## MVP

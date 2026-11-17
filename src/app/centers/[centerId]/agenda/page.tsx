@@ -8,9 +8,13 @@ import {
   requireProfessionalContext,
 } from "@/modules/access/server/authorization";
 import { listAvailabilityProfessionalCenters } from "@/modules/availability/server/availability";
+import { listAvailabilityBlocks } from "@/modules/availability/server/availability-blocks";
 import { centerLocalDate } from "@/modules/appointments/search/appointment-search";
-import { getBookableSpecialties } from "@/modules/appointments/server/appointments";
-import { parseAgendaSearch } from "@/modules/agenda/agenda-search";
+import {
+  getBookableProfessionals,
+  getBookableSpecialties,
+} from "@/modules/appointments/server/appointments";
+import { agendaRange, parseAgendaSearch } from "@/modules/agenda/agenda-search";
 import { AgendaCalendar } from "@/modules/agenda/components/agenda-calendar";
 import { listAgendaAppointments } from "@/modules/agenda/server/agenda-appointments";
 
@@ -44,6 +48,7 @@ export default async function AgendaPage({
   const today = centerLocalDate(context.center.timezone);
   const filters = parseAgendaSearch(await searchParams, today, role !== "PROFESSIONAL");
   let appointments: Awaited<ReturnType<typeof listAgendaAppointments>> = [];
+  let blocks: Awaited<ReturnType<typeof listAvailabilityBlocks>> = [];
   let professionals: Awaited<ReturnType<typeof listAvailabilityProfessionalCenters>> = [];
   let specialties: Awaited<ReturnType<typeof getBookableSpecialties>> = [];
   let specialtyUnavailable = false;
@@ -63,6 +68,30 @@ export default async function AgendaPage({
         client,
         selectedSpecialty?.specialty_name,
       );
+    if (!specialtyUnavailable) {
+      const { fromDate, toDate } = agendaRange(filters);
+      blocks = await listAvailabilityBlocks(
+        centerId,
+        {
+          fromDate,
+          toDate,
+          ...(ownProfessionalCenterId
+            ? { professionalCenterId: ownProfessionalCenterId }
+            : filters.professionalCenterId
+              ? { professionalCenterId: filters.professionalCenterId }
+              : {}),
+        },
+        client,
+      );
+      if (selectedSpecialty && role !== "PROFESSIONAL") {
+        const eligible = await getBookableProfessionals(
+          { centerId, specialtyId: selectedSpecialty.specialty_id },
+          client,
+        );
+        const ids = new Set(eligible.map((person) => person.professional_center_id));
+        blocks = blocks.filter((block) => ids.has(block.professionalCenterId));
+      }
+    }
   } catch (error) {
     if (
       error instanceof AuthorizationError ||
@@ -71,6 +100,7 @@ export default async function AgendaPage({
       notFound();
     loadFailed = true;
     appointments = [];
+    blocks = [];
   }
   return (
     <PageReveal>
@@ -83,6 +113,7 @@ export default async function AgendaPage({
         role={role}
         filters={filters}
         appointments={appointments}
+        blocks={blocks}
         professionals={professionals}
         specialties={specialties}
         specialtyUnavailable={specialtyUnavailable}

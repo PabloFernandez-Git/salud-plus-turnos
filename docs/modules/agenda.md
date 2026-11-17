@@ -1,5 +1,9 @@
 # Agenda
 
+## Portfolio DEMO — TASK-PORTFOLIO-038
+
+El encabezado de Mes inicia con mayúscula y Semana muestra el rango civil completo. Día y Semana señalan las fechas bloqueadas; Mes muestra un indicador en cada día afectado. Una lista encima de la grilla identifica profesional, fechas y motivo. Al seleccionar un horario bloqueado no se abre el selector; la búsqueda PostgreSQL tampoco devuelve slots nuevos para ese profesional y fecha. El botón de crear turno y la continuación del selector siguen deshabilitados en modo DEMO.
+
 Es el corazón operativo del producto.
 
 ## Día

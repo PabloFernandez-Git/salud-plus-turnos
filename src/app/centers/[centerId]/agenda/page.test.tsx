@@ -5,7 +5,11 @@ import {
   requireRole,
 } from "@/modules/access/server/authorization";
 import { listAvailabilityProfessionalCenters } from "@/modules/availability/server/availability";
-import { getBookableSpecialties } from "@/modules/appointments/server/appointments";
+import { listAvailabilityBlocks } from "@/modules/availability/server/availability-blocks";
+import {
+  getBookableProfessionals,
+  getBookableSpecialties,
+} from "@/modules/appointments/server/appointments";
 import { listAgendaAppointments } from "@/modules/agenda/server/agenda-appointments";
 import AgendaPage from "./page";
 
@@ -25,8 +29,14 @@ vi.mock("@/modules/access/server/authorization", async (importOriginal) => {
 vi.mock("@/modules/availability/server/availability", () => ({
   listAvailabilityProfessionalCenters: vi.fn(),
 }));
+vi.mock("@/modules/availability/server/availability-blocks", () => ({
+  listAvailabilityBlocks: vi.fn(),
+}));
 vi.mock("@/modules/agenda/server/agenda-appointments", () => ({ listAgendaAppointments: vi.fn() }));
-vi.mock("@/modules/appointments/server/appointments", () => ({ getBookableSpecialties: vi.fn() }));
+vi.mock("@/modules/appointments/server/appointments", () => ({
+  getBookableSpecialties: vi.fn(),
+  getBookableProfessionals: vi.fn(),
+}));
 const centerId = "11111111-1111-4111-8111-111111111111";
 const professionalId = "22222222-2222-4222-8222-222222222222";
 const specialtyId = "33333333-3333-4333-8333-333333333333";
@@ -46,6 +56,8 @@ beforeEach(() => {
   } as never);
   vi.mocked(listAgendaAppointments).mockResolvedValue([]);
   vi.mocked(listAvailabilityProfessionalCenters).mockResolvedValue([]);
+  vi.mocked(listAvailabilityBlocks).mockResolvedValue([]);
+  vi.mocked(getBookableProfessionals).mockResolvedValue([]);
   vi.mocked(getBookableSpecialties).mockResolvedValue([
     { specialty_id: specialtyId, specialty_name: "Clínica" },
   ]);
@@ -62,6 +74,11 @@ describe("agenda tenant route", () => {
       undefined,
     );
     expect(listAvailabilityProfessionalCenters).toHaveBeenCalledWith(centerId, expect.anything());
+    expect(listAvailabilityBlocks).toHaveBeenCalledWith(
+      centerId,
+      expect.objectContaining({ fromDate: "2026-10-01", toDate: "2026-10-31" }),
+      expect.anything(),
+    );
   });
 
   it("uses the own ProfessionalCenter and never fetches the staff catalog", async () => {
@@ -79,6 +96,11 @@ describe("agenda tenant route", () => {
       undefined,
     );
     expect(listAvailabilityProfessionalCenters).not.toHaveBeenCalled();
+    expect(listAvailabilityBlocks).toHaveBeenCalledWith(
+      centerId,
+      expect.objectContaining({ professionalCenterId: professionalId }),
+      expect.anything(),
+    );
   });
 
   it("resolves a Center specialty ID before filtering the complete list", async () => {
@@ -109,5 +131,6 @@ describe("agenda tenant route", () => {
     const result = await page();
     expect(result.props.children.props.loadFailed).toBe(true);
     expect(result.props.children.props.appointments).toEqual([]);
+    expect(result.props.children.props.blocks).toEqual([]);
   });
 });

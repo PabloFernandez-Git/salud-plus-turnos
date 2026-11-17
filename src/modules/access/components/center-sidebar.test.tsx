@@ -82,4 +82,17 @@ describe("center sidebar desktop rail", () => {
     fireEvent.blur(agenda, { relatedTarget: document.body });
     expect(sidebar).toHaveAttribute("data-expanded", "false");
   });
+
+  it("contracts after mouse navigation when the pointer exits", () => {
+    render(<CenterSidebar centerId={centerId} role="ADMIN" />);
+    const sidebar = screen.getByRole("complementary", { name: "Barra lateral del centro" });
+    fireEvent.pointerEnter(sidebar, { pointerType: "mouse" });
+    fireEvent.pointerDown(within(sidebar).getByRole("link", { name: "Agenda" }), {
+      pointerType: "mouse",
+    });
+    fireEvent.focus(within(sidebar).getByRole("link", { name: "Agenda" }));
+    expect(sidebar).toHaveAttribute("data-expanded", "true");
+    fireEvent.pointerLeave(sidebar, { pointerType: "mouse" });
+    expect(sidebar).toHaveAttribute("data-expanded", "false");
+  });
 });

@@ -25,6 +25,71 @@ const professionalId = "22222222-2222-4222-8222-222222222222";
 afterEach(cleanup);
 
 describe("AgendaCalendar", () => {
+  it.each([
+    { view: "day", date: "2026-11-18", title: "miércoles, 18 de noviembre de 2026" },
+    { view: "week", date: "2026-11-18", title: "Semana del 16 al 22 de noviembre de 2026" },
+    { view: "month", date: "2026-11-18", title: "Noviembre de 2026" },
+  ] as const)("shows the improved $view heading", ({ view, date, title }) => {
+    render(
+      <AgendaCalendar
+        centerId={centerId}
+        centerName="Centro"
+        timezone="UTC"
+        today={date}
+        role="ADMIN"
+        filters={{ date, view }}
+        loadFailed={false}
+        professionals={[]}
+        appointments={[]}
+        isPortfolioDemo
+      />,
+    );
+    expect(screen.getByText(title)).toBeVisible();
+  });
+
+  it.each(["day", "week", "month"] as const)(
+    "shows fictitious blocks and read-only controls in %s",
+    (view) => {
+      const { container } = render(
+        <AgendaCalendar
+          centerId={centerId}
+          centerName="Centro"
+          timezone="UTC"
+          today="2026-11-18"
+          role="ADMIN"
+          filters={{ date: "2026-11-18", view, professionalCenterId: professionalId }}
+          loadFailed={false}
+          professionals={[
+            {
+              id: professionalId,
+              firstName: "Ana",
+              lastName: "Demo",
+              usualAppointmentDurationMinutes: 30,
+              updatedAt: "2026-11-01T00:00:00Z",
+            },
+          ]}
+          appointments={[]}
+          blocks={[
+            {
+              id: "44444444-4444-4444-8444-444444444444",
+              professionalCenterId: professionalId,
+              startDate: "2026-11-18",
+              endDate: "2026-11-18",
+              reason: "ABSENCE",
+              updatedAt: "2026-11-01T00:00:00Z",
+            },
+          ]}
+          isPortfolioDemo
+        />,
+      );
+      expect(screen.getByText(/Ana Demo · Ausencia/)).toBeVisible();
+      expect(screen.getByRole("button", { name: "Crear turno" })).toBeDisabled();
+      if (view === "month")
+        expect(container.querySelector(".agenda-block-badge")).toHaveTextContent("1 bloqueo");
+      else expect(container.querySelector(".agenda-blocked-day")).toBeInTheDocument();
+    },
+  );
+
   it("keeps calendar navigation and filters with creation disabled in portfolio mode", () => {
     render(
       <AgendaCalendar

@@ -163,6 +163,18 @@
   -webkit-line-clamp: 2;
   color: #475569;
 }
+.agenda-month-summary .agenda-block-badge {
+  border-radius: 4px;
+  background: #fef3c7;
+  padding: 1px 5px;
+  color: #92400e;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+}
+.agenda-calendar .agenda-blocked-day {
+  background: #fffbeb;
+}
 .agenda-month-summary:disabled {
   opacity: 0.45;
 }

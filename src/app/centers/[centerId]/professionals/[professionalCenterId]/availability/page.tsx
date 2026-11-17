@@ -8,6 +8,7 @@ import {
   requireRole,
 } from "@/modules/access/server/authorization";
 import { AvailabilityScreen } from "@/modules/availability/components/availability-screen";
+import { listAvailabilityBlocks } from "@/modules/availability/server/availability-blocks";
 import {
   AvailabilityNotFoundError,
   getAvailabilityForProfessionalCenter,
@@ -38,12 +39,14 @@ export default async function AvailabilityDetailPage({
     throw error;
   }
   let availability;
+  let blocks;
   try {
     availability = await getAvailabilityForProfessionalCenter(
       centerId,
       professionalCenterId,
       client,
     );
+    blocks = await listAvailabilityBlocks(centerId, { professionalCenterId }, client);
   } catch (error) {
     if (
       error instanceof AvailabilityNotFoundError ||
@@ -60,6 +63,7 @@ export default async function AvailabilityDetailPage({
         timezone={context.center.timezone}
         professional={availability.professional}
         intervals={availability.intervals}
+        blocks={blocks}
         canEdit={context.membership.role !== "PROFESSIONAL"}
         isPortfolioDemo={process.env.PORTFOLIO_DEMO_MODE === "true"}
         canViewProfessionals={context.membership.role === "ADMIN"}
