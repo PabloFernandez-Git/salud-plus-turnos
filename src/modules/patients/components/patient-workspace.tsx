@@ -612,7 +612,7 @@ function Registration({
       !resolution ||
       !resolvedIdentity.current ||
       !sameResolveIdentity(identityRef.current, resolvedIdentity.current) ||
-      (resolution.identity_status === "FOUND" && !resolution.birth_date_matches)
+      resolution.identity_status === "UNVERIFIED"
     )
       return;
     if (showDetails) {
@@ -821,7 +821,7 @@ function Registration({
         </div>
       </form>
       <Feedback result={feedback} />
-      {resolution?.identity_status === "FOUND" && !resolution.birth_date_matches && (
+      {resolution?.identity_status === "UNVERIFIED" && (
         <p role="alert" className="rounded bg-amber-50 p-3">
           No pudimos comprobar la identidad con los datos ingresados. Revisá el documento y la fecha
           de nacimiento.
@@ -1206,7 +1206,7 @@ function Administration({
           found.patient_center_id === detail.patientCenterId
         )
           setReactivation(found);
-        else if (found.identity_status === "FOUND" && !found.birth_date_matches)
+        else if (found.identity_status === "UNVERIFIED")
           setFeedback({
             status: "error",
             code: "birth_mismatch",

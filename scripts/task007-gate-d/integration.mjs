@@ -185,11 +185,17 @@ async function run() {
     )
   ).rows[0];
   assert(
-    mismatch.identity_status === "FOUND" &&
+    mismatch.identity_status === "UNVERIFIED" &&
       mismatch.birth_date_matches === false &&
-      mismatch.person_id === null &&
-      mismatch.patient_center_id === null,
-    "DOB mismatch leaked identity ID",
+      [
+        "first_name",
+        "last_name",
+        "relationship_state",
+        "person_id",
+        "patient_center_id",
+        "patient_center_updated_at",
+      ].every((key) => mismatch[key] === null),
+    "DOB mismatch leaked identity or relationship data",
   );
   await expectFailure(
     "DOB_MISMATCH_LINK",

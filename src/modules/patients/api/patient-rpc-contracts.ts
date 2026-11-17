@@ -48,9 +48,11 @@ const resolveBase = {
   last_name: z.string(),
 };
 const resolveMismatch = z.strictObject({
-  ...resolveBase,
+  identity_status: z.literal("UNVERIFIED"),
+  first_name: z.null(),
+  last_name: z.null(),
   birth_date_matches: z.literal(false),
-  relationship_state: z.enum(["NOT_LINKED", "ACTIVE", "INACTIVE"]),
+  relationship_state: z.null(),
   person_id: z.null(),
   patient_center_id: z.null(),
   patient_center_updated_at: z.null(),

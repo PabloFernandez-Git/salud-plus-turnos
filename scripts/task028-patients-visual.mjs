@@ -32,7 +32,7 @@ writeFileSync(
 const patientCenterId = '22222222-2222-4222-8222-222222222222';
 export async function resolvePatientAction() {
   const mode = new URLSearchParams(location.search);
-  if (mode.has('mismatch')) return { status: 'success', data: { identity_status: 'FOUND', first_name: 'Identidad', last_name: 'Reservada', birth_date_matches: false, relationship_state: 'NOT_LINKED', person_id: null, patient_center_id: null, patient_center_updated_at: null } };
+  if (mode.has('mismatch')) return { status: 'success', data: { identity_status: 'UNVERIFIED', first_name: null, last_name: null, birth_date_matches: false, relationship_state: null, person_id: null, patient_center_id: null, patient_center_updated_at: null } };
   if (mode.has('link')) return { status: 'success', data: { identity_status: 'FOUND', first_name: 'Paciente', last_name: 'Sintético', birth_date_matches: true, relationship_state: 'NOT_LINKED', person_id: '33333333-3333-4333-8333-333333333333', patient_center_id: null, patient_center_updated_at: null } };
   return { status: 'success', data: { identity_status: 'NOT_FOUND', first_name: null, last_name: null, birth_date_matches: null, relationship_state: null, person_id: null, patient_center_id: null, patient_center_updated_at: null } };
 }

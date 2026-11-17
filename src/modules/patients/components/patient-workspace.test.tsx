@@ -48,15 +48,25 @@ const notFound = {
   patient_center_id: null,
   patient_center_updated_at: null,
 };
-const found = (state: "NOT_LINKED" | "ACTIVE" | "INACTIVE", matches = true) => ({
+const unverified = {
+  identity_status: "UNVERIFIED",
+  first_name: null,
+  last_name: null,
+  birth_date_matches: false,
+  relationship_state: null,
+  person_id: null,
+  patient_center_id: null,
+  patient_center_updated_at: null,
+};
+const found = (state: "NOT_LINKED" | "ACTIVE" | "INACTIVE") => ({
   identity_status: "FOUND",
   first_name: "Ana",
   last_name: "Pérez",
-  birth_date_matches: matches,
+  birth_date_matches: true,
   relationship_state: state,
-  person_id: matches ? personId : null,
-  patient_center_id: matches && state !== "NOT_LINKED" ? patientCenterId : null,
-  patient_center_updated_at: matches && state !== "NOT_LINKED" ? updatedAt : null,
+  person_id: personId,
+  patient_center_id: state !== "NOT_LINKED" ? patientCenterId : null,
+  patient_center_updated_at: state !== "NOT_LINKED" ? updatedAt : null,
 });
 const detail = {
   patientCenterId,
@@ -525,11 +535,7 @@ describe("patient staged dialogs", () => {
   it("blocks mutation and stored DOB disclosure on mismatch", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
       status: "success",
-      data: {
-        ...found("NOT_LINKED", false),
-        first_name: "NombreInterno",
-        last_name: "ApellidoInterno",
-      },
+      data: unverified,
     } as never);
     renderRegistration();
     const warning = await screen.findByRole("alert");
@@ -539,9 +545,7 @@ describe("patient staged dialogs", () => {
     expect(warning).toHaveClass("bg-amber-50");
     expect(screen.getByRole("textbox", { name: "Documento" })).toHaveValue("123");
     expect(screen.getByRole("textbox", { name: "Fecha de nacimiento" })).toHaveValue("02/01/2000");
-    expect(
-      screen.queryByText(/NombreInterno|ApellidoInterno|2000-01-02|33333333/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Identidad encontrada|2000-01-02|33333333/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Vincular|Reactivar|Revisar alta/ }),
     ).not.toBeInTheDocument();
@@ -940,6 +944,31 @@ describe("patient staged dialogs", () => {
         expect.objectContaining({ patientCenterId, expectedUpdatedAt: updatedAt, confirmed: true }),
       ),
     );
+  });
+  it("blocks reactivation when the stored birth date is not verified", async () => {
+    vi.mocked(resolvePatientAction).mockResolvedValue({
+      status: "success",
+      data: unverified,
+    } as never);
+    render(
+      <PatientWorkspace
+        centerId={centerId}
+        filters={filters}
+        detail={{ ...detail, isActive: false }}
+        detailFailed={false}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Confirmar fecha de nacimiento"), {
+      target: { value: "2001-01-02" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Comprobar para reactivar" }));
+    expect(
+      await screen.findByText("Los datos ingresados no coinciden con la identidad registrada."),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Confirmar reactivación" }),
+    ).not.toBeInTheDocument();
+    expect(reactivatePatientAction).not.toHaveBeenCalled();
   });
   it("returns to appointment creation after reactivating from a detail opened with intent", async () => {
     vi.mocked(resolvePatientAction).mockResolvedValue({
