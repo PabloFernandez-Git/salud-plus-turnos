@@ -2,7 +2,7 @@
 
 ## Preflight
 
-**Resultado:** integración y despliegue aprobados; cierre funcional condicionado al smoke visual autenticado.
+**Resultado:** PASS. Integración, despliegue y smoke visual autenticado aprobados; tarea cerrada.
 
 - El diff seleccionado contiene interfaz, lectura, tipos, pruebas y documentación de TASK-038.
 - `listAvailabilityBlocks` invoca únicamente `staff_list_availability_blocks` desde el servidor, con contexto de centro autorizado por las páginas.
@@ -11,4 +11,4 @@
 - La configuración Production conserva las tres banderas de solo lectura, CAPTCHA e invitados; la URL Supabase sensible se comprueba también mediante el guard de servidor y se revisará en el sitio publicado.
 - No se tocó Auth, Turnstile, DEV o PROD ni se ejecutaron migración o seed.
 
-El diff staged contenía solo 20 archivos de TASK-038, sin SQL ni escritura. Vitest, TypeScript, ESLint, Prettier, build y `git diff --check` pasaron. Vercel asignó el alias público al commit `557cc6b` en estado `READY`; login y bundle DEMO se comprobaron por HTTP. La inspección de Agenda y Disponibilidad desde invitado continúa pendiente por indisponibilidad del host de navegador conectado. No declarar TASK-PORTFOLIO-038 cerrada hasta acreditar ese smoke.
+El diff staged contenía solo 20 archivos de TASK-038, sin SQL ni escritura. Vitest, TypeScript, ESLint, Prettier, build y `git diff --check` pasaron. Vercel asignó el alias público al commit `557cc6b` en estado `READY`; login y bundle DEMO se comprobaron por HTTP. El operador confirmó en Chrome, con acceso invitado, los cuatro bloqueos en Agenda (Día, Semana y Mes) y Disponibilidad: Ana 16/11 y 20/11; Luis 17–18/11 y 21–22/11. El navegador conectado del agente no estuvo disponible; la evidencia visual procede de esa confirmación del operador.
