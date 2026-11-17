@@ -16,7 +16,7 @@ La migration incremental `20261117124426_protect_unverified_patient_identity.sql
 
 ## Integración
 
-El PR y su CI se registran al crearlos. No se ejecuta merge si CI falla, hay conflictos o aparece un hallazgo bloqueante. DEMO, PROD y portfolio no se modifican en este cierre.
+El [PR #52](https://github.com/PabloFernandez-Git/salud-plus-turnos/pull/52) integra la corrección y este expediente hacia `main`. El squash merge queda condicionado a CI exitoso, ausencia de conflictos y de hallazgos bloqueantes. DEMO, PROD y portfolio no se modifican en este cierre.
 
 ## Riesgos residuales
 
