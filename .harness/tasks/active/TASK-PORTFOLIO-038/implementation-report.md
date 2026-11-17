@@ -13,7 +13,7 @@
 - Vercel Production: `PORTFOLIO_DEMO_MODE`, `PORTFOLIO_CAPTCHA_REQUIRED` y `PORTFOLIO_GUEST_ACCESS_ENABLED` son `true`. La URL de Supabase se guarda como variable sensible; el guard de servidor exige exactamente la URL DEMO al habilitar invitados.
 - Vitest focal: 7 archivos, 78/78 pruebas aprobadas.
 - TypeScript `tsc --noEmit`: PASS. ESLint focal: PASS.
-- Prettier focal: se aplicó el formato a los 14 archivos TS/TSX/CSS copiados; comprobar de nuevo antes del commit.
+- Prettier focal: PASS en los 14 archivos TS/TSX/CSS copiados.
 - `next build --webpack` con URL DEMO y claves públicas sintéticas: PASS.
 - `git diff --check`: PASS.
 
@@ -21,4 +21,9 @@ El `pnpm bootstrap` del worktree encontró un junction preexistente hacia `node_
 
 ## Publicación
 
-Pendiente de commit, push, despliegue y verificación funcional en la URL pública.
+- Commit integrado y publicado: `557cc6ba481fb35d01c60e30e97cf839db494644` en `codex/portfolio-mvp`, desde el commit fuente selectivo `82935a7`.
+- Vercel Production: `dpl_hZYWhAtM81GZ4h2kig23Ne9hG4pS`, `READY`, alias `https://salud-plus-portfolio.vercel.app/`.
+- `/login` responde HTTP 200 y muestra Demo invitado y Turnstile. Los 12 scripts cargados por esa página contienen un único origen Supabase, `oygrwetmxsqgcizopezq.supabase.co`; ninguno de DEV.
+- DEMO: Ana tiene VACATION el 16/11 y HOLIDAY el 20/11; Luis tiene ABSENCE el 17–18/11 y OTHER el 21–22/11. No hay turnos superpuestos con esos bloqueos y se conservan los tres turnos previos. Sin SQL mutante.
+- Vercel no registró errores/fatales para ese despliegue durante la ventana consultada.
+- Smoke visual autenticado de Agenda (Día, Semana y Mes) y Disponibilidad: **PENDIENTE**. El host de control de navegador devolvió `browser access host is unavailable`; no se obtuvo una observación de las pantallas desplegadas. Los tests de componentes y los datos remotos acreditan partes del flujo, pero no sustituyen esa inspección.
