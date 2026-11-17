@@ -25,18 +25,22 @@ const notFound = {
   patient_center_updated_at: null,
 };
 const mismatch = {
-  identity_status: "FOUND",
-  first_name: "Ana",
-  last_name: "Pérez",
+  identity_status: "UNVERIFIED",
+  first_name: null,
+  last_name: null,
   birth_date_matches: false,
-  relationship_state: "ACTIVE",
+  relationship_state: null,
   person_id: null,
   patient_center_id: null,
   patient_center_updated_at: null,
 };
 const linked = {
   ...mismatch,
+  identity_status: "FOUND",
+  first_name: "Ana",
+  last_name: "Pérez",
   birth_date_matches: true,
+  relationship_state: "ACTIVE",
   person_id: personId,
   patient_center_id: patientCenterId,
   patient_center_updated_at: updatedAt,
@@ -45,7 +49,31 @@ const linked = {
 describe("Patients SQL-derived RPC contracts", () => {
   it("accepts all real resolve branches and rejects unsafe substitutions", () => {
     expect(patientResolveRowSchema.parse(notFound).first_name).toBeNull();
-    expect(patientResolveRowSchema.parse(mismatch).person_id).toBeNull();
+    expect(patientResolveRowSchema.parse(mismatch)).toEqual(mismatch);
+    for (const [field, value] of Object.entries({
+      first_name: "Ana",
+      last_name: "Pérez",
+      relationship_state: "ACTIVE",
+      person_id: personId,
+      patient_center_id: patientCenterId,
+      patient_center_updated_at: updatedAt,
+    })) {
+      expect(patientResolveRowSchema.safeParse({ ...mismatch, [field]: value }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      patientResolveRowSchema.safeParse({ ...linked, birth_date_matches: false }).success,
+    ).toBe(false);
+    expect(
+      patientResolveRowSchema.safeParse({
+        ...mismatch,
+        identity_status: "FOUND",
+        first_name: "Ana",
+        last_name: "Pérez",
+        relationship_state: "NOT_LINKED",
+      }).success,
+    ).toBe(false);
     expect(
       patientResolveRowSchema.parse({
         ...linked,
@@ -60,9 +88,6 @@ describe("Patients SQL-derived RPC contracts", () => {
         .relationship_state,
     ).toBe("INACTIVE");
     expect(patientResolveRowSchema.safeParse({ ...notFound, first_name: "" }).success).toBe(false);
-    expect(patientResolveRowSchema.safeParse({ ...mismatch, person_id: personId }).success).toBe(
-      false,
-    );
     expect(patientResolveRowSchema.safeParse({ ...linked, patient_center_id: null }).success).toBe(
       false,
     );
